@@ -1,0 +1,127 @@
+-- =============================================
+-- LEEX CONTABLE — Esquema de base de datos
+-- Ejecutar en Supabase SQL Editor
+-- =============================================
+
+-- Proyectos
+CREATE TABLE proyectos (
+  id SERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  descripcion TEXT,
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Plan de cuentas
+CREATE TABLE cuentas (
+  id SERIAL PRIMARY KEY,
+  codigo TEXT UNIQUE NOT NULL,
+  nombre TEXT NOT NULL,
+  tipo TEXT NOT NULL CHECK (tipo IN ('Activo','Pasivo','Patrimonio','Ingreso','Gasto')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Gastos
+CREATE TABLE gastos (
+  id SERIAL PRIMARY KEY,
+  fecha DATE NOT NULL,
+  descripcion TEXT NOT NULL,
+  comprobante TEXT,
+  cuenta_codigo TEXT REFERENCES cuentas(codigo),
+  monto NUMERIC(14,2) NOT NULL,
+  proyecto_id INTEGER REFERENCES proyectos(id),
+  metodo TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Asientos contables (cabecera)
+CREATE TABLE asientos (
+  id SERIAL PRIMARY KEY,
+  fecha DATE NOT NULL,
+  descripcion TEXT NOT NULL,
+  referencia TEXT,
+  origen TEXT DEFAULT 'manual',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Líneas de asiento (detalle)
+CREATE TABLE asiento_lineas (
+  id SERIAL PRIMARY KEY,
+  asiento_id INTEGER REFERENCES asientos(id) ON DELETE CASCADE,
+  cuenta_codigo TEXT REFERENCES cuentas(codigo),
+  detalle TEXT,
+  debe NUMERIC(14,2) DEFAULT 0,
+  haber NUMERIC(14,2) DEFAULT 0
+);
+
+-- Movimientos bancarios
+CREATE TABLE movimientos_banco (
+  id SERIAL PRIMARY KEY,
+  fecha DATE NOT NULL,
+  descripcion TEXT NOT NULL,
+  monto NUMERIC(14,2) NOT NULL,
+  conciliado BOOLEAN DEFAULT false,
+  asiento_id INTEGER REFERENCES asientos(id),
+  factura_nombre TEXT,
+  factura_tipo TEXT,
+  factura_data TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Configuración general
+CREATE TABLE configuracion (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL
+);
+
+-- =============================================
+-- DATOS INICIALES
+-- =============================================
+
+INSERT INTO configuracion VALUES
+  ('saldo_inicial_banco', '12453.05'),
+  ('ejercicio', '2026'),
+  ('moneda', 'USD'),
+  ('banco_nombre', 'International Finance Bank'),
+  ('banco_cuenta', '001-LEEX-2026');
+
+INSERT INTO proyectos (nombre, descripcion) VALUES ('Chile', 'Proyecto Chile');
+
+INSERT INTO cuentas (codigo, nombre, tipo) VALUES
+  ('1.1.01', 'Caja y Bancos', 'Activo'),
+  ('1.1.02', 'Cuentas por Cobrar', 'Activo'),
+  ('1.1.03', 'Inventario', 'Activo'),
+  ('1.2.01', 'Activos Fijos', 'Activo'),
+  ('2.1.01', 'Cuentas por Pagar', 'Pasivo'),
+  ('2.1.02', 'Deudas Bancarias', 'Pasivo'),
+  ('3.1.01', 'Capital Social', 'Patrimonio'),
+  ('3.1.02', 'Resultados Acumulados', 'Patrimonio'),
+  ('4.1.01', 'Ingresos por Servicios', 'Ingreso'),
+  ('4.1.02', 'Otros Ingresos', 'Ingreso'),
+  ('5.1.01', 'Sueldos y Salarios', 'Gasto'),
+  ('5.1.02', 'Alquiler', 'Gasto'),
+  ('5.1.03', 'Servicios y Utilities', 'Gasto'),
+  ('5.1.04', 'Gastos de Viaje', 'Gasto'),
+  ('5.1.05', 'Honorarios Profesionales', 'Gasto'),
+  ('5.1.06', 'Gastos Bancarios', 'Gasto'),
+  ('5.1.07', 'Otros Gastos', 'Gasto');
+
+-- =============================================
+-- SEGURIDAD (RLS)
+-- =============================================
+
+ALTER TABLE proyectos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cuentas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gastos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE asientos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE asiento_lineas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE movimientos_banco ENABLE ROW LEVEL SECURITY;
+ALTER TABLE configuracion ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "acceso_publico" ON proyectos FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON cuentas FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON gastos FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON asientos FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON asiento_lineas FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON movimientos_banco FOR ALL USING (true);
+CREATE POLICY "acceso_publico" ON configuracion FOR ALL USING (true);
