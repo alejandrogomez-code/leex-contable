@@ -148,9 +148,10 @@ function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq
 
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
-var C={config:{saldo_inicial_banco:12453.05,banco_nombre:'International Finance Bank',banco_cuenta:'001-LEEX-2026'},cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:['Asiento Genérico','Saldo Inicial','Cierre de Ejercicio','Ajuste'],cfg_proveedores:['Enmind','Comen'],cfg_conceptos_gasto:['Viáticos','Gastos Varios','Oficina Chile','Alquiler','Sueldo'],cfg_estados_gasto:['Pendiente','Pagado'],cfg_quien_pago:['Leex','Deam','IBS','Neuroventas'],cfg_tipo_op:['Pago Exterior','Nacionalización','Chile']};
+var C={config:{saldo_inicial_banco:12453.05,banco_nombre:'International Finance Bank',banco_cuenta:'001-LEEX-2026'},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:['Asiento Genérico','Saldo Inicial','Cierre de Ejercicio','Ajuste'],cfg_proveedores:['Enmind','Comen'],cfg_conceptos_gasto:['Viáticos','Gastos Varios','Oficina Chile','Alquiler','Sueldo'],cfg_estados_gasto:['Pendiente','Pagado'],cfg_quien_pago:['Leex','Deam','IBS','Neuroventas'],cfg_tipo_op:['Pago Exterior','Nacionalización','Chile']};
 var asientoTab='libro',mayorCuenta='',aBusca='',pendingAsiento=null,alineCount=0,editCuentaId=null;
 var gFiltros={desde:'',hasta:'',cuenta:''};
+var selProyId=null, proyTab='comex';
 
 function login(){
   var u=document.getElementById('lu').value.trim().toLowerCase();
@@ -184,7 +185,8 @@ function loadAll(){
     sbGet('movimientos_banco','select=*&order=fecha'),
     sbGet('comex','select=*&order=id'),
     sbGet('proy_ingresos','select=*&order=id'),
-    sbGet('proy_gastos','select=*&order=id')
+    sbGet('proy_gastos','select=*&order=id'),
+    sbGet('proyectos','select=*&order=id')
   ]).then(function(res){
     if(Array.isArray(res[0]))res[0].forEach(function(r){
       if(r.clave==='saldo_inicial_banco')C.config.saldo_inicial_banco=parseFloat(r.valor);
@@ -199,6 +201,8 @@ function loadAll(){
     C.comex=Array.isArray(res[6])?res[6]:[];
     C.proy_ingresos=Array.isArray(res[7])?res[7]:[];
     C.proy_gastos=Array.isArray(res[8])?res[8]:[];
+    C.proyectos=Array.isArray(res[9])?res[9]:[];
+    if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error Supabase: '+e.message+'</div>';
   });
