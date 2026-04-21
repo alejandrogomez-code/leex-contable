@@ -335,13 +335,34 @@ function chkBal(){var ls=getLines(),d=0,h=0;ls.forEach(function(l){d+=l.debe;h+=
 function saveAsiento(){
   var f=document.getElementById('aF').value,d=document.getElementById('aD').value.trim(),r=document.getElementById('aR').value.trim(),cat=document.getElementById('aCat').value,movId=document.getElementById('aPendMovId').value;
   var ls=getLines(),db=0,hb=0;ls.forEach(function(l){db+=l.debe;hb+=l.haber;});
-  if(!f||!d){alert('Completá fecha y descripción.');return;}if(ls.length<2){alert('Mínimo 2 líneas.');return;}if(Math.abs(db-hb)>0.001){alert('No balanceado.');return;}
+  if(!f||!d){alert('Completá fecha y descripción.');return;}
+  if(ls.length<2){alert('Mínimo 2 líneas.');return;}
+  if(Math.abs(db-hb)>0.001){alert('No balanceado.');return;}
+  // Validar que todas las cuentas estén seleccionadas
+  for(var i=0;i<ls.length;i++){if(!ls[i].cuenta){alert('Seleccioná una cuenta en todas las líneas.');return;}}
   sbPost('asientos',{fecha:f,descripcion:d,referencia:r||'AST-nuevo',origen:movId?'banco':'manual',categoria:cat}).then(function(res){
-    var ast=Array.isArray(res)?res[0]:res;if(!ast||!ast.id){alert('Error.');return;}
-    var astId=ast.id;sbPatch('asientos',astId,{referencia:r||'AST-'+String(astId).padStart(3,'0')});
-    sbPost('asiento_lineas',ls.map(function(l){return{asiento_id:astId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};})).then(function(){
-      if(movId){sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');});}
-      else{pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');}
+    var ast=Array.isArray(res)?res[0]:res;
+    if(!ast||!ast.id){
+      alert('Error al crear el asiento. Detalle: '+(res&&res.message?res.message:JSON.stringify(res)));
+      return;
+    }
+    var astId=ast.id;
+    sbPatch('asientos',astId,{referencia:r||'AST-'+String(astId).padStart(3,'0')});
+    var lineasBody=ls.map(function(l){return{asiento_id:astId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};});
+    sbPost('asiento_lineas',lineasBody).then(function(resL){
+      // Verificar si hubo error en las líneas
+      if(resL&&resL.code){
+        alert('Error al guardar líneas: '+resL.message+'\nVerificá que las cuentas existan en el plan de cuentas.');
+        sbDelete('asientos',astId);
+        return;
+      }
+      if(movId){
+        sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){
+          pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');
+        });
+      } else {
+        pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');
+      }
     });
   });
 }
