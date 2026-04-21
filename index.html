@@ -265,11 +265,11 @@ function pgAsientos(){
     var rows='';
     fil.forEach(function(a){
       var ls=lineasDeAsiento(a.id),d=0,h=0;ls.forEach(function(l){d+=parseFloat(l.debe);h+=parseFloat(l.haber);});
-      rows+='<tr><td>AST-'+String(a.id).padStart(3,'0')+'</td><td>'+fmtD(a.fecha)+'</td><td>'+a.descripcion+(a.origen==='banco'?'<span class="badge bb" style="font-size:10px;margin-left:5px">🏦</span>':'')+(a.categoria?'<span class="badge by" style="font-size:10px;margin-left:5px">'+a.categoria+'</span>':'')+'</td><td>'+(a.referencia||'')+'</td><td class="green">'+fmt(d)+'</td><td class="cyan">'+fmt(h)+'</td></tr>';
+      rows+='<tr><td>AST-'+String(a.id).padStart(3,'0')+'</td><td>'+fmtD(a.fecha)+'</td><td>'+a.descripcion+(a.origen==='banco'?'<span class="badge bb" style="font-size:10px;margin-left:5px">🏦</span>':'')+(a.categoria?'<span class="badge by" style="font-size:10px;margin-left:5px">'+a.categoria+'</span>':'')+'</td><td>'+(a.referencia||'')+'</td><td class="green">'+fmt(d)+'</td><td class="cyan">'+fmt(h)+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="deleteAsiento('+a.id+')">🗑</button></td>':'')+'</tr>';
       ls.forEach(function(l){rows+='<tr style="font-size:11px;color:var(--text2)"><td></td><td></td><td style="padding-left:24px">'+l.cuenta_codigo+' — '+l.detalle+'</td><td></td><td>'+(parseFloat(l.debe)>0?fmt(l.debe):'')+'</td><td>'+(parseFloat(l.haber)>0?fmt(l.haber):'')+'</td></tr>';});
     });
     content='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center"><input type="text" placeholder="🔍 Buscar..." value="'+aBusca+'" oninput="aBusca=this.value;go(\'asientos\')" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;outline:none"/>'+(aBusca?'<button class="btn bs sm" onclick="aBusca=\'\';go(\'asientos\')">✕</button>':'')+(!ro?'<button class="btn bp sm" onclick="asientoTab=\'nuevo\';go(\'asientos\')">+ Nuevo</button>':'')+'</div>'+
-      '<div class="twrap"><div class="thead2"><h3>Libro Diario — '+fil.length+' asientos</h3></div><table><thead><tr><th>Nro.</th><th>Fecha</th><th>Descripción</th><th>Ref.</th><th>Debe</th><th>Haber</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Sin asientos</td></tr>')+'</tbody></table></div>';
+      '<div class="twrap"><div class="thead2"><h3>Libro Diario — '+fil.length+' asientos</h3></div><table><thead><tr><th>Nro.</th><th>Fecha</th><th>Descripción</th><th>Ref.</th><th>Debe</th><th>Haber</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Sin asientos</td></tr>')+'</tbody></table></div>';
   }
   if(asientoTab==='mayor'){
     var opts='<option value="">— Cuenta —</option>';C.cuentas.forEach(function(c){opts+='<option value="'+c.codigo+'"'+(mayorCuenta===c.codigo?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});
@@ -305,7 +305,12 @@ function saveAsiento(){
     });
   });
 }
-function genAsiento(id){
+function deleteAsiento(id){
+  if(!confirm('¿Eliminar asiento AST-'+String(id).padStart(3,'0')+'? Se eliminarán también todas sus líneas.'))return;
+  sbDelete('asiento_lineas','asiento_id=eq.'+id).then(function(){
+    sbDelete('asientos',id).then(function(){reload('asientos');});
+  });
+}
   var m=C.movs.find(function(x){return x.id===id;});if(!m)return;
   asientoTab='nuevo';pendingAsiento={fecha:m.fecha,desc:m.descripcion,ref:'AST-nuevo',movId:m.id,lineas:parseFloat(m.monto)>0?[{cuenta:'1.1.01',det:m.descripcion,debe:Math.abs(m.monto),haber:0},{cuenta:'4.1.01',det:m.descripcion,debe:0,haber:Math.abs(m.monto)}]:[{cuenta:'5.1.07',det:m.descripcion,debe:Math.abs(m.monto),haber:0},{cuenta:'1.1.01',det:m.descripcion,debe:0,haber:Math.abs(m.monto)}]};
   go('asientos');
@@ -367,13 +372,14 @@ function pgResultados(){
 
 function pgCuentas(){
   var ro=!isAdmin(),rows='';
-  C.cuentas.forEach(function(c){var bc=c.tipo==='Activo'?'bg':c.tipo==='Pasivo'?'br':c.tipo==='Patrimonio'?'bb':c.tipo==='Ingreso'?'bg':'by';rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td><span class="badge '+bc+'">'+c.tipo+'</span></td><td>'+(!ro?'<button class="btn sm bs" onclick="editCuenta('+c.id+')">✏</button>':'')+'</td></tr>';});
+  C.cuentas.forEach(function(c){var bc=c.tipo==='Activo'?'bg':c.tipo==='Pasivo'?'br':c.tipo==='Patrimonio'?'bb':c.tipo==='Ingreso'?'bg':'by';rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td><span class="badge '+bc+'">'+c.tipo+'</span></td><td>'+(!ro?'<button class="btn sm bs" onclick="editCuenta('+c.id+')" style="margin-right:4px">✏</button><button class="btn sm bd" onclick="deleteCuenta('+c.id+',\''+c.codigo+'\')">🗑</button>':'')+'</td></tr>';});
   var editForm='';
   if(editCuentaId!==null){var ec=C.cuentas.find(function(c){return c.id===editCuentaId;});if(ec)editForm='<div class="panel" style="border-color:var(--cyan)"><h3>✏ Editando: '+ec.codigo+'</h3><div class="fg3"><div class="f"><label>Código</label><input type="text" id="eCod" value="'+ec.codigo+'"/></div><div class="f"><label>Nombre</label><input type="text" id="eNom" value="'+ec.nombre+'"/></div><div class="f"><label>Tipo</label><select id="eTip"><option'+(ec.tipo==='Activo'?' selected':'')+'>Activo</option><option'+(ec.tipo==='Pasivo'?' selected':'')+'>Pasivo</option><option'+(ec.tipo==='Patrimonio'?' selected':'')+'>Patrimonio</option><option'+(ec.tipo==='Ingreso'?' selected':'')+'>Ingreso</option><option'+(ec.tipo==='Gasto'?' selected':'')+'>Gasto</option></select></div></div><div class="factions"><button class="btn bp" onclick="updateCuenta()">Guardar</button><button class="btn bs" onclick="editCuentaId=null;go(\'cuentas\')">Cancelar</button></div></div>';}
   return '<div class="pageTitle">Plan de Cuentas</div>'+(!ro?'<div class="panel"><h3>Nueva Cuenta</h3><div class="fg3"><div class="f"><label>Código</label><input type="text" id="cC" placeholder="5.1.08"/></div><div class="f"><label>Nombre</label><input type="text" id="cN"/></div><div class="f"><label>Tipo</label><select id="cT"><option>Activo</option><option>Pasivo</option><option>Patrimonio</option><option>Ingreso</option><option>Gasto</option></select></div></div><div class="factions"><button class="btn bp" onclick="addCuenta()">Agregar</button></div></div>':'')+editForm+'<div class="twrap"><div class="thead2"><h3>Plan de Cuentas</h3><span style="font-size:12px;color:var(--text2)">'+C.cuentas.length+' cuentas</span></div><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 function editCuenta(id){editCuentaId=id;go('cuentas');}
 function updateCuenta(){var cod=document.getElementById('eCod').value.trim(),nom=document.getElementById('eNom').value.trim(),tip=document.getElementById('eTip').value;if(!cod||!nom){alert('Completá los campos.');return;}sbPatch('cuentas',editCuentaId,{codigo:cod,nombre:nom,tipo:tip}).then(function(){editCuentaId=null;reload('cuentas');});}
+function deleteCuenta(id,cod){if(!confirm('¿Eliminar la cuenta '+cod+'? Esta acción no se puede deshacer.'))return;sbDelete('cuentas',id).then(function(){reload('cuentas');});}
 function addCuenta(){var cod=document.getElementById('cC').value.trim(),nom=document.getElementById('cN').value.trim();if(!cod||!nom){alert('Completá código y nombre.');return;}if(C.cuentas.find(function(c){return c.codigo===cod;})){alert('Código ya existe.');return;}sbPost('cuentas',{codigo:cod,nombre:nom,tipo:document.getElementById('cT').value}).then(function(){reload('cuentas');});}
 
 function pgProyDash(){
