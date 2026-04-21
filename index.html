@@ -146,8 +146,10 @@ function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
 var C={config:{saldo_inicial_banco:12453.05,banco_nombre:'International Finance Bank',banco_cuenta:'001-LEEX-2026'},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:['Asiento Genérico','Saldo Inicial','Cierre de Ejercicio','Ajuste'],cfg_proveedores:['Enmind','Comen'],cfg_conceptos_gasto:['Viáticos','Gastos Varios','Oficina Chile','Alquiler','Sueldo'],cfg_estados_gasto:['Pendiente','Pagado'],cfg_quien_pago:['Leex','Deam','IBS','Neuroventas'],cfg_tipo_op:['Pago Exterior','Nacionalización','Chile']};
+var bancoFiltro='todos';
+var bancoDesde='',bancoHasta='';
+
 var asientoTab='libro',mayorCuenta='',aBusca='',pendingAsiento=null,alineCount=0,editCuentaId=null;
-var gFiltros={desde:'',hasta:'',cuenta:''};
 var selProyId=null,proyTab='comex';
 
 function login(){
@@ -396,15 +398,36 @@ function pgBanco(){
   var ro=!isAdmin(),sb=saldoBanco();
   var conc=C.movs.filter(function(m){return m.conciliado;}).length;
   var pend=C.movs.filter(function(m){return !m.conciliado;}).length;
+  var conAst=C.movs.filter(function(m){return !!m.asiento_id;}).length;
+  var sinAst=C.movs.filter(function(m){return !m.asiento_id;}).length;
+
+  // Aplicar filtros
+  var movsFil=C.movs.filter(function(m){
+    if(bancoDesde&&m.fecha<bancoDesde)return false;
+    if(bancoHasta&&m.fecha>bancoHasta)return false;
+    if(bancoFiltro==='conciliado'&&!m.conciliado)return false;
+    if(bancoFiltro==='pendiente'&&m.conciliado)return false;
+    if(bancoFiltro==='con_asiento'&&!m.asiento_id)return false;
+    if(bancoFiltro==='sin_asiento'&&m.asiento_id)return false;
+    return true;
+  });
+
+  var saldoConciliado=C.config.saldo_inicial_banco;
+  C.movs.forEach(function(m){if(m.conciliado)saldoConciliado+=parseFloat(m.monto);});
+  var diferencia=sb-saldoConciliado;
+  // Calcular saldo acumulado sobre TODOS los movimientos (no filtrados)
   var sAcum=C.config.saldo_inicial_banco,rows='';
-  C.movs.forEach(function(m){
-    sAcum+=parseFloat(m.monto);var tieneAsiento=!!m.asiento_id;
+  C.movs.forEach(function(m){acum+=parseFloat(m.monto);saldos[m.id]=acum;});
+
+  movsFil.forEach(function(m){
+    var tieneAsiento=!!m.asiento_id;
     var factBtn='';
     if(!ro){factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(m.factura_nombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(m.factura_nombre?'var(--green)':'var(--text2)')+';border:1px solid '+(m.factura_nombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(m.factura_nombre?m.factura_nombre.substring(0,10)+'...':'Factura')+'</label>'+(m.factura_nombre?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button>':'');}
-    rows+='<tr><td>'+fmtD(m.fecha)+'</td><td>'+m.descripcion+'</td>'+
+    rows+='<tr>'+
+      '<td>'+fmtD(m.fecha)+'</td><td>'+m.descripcion+'</td>'+
       '<td><span class="badge '+(parseFloat(m.monto)>0?'bg':'br')+'">'+(parseFloat(m.monto)>0?'Crédito':'Débito')+'</span></td>'+
       '<td class="'+(parseFloat(m.monto)>0?'green':'red')+'">'+(parseFloat(m.monto)>0?'+':'')+fmt(m.monto)+'</td>'+
-      '<td style="font-family:monospace;font-size:11px">'+fmt(sAcum)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+fmt(saldos[m.id])+'</td>'+
       '<td><span class="badge '+(m.conciliado?'bg':'by')+'">'+(m.conciliado?'✓':'Pendiente')+'</span>'+(tieneAsiento?' <span class="badge bb" style="font-size:10px">📋</span>':'')+'</td>'+
       (ro?'':'<td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">'+
         (!m.conciliado?'<button class="btn sm bp" onclick="conciliar('+m.id+')">Conciliar</button>':'<button class="btn sm bs" onclick="desconciliar('+m.id+')" style="font-size:10px">↩ Desc.</button>')+
@@ -412,18 +435,45 @@ function pgBanco(){
         factBtn+'</td>')+
       '</tr>';
   });
+
+  // Barra de filtros
+  var filtros='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2)">🔍 Filtros:</span>'+
+    // Filtro fecha
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<span style="font-size:11px;color:var(--text2)">Desde:</span>'+
+    '<input type="date" value="'+bancoDesde+'" onchange="bancoDesde=this.value;go(\'banco\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<span style="font-size:11px;color:var(--text2)">Hasta:</span>'+
+    '<input type="date" value="'+bancoHasta+'" onchange="bancoHasta=this.value;go(\'banco\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '</div>'+
+    // Filtro estado
+    '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
+    '<button class="btn sm '+(bancoFiltro==='todos'?'bp':'bs')+'" onclick="bancoFiltro=\'todos\';go(\'banco\')">Todos ('+C.movs.length+')</button>'+
+    '<button class="btn sm '+(bancoFiltro==='conciliado'?'bp':'bs')+'" onclick="bancoFiltro=\'conciliado\';go(\'banco\')">✓ Conciliados ('+conc+')</button>'+
+    '<button class="btn sm '+(bancoFiltro==='pendiente'?'bp':'bs')+'" onclick="bancoFiltro=\'pendiente\';go(\'banco\')">⏳ Pendientes ('+pend+')</button>'+
+    '<button class="btn sm '+(bancoFiltro==='con_asiento'?'bp':'bs')+'" onclick="bancoFiltro=\'con_asiento\';go(\'banco\')">📋 Con Asiento ('+conAst+')</button>'+
+    '<button class="btn sm '+(bancoFiltro==='sin_asiento'?'bp':'bs')+'" onclick="bancoFiltro=\'sin_asiento\';go(\'banco\')">⚙ Sin Asiento ('+sinAst+')</button>'+
+    '</div>'+
+    ((bancoDesde||bancoHasta||bancoFiltro!=='todos')?'<button class="btn sm bd" onclick="bancoFiltro=\'todos\';bancoDesde=\'\';bancoHasta=\'\';go(\'banco\')">✕ Limpiar</button>':'')+
+    '</div>';
+
   var csvForm=ro?'':
     '<div class="panel"><h3>📂 Importar CSV</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">Columnas: Processed Date, Description, Credit or Debit, Amount</p>'+
     '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"><label style="cursor:pointer;background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:14px 20px;text-align:center"><input type="file" accept=".csv,.txt" style="display:none" onchange="loadCSVFile(event)"/><div style="font-size:20px">📄</div><div style="font-size:12px;font-weight:600">Seleccionar CSV</div></label>'+
     '<div style="flex:1;min-width:180px"><textarea id="csvTxt" rows="3" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-size:11px;font-family:monospace;resize:vertical"></textarea><button class="btn bp sm" style="margin-top:6px" onclick="loadCSVText()">Importar texto</button></div></div>'+
     '<div id="csvPrev"></div></div>'+
     '<div class="panel"><h3>➕ Manual</h3><div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="mF" value="'+hoy()+'"/></div><div class="f"><label>Descripción</label><input type="text" id="mD"/></div><div class="f"><label>Tipo</label><select id="mT"><option>Crédito</option><option>Débito</option></select></div><div class="f"><label>Monto USD</label><input type="number" id="mM" placeholder="0.00" min="0" step="0.01"/></div></div><div class="factions"><button class="btn bp" onclick="addMov()">Agregar</button></div></div>';
+
   return '<div class="pageTitle">Conciliación Bancaria</div>'+
-    '<div class="cards"><div class="card"><div class="lbl">Saldo Inicial</div><div class="val cyan">'+fmt(C.config.saldo_inicial_banco)+'</div><div class="sub">01/01/2026</div></div><div class="card"><div class="lbl">Saldo Actual</div><div class="val green">'+fmt(sb)+'</div></div><div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conc+'</div></div><div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pend+'</div></div></div>'+
-    csvForm+
-    '<div class="twrap"><div class="thead2"><h3>Movimientos</h3><span style="font-size:12px;color:var(--text2)">'+C.movs.length+'</span></div>'+
+    '<div class="cards"><div class="card"><div class="lbl">Saldo Inicial</div><div class="val cyan">'+fmt(C.config.saldo_inicial_banco)+'</div><div class="sub">01/01/2026</div></div><div class="card"><div class="lbl">Saldo Actual</div><div class="val green">'+fmt(sb)+'</div><div class="sub">Todos los movimientos</div></div><div class="card"><div class="lbl">Saldo Conciliado</div><div class="val cyan">'+fmt(saldoConciliado)+'</div><div class="sub">Inicial + conciliados</div></div><div class="card"><div class="lbl">Diferencia</div><div class="val '+(Math.abs(diferencia)<0.01?'green':diferencia>0?'yellow':'red')+'">'+fmt(diferencia)+'</div><div class="sub">'+(Math.abs(diferencia)<0.01?'✓ Sin diferencia':diferencia>0?'Movimientos sin conciliar':'Revisar')+'</div></div><div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conc+'</div></div><div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pend+'</div></div></div>'+
+    filtros+csvForm+
+    '<div class="twrap"><div class="thead2"><h3>Movimientos</h3><span style="font-size:12px;color:var(--text2)">'+movsFil.length+' de '+C.movs.length+'</span></div>'+
     (C.movs.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos</div>':
-    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'<tr class="trow"><td colspan="3">SALDO FINAL</td><td></td><td class="cyan">'+fmt(sb)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
+    movsFil.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">Sin resultados para los filtros aplicados</div>':
+    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+
+    '<tr class="trow"><td colspan="3">SALDO FINAL</td><td></td><td class="cyan">'+fmt(sb)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
     '</div>';
 }
 function conciliar(id){sbPatch('movimientos_banco',id,{conciliado:true}).then(function(){reload('banco');});}
