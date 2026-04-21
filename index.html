@@ -368,7 +368,20 @@ function saveAsiento(){
 }
 function deleteAsiento(id){
   if(!confirm('¿Eliminar asiento AST-'+String(id).padStart(3,'0')+'?'))return;
-  sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){sbDelete('asientos',id).then(function(){reload('asientos');});});
+  // Verificar si este asiento está vinculado a un movimiento conciliado
+  var movConciliado=C.movs.find(function(m){return m.asiento_id===id&&m.conciliado;});
+  if(movConciliado){
+    alert('Este asiento está vinculado a un movimiento conciliado.\nPrimero desconciliá el movimiento en Conciliación Bancaria y luego eliminá el asiento.');
+    return;
+  }
+  // Si está vinculado a un movimiento no conciliado, limpiar la referencia
+  var movVinculado=C.movs.find(function(m){return m.asiento_id===id;});
+  var promesaLimpiar=movVinculado?sbPatch('movimientos_banco',movVinculado.id,{asiento_id:null}):Promise.resolve();
+  promesaLimpiar.then(function(){
+    sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){
+      sbDelete('asientos',id).then(function(){reload('asientos');});
+    });
+  });
 }
 function genAsiento(id){
   var m=C.movs.find(function(x){return x.id===id;});if(!m)return;
@@ -394,8 +407,8 @@ function pgBanco(){
       '<td style="font-family:monospace;font-size:11px">'+fmt(sAcum)+'</td>'+
       '<td><span class="badge '+(m.conciliado?'bg':'by')+'">'+(m.conciliado?'✓':'Pendiente')+'</span>'+(tieneAsiento?' <span class="badge bb" style="font-size:10px">📋</span>':'')+'</td>'+
       (ro?'':'<td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">'+
-        (!m.conciliado?'<button class="btn sm bp" onclick="conciliar('+m.id+')">Conciliar</button>':'<button class="btn sm bs" onclick="desconciliar('+m.id+')" style="font-size:10px">↩ Desconciliar</button>')+
-        (!tieneAsiento?'<button class="btn sm bs" onclick="genAsiento('+m.id+')" title="Generar asiento">⚙</button>':'<span class="green" style="font-size:11px">✓Ast</span>')+
+        (!m.conciliado?'<button class="btn sm bp" onclick="conciliar('+m.id+')">Conciliar</button>':'<button class="btn sm bs" onclick="desconciliar('+m.id+')" style="font-size:10px">↩ Desc.</button>')+
+        (!tieneAsiento?'<button class="btn sm bs" onclick="genAsiento('+m.id+')" title="Generar asiento">⚙ Asiento</button>':'<span class="green" style="font-size:11px">✓Ast</span>')+
         factBtn+'</td>')+
       '</tr>';
   });
