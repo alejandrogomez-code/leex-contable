@@ -143,7 +143,12 @@ function sbH(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authori
 function sbGet(t,p){return fetch(SB_URL+'/rest/v1/'+t+'?'+(p||''),{headers:sbH()}).then(function(r){return r.json();});}
 function sbPost(t,b){return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function sbPatch(t,id,b){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
-function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH()});}
+function sbDelete(t,filter){
+  var url=SB_URL+'/rest/v1/'+t+'?'+(filter||('id=eq.'+t));
+  return fetch(url,{method:'DELETE',headers:sbH()});
+}
+function sbDeleteId(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH()});}
+function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
 
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
@@ -307,8 +312,8 @@ function saveAsiento(){
 }
 function deleteAsiento(id){
   if(!confirm('¿Eliminar asiento AST-'+String(id).padStart(3,'0')+'? Se eliminarán también todas sus líneas.'))return;
-  sbDelete('asiento_lineas','asiento_id=eq.'+id).then(function(){
-    sbDelete('asientos',id).then(function(){reload('asientos');});
+  sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){
+    sbDeleteId('asientos',id).then(function(){reload('asientos');});
   });
 }
   var m=C.movs.find(function(x){return x.id===id;});if(!m)return;
@@ -379,7 +384,7 @@ function pgCuentas(){
 }
 function editCuenta(id){editCuentaId=id;go('cuentas');}
 function updateCuenta(){var cod=document.getElementById('eCod').value.trim(),nom=document.getElementById('eNom').value.trim(),tip=document.getElementById('eTip').value;if(!cod||!nom){alert('Completá los campos.');return;}sbPatch('cuentas',editCuentaId,{codigo:cod,nombre:nom,tipo:tip}).then(function(){editCuentaId=null;reload('cuentas');});}
-function deleteCuenta(id,cod){if(!confirm('¿Eliminar la cuenta '+cod+'? Esta acción no se puede deshacer.'))return;sbDelete('cuentas',id).then(function(){reload('cuentas');});}
+function deleteCuenta(id,cod){if(!confirm('¿Eliminar la cuenta '+cod+'? Esta acción no se puede deshacer.'))return;sbDeleteId('cuentas',id).then(function(){reload('cuentas');});}
 function addCuenta(){var cod=document.getElementById('cC').value.trim(),nom=document.getElementById('cN').value.trim();if(!cod||!nom){alert('Completá código y nombre.');return;}if(C.cuentas.find(function(c){return c.codigo===cod;})){alert('Código ya existe.');return;}sbPost('cuentas',{codigo:cod,nombre:nom,tipo:document.getElementById('cT').value}).then(function(){reload('cuentas');});}
 
 function pgProyDash(){
@@ -405,7 +410,7 @@ function pgComex(){
 }
 function calcComex(){var fob=parseFloat(document.getElementById('cxFob').value)||0,pct=parseFloat(document.getElementById('cxPct').value)||0,tc=parseFloat(document.getElementById('cxTC').value)||0,tipo=document.getElementById('cxTipo').value,nac=fob*pct/100;document.getElementById('cxNac').value=nac.toFixed(2);document.getElementById('cxTotal').value=(tipo==='Nacionalización'?nac*tc:fob*tc).toFixed(2);}
 function addComex(){var f=document.getElementById('cxF').value,tipo=document.getElementById('cxTipo').value,ped=document.getElementById('cxPed').value.trim();if(!f||!tipo||!ped){alert('Completá fecha, tipo y pedido.');return;}sbPost('comex',{fecha_inicio:f,tipo_op:tipo,pedido:ped,proveedor:document.getElementById('cxProv').value,usd_fob:parseFloat(document.getElementById('cxFob').value)||0,pct_nac:parseFloat(document.getElementById('cxPct').value)||0,tipo_cambio:parseFloat(document.getElementById('cxTC').value)||0,archivo:document.getElementById('cxArch').value.trim()||null}).then(function(){reload('comex');});}
-function delComex(id){if(!confirm('¿Eliminar?'))return;sbDelete('comex',id).then(function(){reload('comex');});}
+function delComex(id){if(!confirm('¿Eliminar?'))return;sbDeleteId('comex',id).then(function(){reload('comex');});}
 
 function pgProyIngresos(){
   var ro=!isAdmin(),rows='',tot=0;
@@ -416,7 +421,7 @@ function pgProyIngresos(){
   return '<div class="pageTitle">Ingresos — Proyectos</div>'+form+'<div style="display:grid;grid-template-columns:1fr 260px;gap:14px"><div class="twrap"><div class="thead2"><h3>Ingresos</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="green">'+fmt(tot)+'</strong></span></div><table><thead><tr><th>#</th><th>Fecha</th><th>Monto</th><th>Cliente</th><th>Doc.</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?5:6)+'" style="text-align:center;color:var(--text2);padding:14px">Sin ingresos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL</td><td class="green">'+fmt(tot)+'</td><td colspan="'+(ro?2:3)+'"></td></tr></tbody></table></div><div class="twrap"><div class="thead2"><h3>Por Mes</h3></div><table><thead><tr><th>Mes</th><th>Total</th></tr></thead><tbody>'+(mesRows||'<tr><td colspan="2" style="text-align:center;color:var(--text2);padding:12px">Sin datos</td></tr>')+'</tbody></table></div></div>';
 }
 function addProyIng(){var f=document.getElementById('piF').value,m=parseFloat(document.getElementById('piM').value),cli=document.getElementById('piCli').value.trim();if(!f||isNaN(m)||m<=0||!cli){alert('Completá fecha, monto y cliente.');return;}sbPost('proy_ingresos',{item:C.proy_ingresos.length+1,fecha_facturacion:f,monto:m,cliente:cli,url:document.getElementById('piUrl').value}).then(function(){reload('proy_ingresos');});}
-function delProyIng(id){if(!confirm('¿Eliminar?'))return;sbDelete('proy_ingresos',id).then(function(){reload('proy_ingresos');});}
+function delProyIng(id){if(!confirm('¿Eliminar?'))return;sbDeleteId('proy_ingresos',id).then(function(){reload('proy_ingresos');});}
 
 function pgProyGastos(){
   var ro=!isAdmin(),rows='',tot=0;
@@ -425,7 +430,7 @@ function pgProyGastos(){
   return '<div class="pageTitle">Gastos — Proyectos</div>'+form+'<div class="twrap"><div class="thead2"><h3>Gastos</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="red">'+fmt(tot)+'</strong></span></div><table><thead><tr><th>#</th><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Estado</th><th>Quien Pagó</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?6:7)+'" style="text-align:center;color:var(--text2);padding:14px">Sin gastos</td></tr>')+'<tr class="trow"><td colspan="3">TOTAL</td><td class="red">'+fmt(tot)+'</td><td colspan="'+(ro?2:3)+'"></td></tr></tbody></table></div>';
 }
 function addProyGas(){var f=document.getElementById('pgF').value,imp=parseFloat(document.getElementById('pgImp').value);if(!f||isNaN(imp)||imp<=0){alert('Completá fecha e importe.');return;}sbPost('proy_gastos',{item:C.proy_gastos.length+1,fecha:f,concepto:document.getElementById('pgCon').value,importe:imp,estado:document.getElementById('pgEst').value,quien_pago:document.getElementById('pgQP').value}).then(function(){reload('proy_gastos');});}
-function delProyGas(id){if(!confirm('¿Eliminar?'))return;sbDelete('proy_gastos',id).then(function(){reload('proy_gastos');});}
+function delProyGas(id){if(!confirm('¿Eliminar?'))return;sbDeleteId('proy_gastos',id).then(function(){reload('proy_gastos');});}
 
 function pgConfig(){
   function secCfg(label,key,color){var items=C[key];var rows=items.map(function(v,i){return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="badge '+(color||'bb')+'" style="flex:1">'+v+'</span><button class="btn sm bd" onclick="removeCfg(\''+key+'\','+i+')">✕</button></div>';}).join('');return'<div class="panel"><h3>'+label+'</h3>'+rows+'<div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="cfgInp_'+key+'" placeholder="Nuevo valor..." style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none"/><button class="btn bp sm" onclick="addCfg(\''+key+'\')">+ Agregar</button></div></div>';}
