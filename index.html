@@ -491,15 +491,38 @@ function addMov(){var t=document.getElementById('mT').value,m=parseFloat(documen
 function pgBalance(){
   function saldoCta(cod,tipo){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo!==cod)return;s+=tipo==='Activo'?parseFloat(l.debe)-parseFloat(l.haber):parseFloat(l.haber)-parseFloat(l.debe);});return s;}
   function seccion(tipo){var rows='',tot=0,exData=[];C.cuentas.forEach(function(c){if(c.tipo!==tipo)return;var s=saldoCta(c.codigo,tipo);if(s===0)return;tot+=s;rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td>'+fmt(s)+'</td></tr>';exData.push({Codigo:c.codigo,Cuenta:c.nombre,Saldo:s});});return{rows:rows,tot:tot,exData:exData};}
+
+  // Calcular resultado neto (ingresos - gastos)
+  function calcS(cod,esIng){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo===cod)s+=esIng?parseFloat(l.haber)-parseFloat(l.debe):parseFloat(l.debe)-parseFloat(l.haber);});return s;}
+  var totIng=0,totGas=0;
+  C.cuentas.forEach(function(c){
+    if(c.tipo==='Ingreso'){totIng+=calcS(c.codigo,true);}
+    if(c.tipo==='Gasto'){var gasReg=0;C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)gasReg+=parseFloat(g.monto);});totGas+=calcS(c.codigo,false)+gasReg;}
+  });
+  var resultadoNeto=totIng-totGas;
+
   var act=seccion('Activo'),pas=seccion('Pasivo'),pat=seccion('Patrimonio');
-  var ok=Math.abs(act.tot-pas.tot-pat.tot)<1;
-  var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(pat.exData).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:pat.tot}]);
+
+  // Agregar resultado neto al patrimonio
+  var patRows=pat.rows;
+  var patTot=pat.tot+resultadoNeto;
+  var patExData=pat.exData.slice();
+  if(resultadoNeto!==0){
+    patRows+='<tr style="background:rgba(14,165,233,.05)"><td style="font-family:monospace;color:var(--cyan)">R.Eje</td><td style="color:var(--cyan)">Resultado del Ejercicio</td><td style="color:'+(resultadoNeto>=0?'var(--green)':'var(--red)')+'">'+fmt(resultadoNeto)+'</td></tr>';
+    patExData.push({Codigo:'R.Eje',Cuenta:'Resultado del Ejercicio',Saldo:resultadoNeto});
+  }
+
+  var ok=Math.abs(act.tot-pas.tot-patTot)<1;
+  var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(patExData).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
+
   return '<div class="pageTitle">Balance General — 2026<button class="btn bs sm" style="margin-left:auto" onclick=\'exportExcel('+JSON.stringify(allEx)+',[\"Codigo\",\"Cuenta\",\"Saldo\"],\"Balance_2026\",\"Balance\")\'>⬇ Excel</button></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
-    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
-    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pat.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(pat.tot)+'</td></tr></tbody></table></div></div></div>'+
-    '<div class="alert '+(ok?'aok':'ainfo')+'" style="margin-top:12px">'+(ok?'✓ Balance cuadrado':'⚠ Diferencia: '+fmt(act.tot-pas.tot-pat.tot))+'</div>';
+    '<div>'+
+    '<div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
+    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div>'+
+    '</div></div>'+
+    '<div class="alert '+(ok?'aok':'ainfo')+'" style="margin-top:12px">'+(ok?'✓ Balance cuadrado — Activo = Pasivo + Patrimonio':'⚠ Diferencia: '+fmt(act.tot-pas.tot-patTot))+'</div>';
 }
 
 // ===== RESULTADOS =====
