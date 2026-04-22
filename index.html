@@ -109,20 +109,20 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </svg>
     </div>
     <div class="sbSection">Contabilidad</div>
-    <div class="ni active" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
-    <div class="ni" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registro de Gastos</div>
-    <div class="ni" onclick="go('asientos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Asientos Contables</div>
-    <div class="ni" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Conciliación Bancaria</div>
-    <div class="ni" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance Contable</div>
-    <div class="ni" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
-    <div class="ni" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
+    <div class="ni" data-page="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="ni" data-page="gastos" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registro de Gastos</div>
+    <div class="ni" data-page="asientos" onclick="go('asientos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Asientos Contables</div>
+    <div class="ni" data-page="banco" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Conciliación Bancaria</div>
+    <div class="ni" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance Contable</div>
+    <div class="ni" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
+    <div class="ni" data-page="cuentas" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
     <div class="divider"></div>
     <div class="sbSection">Proyectos</div>
-    <div class="ni" onclick="go('proyectos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Proyectos</div>
+    <div class="ni" data-page="proyectos" onclick="go('proyectos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Proyectos</div>
     <div class="divider"></div>
     <div class="sbSection">Sistema</div>
-    <div class="ni" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
-    <div class="ni" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
+    <div class="ni" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
+    <div class="ni" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
     <div class="sbFoot">
       <div class="ubadge">
         <div class="uav" id="uav">AD</div>
@@ -146,11 +146,10 @@ function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
 var C={config:{saldo_inicial_banco:12453.05,banco_nombre:'International Finance Bank',banco_cuenta:'001-LEEX-2026'},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:['Asiento Genérico','Saldo Inicial','Cierre de Ejercicio','Ajuste'],cfg_proveedores:['Enmind','Comen'],cfg_conceptos_gasto:['Viáticos','Gastos Varios','Oficina Chile','Alquiler','Sueldo'],cfg_estados_gasto:['Pendiente','Pagado'],cfg_quien_pago:['Leex','Deam','IBS','Neuroventas'],cfg_tipo_op:['Pago Exterior','Nacionalización','Chile']};
-var bancoFiltro='todos';
-var bancoDesde='',bancoHasta='';
-
 var asientoTab='libro',mayorCuenta='',aBusca='',pendingAsiento=null,alineCount=0,editCuentaId=null;
+var gFiltros={desde:'',hasta:'',cuenta:''};
 var selProyId=null,proyTab='comex';
+var bancoFiltro='todos',bancoDesde='',bancoHasta='';
 
 function login(){
   var u=document.getElementById('lu').value.trim().toLowerCase();
@@ -176,16 +175,16 @@ function saveCfg(){try{localStorage.setItem('leex_cfg',JSON.stringify({cfg_cat_a
 function loadAll(){
   document.getElementById('main').innerHTML='<div class="loading"><div class="spinner"></div>Cargando datos...</div>';
   return Promise.all([
-    sbGet('configuracion','select=clave,valor'),
-    sbGet('cuentas','select=*&order=codigo'),
-    sbGet('gastos','select=*&order=fecha'),
-    sbGet('asientos','select=*&order=fecha'),
-    sbGet('asiento_lineas','select=*&order=asiento_id'),
-    sbGet('movimientos_banco','select=*&order=fecha'),
-    sbGet('comex','select=*&order=id'),
-    sbGet('proy_ingresos','select=*&order=id'),
-    sbGet('proy_gastos','select=*&order=id'),
-    sbGet('proyectos','select=*&order=id')
+    sbGet('configuracion','select=clave,valor').catch(function(){return[];}),
+    sbGet('cuentas','select=*&order=codigo').catch(function(){return[];}),
+    sbGet('gastos','select=*&order=fecha').catch(function(){return[];}),
+    sbGet('asientos','select=*&order=fecha').catch(function(){return[];}),
+    sbGet('asiento_lineas','select=*&order=asiento_id').catch(function(){return[];}),
+    sbGet('movimientos_banco','select=*&order=fecha').catch(function(){return[];}),
+    sbGet('comex','select=*&order=id').catch(function(){return[];}),
+    sbGet('proy_ingresos','select=*&order=id').catch(function(){return[];}),
+    sbGet('proy_gastos','select=*&order=id').catch(function(){return[];}),
+    sbGet('proyectos','select=*&order=id').catch(function(){return[];})
   ]).then(function(res){
     if(Array.isArray(res[0]))res[0].forEach(function(r){
       if(r.clave==='saldo_inicial_banco')C.config.saldo_inicial_banco=parseFloat(r.valor);
@@ -208,12 +207,16 @@ function loadAll(){
 }
 
 function go(page){
-  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
-  var map={dashboard:0,gastos:1,asientos:2,banco:3,balance:4,resultados:5,cuentas:6,proyectos:8,config:10,usuarios:11};
-  var items=document.querySelectorAll('.ni');
-  if(map[page]!==undefined&&items[map[page]])items[map[page]].classList.add('active');
-  var pages={dashboard:pgDashboard,gastos:pgGastos,asientos:pgAsientos,banco:pgBanco,balance:pgBalance,resultados:pgResultados,cuentas:pgCuentas,proyectos:pgProyectos,config:pgConfig,usuarios:pgUsuarios};
-  document.getElementById('main').innerHTML=pages[page]?pages[page]():'<p>En construcción</p>';
+  try{
+    document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+    var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
+    if(activeItem)activeItem.classList.add('active');
+    var pages={dashboard:pgDashboard,gastos:pgGastos,asientos:pgAsientos,banco:pgBanco,balance:pgBalance,resultados:pgResultados,cuentas:pgCuentas,proyectos:pgProyectos,config:pgConfig,usuarios:pgUsuarios};
+    document.getElementById('main').innerHTML=pages[page]?pages[page]():'<p>En construcción</p>';
+  }catch(err){
+    console.error('Error en go('+page+'):',err);
+    document.getElementById('main').innerHTML='<div class="alert aerr"><strong>Error al cargar la página "'+page+'"</strong><br><code style="font-size:11px">'+err.message+'</code><br><small>Revisá la consola del navegador (F12) para más detalles.</small></div>';
+  }
 }
 function reload(page){
   document.getElementById('main').innerHTML='<div class="loading"><div class="spinner"></div>Actualizando...</div>';
@@ -224,8 +227,6 @@ function fmt(v){return '$'+Math.abs(parseFloat(v)||0).toLocaleString('en-US',{mi
 function fmtD(d){return d?d.split('-').reverse().join('/'):''}
 function fmtN(v){return(parseFloat(v)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function getCta(cod){for(var i=0;i<C.cuentas.length;i++)if(C.cuentas[i].codigo===cod)return C.cuentas[i];return null;}
-function saldoBanco(){var s=C.config.saldo_inicial_banco;C.movs.forEach(function(m){s+=parseFloat(m.monto);});return s;}
-function totalGastos(){var s=0;C.gastos.forEach(function(g){s+=parseFloat(g.monto);});return s;}
 function lineasDeAsiento(aid){return C.lineas.filter(function(l){return l.asiento_id===aid;});}
 function ctasOpts(sel){var h='';C.cuentas.forEach(function(c){h+='<option value="'+c.codigo+'"'+(c.codigo===sel?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});return h;}
 function listOpts(arr,sel){var h='';arr.forEach(function(v){h+='<option value="'+v+'"'+(v===sel?' selected':'')+'>'+v+'</option>';});return h;}
@@ -233,14 +234,26 @@ function hoy(){return new Date().toISOString().split('T')[0];}
 function mesLabel(d){var ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];var p=d.split('-');return ms[parseInt(p[1])-1]+' '+p[0];}
 function exportExcel(data,cols,filename,sheet){var ws=XLSX.utils.json_to_sheet(data,{header:cols});var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,sheet||'Datos');XLSX.writeFile(wb,filename+'.xlsx');}
 
+function calcResultado(){
+  var totIng=0,totGas=0;
+  C.cuentas.forEach(function(c){
+    if(c.tipo==='Ingreso'){C.lineas.forEach(function(l){if(l.cuenta_codigo===c.codigo)totIng+=parseFloat(l.haber)-parseFloat(l.debe);});}
+    if(c.tipo==='Gasto'){
+      C.lineas.forEach(function(l){if(l.cuenta_codigo===c.codigo)totGas+=parseFloat(l.debe)-parseFloat(l.haber);});
+      C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)totGas+=parseFloat(g.monto);});
+    }
+  });
+  return totIng-totGas;
+}
+
 // ===== DASHBOARD =====
 function pgDashboard(){
-  var ing=0;
-  C.lineas.forEach(function(l){var c=getCta(l.cuenta_codigo);if(c&&c.tipo==='Ingreso')ing+=parseFloat(l.haber)-parseFloat(l.debe);});
-  var gas=totalGastos(),sb=saldoBanco(),res=ing-gas;
+  var ing=0;C.lineas.forEach(function(l){var c=getCta(l.cuenta_codigo);if(c&&c.tipo==='Ingreso')ing+=parseFloat(l.haber)-parseFloat(l.debe);});
+  var gas=0;C.gastos.forEach(function(g){gas+=parseFloat(g.monto);});
+  var sb=C.config.saldo_inicial_banco;C.movs.forEach(function(m){sb+=parseFloat(m.monto);});
+  var res=ing-gas;
   var pend=C.movs.filter(function(m){return !m.conciliado;}).length;
-  var rows='';
-  C.gastos.slice().reverse().slice(0,5).forEach(function(g){rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+'</td><td class="red">'+fmt(g.monto)+'</td></tr>';});
+  var rows='';C.gastos.slice().reverse().slice(0,5).forEach(function(g){rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+'</td><td class="red">'+fmt(g.monto)+'</td></tr>';});
   return '<div class="pageTitle">Dashboard Contable — 2026</div>'+
     '<div class="cards">'+
     '<div class="card"><div class="lbl">Ingresos</div><div class="val green">'+fmt(ing)+'</div><div class="sub">USD</div></div>'+
@@ -340,50 +353,26 @@ function saveAsiento(){
   if(!f||!d){alert('Completá fecha y descripción.');return;}
   if(ls.length<2){alert('Mínimo 2 líneas.');return;}
   if(Math.abs(db-hb)>0.001){alert('No balanceado.');return;}
-  // Validar que todas las cuentas estén seleccionadas
   for(var i=0;i<ls.length;i++){if(!ls[i].cuenta){alert('Seleccioná una cuenta en todas las líneas.');return;}}
   sbPost('asientos',{fecha:f,descripcion:d,referencia:r||'AST-nuevo',origen:movId?'banco':'manual',categoria:cat}).then(function(res){
     var ast=Array.isArray(res)?res[0]:res;
-    if(!ast||!ast.id){
-      alert('Error al crear el asiento. Detalle: '+(res&&res.message?res.message:JSON.stringify(res)));
-      return;
-    }
+    if(!ast||!ast.id){alert('Error al crear el asiento: '+(res&&res.message?res.message:JSON.stringify(res)));return;}
     var astId=ast.id;
     sbPatch('asientos',astId,{referencia:r||'AST-'+String(astId).padStart(3,'0')});
-    var lineasBody=ls.map(function(l){return{asiento_id:astId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};});
-    sbPost('asiento_lineas',lineasBody).then(function(resL){
-      // Verificar si hubo error en las líneas
-      if(resL&&resL.code){
-        alert('Error al guardar líneas: '+resL.message+'\nVerificá que las cuentas existan en el plan de cuentas.');
-        sbDelete('asientos',astId);
-        return;
-      }
-      if(movId){
-        sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){
-          pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');
-        });
-      } else {
-        pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');
-      }
+    sbPost('asiento_lineas',ls.map(function(l){return{asiento_id:astId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};})).then(function(resL){
+      if(resL&&resL.code){alert('Error en líneas: '+resL.message);sbDelete('asientos',astId);return;}
+      if(movId){sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');});}
+      else{pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');}
     });
   });
 }
 function deleteAsiento(id){
   if(!confirm('¿Eliminar asiento AST-'+String(id).padStart(3,'0')+'?'))return;
-  // Verificar si este asiento está vinculado a un movimiento conciliado
-  var movConciliado=C.movs.find(function(m){return m.asiento_id===id&&m.conciliado;});
-  if(movConciliado){
-    alert('Este asiento está vinculado a un movimiento conciliado.\nPrimero desconciliá el movimiento en Conciliación Bancaria y luego eliminá el asiento.');
-    return;
-  }
-  // Si está vinculado a un movimiento no conciliado, limpiar la referencia
-  var movVinculado=C.movs.find(function(m){return m.asiento_id===id;});
-  var promesaLimpiar=movVinculado?sbPatch('movimientos_banco',movVinculado.id,{asiento_id:null}):Promise.resolve();
-  promesaLimpiar.then(function(){
-    sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){
-      sbDelete('asientos',id).then(function(){reload('asientos');});
-    });
-  });
+  var movConc=C.movs.find(function(m){return m.asiento_id===id&&m.conciliado;});
+  if(movConc){alert('Este asiento está vinculado a un movimiento conciliado.\nPrimero desconciliá el movimiento.');return;}
+  var movVinc=C.movs.find(function(m){return m.asiento_id===id;});
+  var p=movVinc?sbPatch('movimientos_banco',movVinc.id,{asiento_id:null}):Promise.resolve();
+  p.then(function(){sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){sbDelete('asientos',id).then(function(){reload('asientos');});});});
 }
 function genAsiento(id){
   var m=C.movs.find(function(x){return x.id===id;});if(!m)return;
@@ -395,38 +384,49 @@ function genAsiento(id){
 
 // ===== BANCO =====
 function pgBanco(){
-  var ro=!isAdmin(),sb=saldoBanco();
-  var conc=C.movs.filter(function(m){return m.conciliado;}).length;
-  var pend=C.movs.filter(function(m){return !m.conciliado;}).length;
-  var conAst=C.movs.filter(function(m){return !!m.asiento_id;}).length;
-  var sinAst=C.movs.filter(function(m){return !m.asiento_id;}).length;
+  var ro=!isAdmin();
+  var i,m;
+  var conc=0,pend=0,conAst=0,sinAst=0;
+  for(i=0;i<C.movs.length;i++){m=C.movs[i];if(m.conciliado)conc++;else pend++;if(m.asiento_id)conAst++;else sinAst++;}
 
-  // Aplicar filtros
-  var movsFil=C.movs.filter(function(m){
-    if(bancoDesde&&m.fecha<bancoDesde)return false;
-    if(bancoHasta&&m.fecha>bancoHasta)return false;
-    if(bancoFiltro==='conciliado'&&!m.conciliado)return false;
-    if(bancoFiltro==='pendiente'&&m.conciliado)return false;
-    if(bancoFiltro==='con_asiento'&&!m.asiento_id)return false;
-    if(bancoFiltro==='sin_asiento'&&m.asiento_id)return false;
-    return true;
-  });
+  var saldoActual=parseFloat(C.config.saldo_inicial_banco)||0;
+  for(i=0;i<C.movs.length;i++)saldoActual+=parseFloat(C.movs[i].monto)||0;
 
-  var saldoConciliado=C.config.saldo_inicial_banco;
-  C.movs.forEach(function(m){if(m.conciliado)saldoConciliado+=parseFloat(m.monto);});
-  var diferencia=sb-saldoConciliado;
-  // Calcular saldo acumulado sobre TODOS los movimientos (no filtrados)
-  var sAcum=C.config.saldo_inicial_banco,rows='';
-  C.movs.forEach(function(m){acum+=parseFloat(m.monto);saldos[m.id]=acum;});
+  var saldoConciliado=parseFloat(C.config.saldo_inicial_banco)||0;
+  for(i=0;i<C.movs.length;i++){if(C.movs[i].conciliado)saldoConciliado+=parseFloat(C.movs[i].monto)||0;}
 
-  movsFil.forEach(function(m){
+  var diferencia=saldoActual-saldoConciliado;
+
+  var saldos={};
+  var acumS=parseFloat(C.config.saldo_inicial_banco)||0;
+  for(i=0;i<C.movs.length;i++){acumS+=parseFloat(C.movs[i].monto)||0;saldos[C.movs[i].id]=acumS;}
+
+  var movsFil=[];
+  for(i=0;i<C.movs.length;i++){
+    m=C.movs[i];
+    if(bancoDesde&&m.fecha<bancoDesde)continue;
+    if(bancoHasta&&m.fecha>bancoHasta)continue;
+    if(bancoFiltro==='conciliado'&&!m.conciliado)continue;
+    if(bancoFiltro==='pendiente'&&m.conciliado)continue;
+    if(bancoFiltro==='con_asiento'&&!m.asiento_id)continue;
+    if(bancoFiltro==='sin_asiento'&&m.asiento_id)continue;
+    movsFil.push(m);
+  }
+
+  var rows='';
+  for(i=0;i<movsFil.length;i++){
+    m=movsFil[i];
     var tieneAsiento=!!m.asiento_id;
+    var factNombre=m.factura_nombre||'';
     var factBtn='';
-    if(!ro){factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(m.factura_nombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(m.factura_nombre?'var(--green)':'var(--text2)')+';border:1px solid '+(m.factura_nombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(m.factura_nombre?m.factura_nombre.substring(0,10)+'...':'Factura')+'</label>'+(m.factura_nombre?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button>':'');}
+    if(!ro){
+      factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(factNombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(factNombre?'var(--green)':'var(--text2)')+';border:1px solid '+(factNombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(factNombre?factNombre.substring(0,10)+'...':'Factura')+'</label>'+(factNombre?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button>':'');
+    }
+    var monto=parseFloat(m.monto)||0;
     rows+='<tr>'+
-      '<td>'+fmtD(m.fecha)+'</td><td>'+m.descripcion+'</td>'+
-      '<td><span class="badge '+(parseFloat(m.monto)>0?'bg':'br')+'">'+(parseFloat(m.monto)>0?'Crédito':'Débito')+'</span></td>'+
-      '<td class="'+(parseFloat(m.monto)>0?'green':'red')+'">'+(parseFloat(m.monto)>0?'+':'')+fmt(m.monto)+'</td>'+
+      '<td>'+fmtD(m.fecha)+'</td><td>'+(m.descripcion||'')+'</td>'+
+      '<td><span class="badge '+(monto>0?'bg':'br')+'">'+(monto>0?'Crédito':'Débito')+'</span></td>'+
+      '<td class="'+(monto>0?'green':'red')+'">'+(monto>0?'+':'')+fmt(monto)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+fmt(saldos[m.id])+'</td>'+
       '<td><span class="badge '+(m.conciliado?'bg':'by')+'">'+(m.conciliado?'✓':'Pendiente')+'</span>'+(tieneAsiento?' <span class="badge bb" style="font-size:10px">📋</span>':'')+'</td>'+
       (ro?'':'<td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">'+
@@ -434,21 +434,15 @@ function pgBanco(){
         (!tieneAsiento?'<button class="btn sm bs" onclick="genAsiento('+m.id+')" title="Generar asiento">⚙ Asiento</button>':'<span class="green" style="font-size:11px">✓Ast</span>')+
         factBtn+'</td>')+
       '</tr>';
-  });
+  }
 
-  // Barra de filtros
+  var difColor=Math.abs(diferencia)<0.01?'green':diferencia>0?'yellow':'red';
+  var difLabel=Math.abs(diferencia)<0.01?'✓ Todo conciliado':diferencia>0?'Pendientes':'Revisar';
+
   var filtros='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2)">🔍 Filtros:</span>'+
-    // Filtro fecha
-    '<div style="display:flex;align-items:center;gap:6px">'+
-    '<span style="font-size:11px;color:var(--text2)">Desde:</span>'+
-    '<input type="date" value="'+bancoDesde+'" onchange="bancoDesde=this.value;go(\'banco\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
-    '</div>'+
-    '<div style="display:flex;align-items:center;gap:6px">'+
-    '<span style="font-size:11px;color:var(--text2)">Hasta:</span>'+
-    '<input type="date" value="'+bancoHasta+'" onchange="bancoHasta=this.value;go(\'banco\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
-    '</div>'+
-    // Filtro estado
+    '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text2)">Desde:</span><input type="date" value="'+bancoDesde+'" onchange="setBancoDesde(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text2)">Hasta:</span><input type="date" value="'+bancoHasta+'" onchange="setBancoHasta(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
     '<button class="btn sm '+(bancoFiltro==='todos'?'bp':'bs')+'" onclick="bancoFiltro=\'todos\';go(\'banco\')">Todos ('+C.movs.length+')</button>'+
     '<button class="btn sm '+(bancoFiltro==='conciliado'?'bp':'bs')+'" onclick="bancoFiltro=\'conciliado\';go(\'banco\')">✓ Conciliados ('+conc+')</button>'+
@@ -467,18 +461,37 @@ function pgBanco(){
     '<div class="panel"><h3>➕ Manual</h3><div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="mF" value="'+hoy()+'"/></div><div class="f"><label>Descripción</label><input type="text" id="mD"/></div><div class="f"><label>Tipo</label><select id="mT"><option>Crédito</option><option>Débito</option></select></div><div class="f"><label>Monto USD</label><input type="number" id="mM" placeholder="0.00" min="0" step="0.01"/></div></div><div class="factions"><button class="btn bp" onclick="addMov()">Agregar</button></div></div>';
 
   return '<div class="pageTitle">Conciliación Bancaria</div>'+
-    '<div class="cards"><div class="card"><div class="lbl">Saldo Inicial</div><div class="val cyan">'+fmt(C.config.saldo_inicial_banco)+'</div><div class="sub">01/01/2026</div></div><div class="card"><div class="lbl">Saldo Actual</div><div class="val green">'+fmt(sb)+'</div><div class="sub">Todos los movimientos</div></div><div class="card"><div class="lbl">Saldo Conciliado</div><div class="val cyan">'+fmt(saldoConciliado)+'</div><div class="sub">Inicial + conciliados</div></div><div class="card"><div class="lbl">Diferencia</div><div class="val '+(Math.abs(diferencia)<0.01?'green':diferencia>0?'yellow':'red')+'">'+fmt(diferencia)+'</div><div class="sub">'+(Math.abs(diferencia)<0.01?'✓ Sin diferencia':diferencia>0?'Movimientos sin conciliar':'Revisar')+'</div></div><div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conc+'</div></div><div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pend+'</div></div></div>'+
+    '<div class="cards">'+
+    '<div class="card"><div class="lbl">Saldo Inicial</div><div class="val cyan">'+fmt(C.config.saldo_inicial_banco)+'</div><div class="sub">01/01/2026</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Actual</div><div class="val green">'+fmt(saldoActual)+'</div><div class="sub">Todos los movimientos</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Conciliado</div><div class="val cyan">'+fmt(saldoConciliado)+'</div><div class="sub">Inicial + conciliados</div></div>'+
+    '<div class="card"><div class="lbl">Diferencia</div><div class="val '+difColor+'">'+fmt(diferencia)+'</div><div class="sub">'+difLabel+'</div></div>'+
+    '<div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conc+'</div></div>'+
+    '<div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pend+'</div></div>'+
+    '</div>'+
     filtros+csvForm+
     '<div class="twrap"><div class="thead2"><h3>Movimientos</h3><span style="font-size:12px;color:var(--text2)">'+movsFil.length+' de '+C.movs.length+'</span></div>'+
     (C.movs.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos</div>':
-    movsFil.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">Sin resultados para los filtros aplicados</div>':
-    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+
-    '<tr class="trow"><td colspan="3">SALDO FINAL</td><td></td><td class="cyan">'+fmt(sb)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
+    movsFil.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados para los filtros aplicados</div>':
+    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead>'+
+    '<tbody>'+rows+'<tr class="trow"><td colspan="3">SALDO FINAL</td><td></td><td class="cyan">'+fmt(saldoActual)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
     '</div>';
 }
+function setBancoDesde(v){bancoDesde=v;go('banco');}
+function setBancoHasta(v){bancoHasta=v;go('banco');}
 function conciliar(id){sbPatch('movimientos_banco',id,{conciliado:true}).then(function(){reload('banco');});}
 function desconciliar(id){if(!confirm('¿Desconciliar este movimiento?'))return;sbPatch('movimientos_banco',id,{conciliado:false}).then(function(){reload('banco');});}
-function attachFact(id,inp){var f=inp.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){sbPatch('movimientos_banco',id,{factura_nombre:f.name,factura_tipo:f.type,factura_data:e.target.result}).then(function(){reload('banco');});};r.readAsDataURL(f);}
+function attachFact(id,inp){
+  var f=inp.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    sbPatch('movimientos_banco',id,{factura_nombre:f.name,factura_tipo:f.type,factura_data:e.target.result}).then(function(res){
+      if(res&&res.code){alert('Error al guardar factura. Verificá que existan las columnas factura_nombre, factura_tipo y factura_data en la tabla movimientos_banco.\n\n'+res.message);return;}
+      reload('banco');
+    });
+  };
+  r.readAsDataURL(f);
+}
 function viewFact(id){var m=C.movs.find(function(x){return x.id===id;});if(!m||!m.factura_data)return;var w=window.open('','_blank');if(m.factura_tipo==='application/pdf')w.document.write('<iframe src="'+m.factura_data+'" style="width:100%;height:100vh;border:none"></iframe>');else w.document.write('<img src="'+m.factura_data+'" style="max-width:100%"/>');}
 function parseCSV(txt){var sep=txt.indexOf(';')>-1?';':',';var lines=txt.trim().split(/\r?\n/).filter(function(l){return l.trim();});if(lines.length<2)return[];function splitL(line){var res=[],cur='',inq=false;for(var i=0;i<line.length;i++){if(line[i]==='"'){inq=!inq;}else if(line[i]===sep&&!inq){res.push(cur.trim().replace(/^"|"$/g,''));cur='';}else cur+=line[i];}res.push(cur.trim().replace(/^"|"$/g,''));return res;}var hdr=splitL(lines[0]).map(function(h){return h.toLowerCase().trim();});function gi(ns){for(var i=0;i<ns.length;i++){var x=hdr.indexOf(ns[i]);if(x>-1)return x;}return -1;}var iDate=gi(['processed date','date','fecha']),iDesc=gi(['description','descripcion','descripción','concepto']),iCOD=gi(['credit or debit','tipo']),iAmt=gi(['amount','monto','importe']),iDebe=gi(['debe','débito','debito']),iHaber=gi(['haber','crédito','credito']);function normF(f){f=f.trim();if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(f)){var p=f.split('/');return p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}if(/^\d{4}-\d{2}-\d{2}/.test(f))return f.slice(0,10);return f;}function pM(v){return parseFloat((v||'').replace(/[$,]/g,''))||0;}var res=[];for(var i=1;i<lines.length;i++){var c=splitL(lines[i]);if(c.length<2)continue;var fecha=normF(iDate>-1?c[iDate]:'');if(!fecha)continue;var desc=(iDesc>-1?c[iDesc]:'')||'Sin descripción';var monto=0;if(iCOD>-1&&iAmt>-1){var cod=(c[iCOD]||'').toLowerCase();var amt=pM(c[iAmt]);monto=cod.indexOf('debit')>-1?-Math.abs(amt):Math.abs(amt);}else if(iDebe>-1&&iHaber>-1){monto=pM(c[iHaber])-pM(c[iDebe]);}else if(iAmt>-1){monto=pM(c[iAmt]);}if(monto===0)continue;res.push({fecha:fecha,desc:desc,monto:monto});}return res;}
 function showCSVPrev(rows,nombre){if(rows.length===0){document.getElementById('csvPrev').innerHTML='<div class="alert aerr" style="margin-top:10px">⚠ No se interpretaron filas.</div>';return;}var cr=0,db=0;rows.forEach(function(r){if(r.monto>0)cr+=r.monto;else db+=r.monto;});var trs='';rows.slice(0,6).forEach(function(r){trs+='<tr><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+fmtD(r.fecha)+'</td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+r.desc+'</td><td style="padding:5px 10px;border-top:1px solid var(--border)"><span class="badge '+(r.monto>0?'bg':'br')+'">'+(r.monto>0?'Créd':'Déb')+'</span></td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border);color:'+(r.monto>0?'var(--green)':'var(--red)')+';">'+(r.monto>0?'+':'')+fmt(r.monto)+'</td></tr>';});var encoded=encodeURIComponent(JSON.stringify(rows));document.getElementById('csvPrev').innerHTML='<div style="margin-top:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:600"><span class="cyan">'+rows.length+' movimientos</span> · '+nombre+'</span><div style="display:flex;gap:8px"><span class="green" style="font-size:11px">+'+fmt(cr)+'</span><span class="red" style="font-size:11px">'+fmt(db)+'</span></div></div><div style="max-height:180px;overflow-y:auto"><table style="width:100%"><thead><tr><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Fecha</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Descripción</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Tipo</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Monto</th></tr></thead><tbody>'+trs+(rows.length>6?'<tr><td colspan="4" style="padding:6px 10px;font-size:11px;color:var(--text2);border-top:1px solid var(--border)">... y '+(rows.length-6)+' más</td></tr>':'')+'</tbody></table></div><div style="padding:9px 13px;border-top:1px solid var(--border);display:flex;gap:7px"><button class="btn bp" onclick="confirmCSV(\''+encoded+'\')">✓ Importar</button><button class="btn bs" onclick="document.getElementById(\'csvPrev\').innerHTML=\'\'">Cancelar</button></div></div>';}
@@ -491,37 +504,20 @@ function addMov(){var t=document.getElementById('mT').value,m=parseFloat(documen
 function pgBalance(){
   function saldoCta(cod,tipo){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo!==cod)return;s+=tipo==='Activo'?parseFloat(l.debe)-parseFloat(l.haber):parseFloat(l.haber)-parseFloat(l.debe);});return s;}
   function seccion(tipo){var rows='',tot=0,exData=[];C.cuentas.forEach(function(c){if(c.tipo!==tipo)return;var s=saldoCta(c.codigo,tipo);if(s===0)return;tot+=s;rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td>'+fmt(s)+'</td></tr>';exData.push({Codigo:c.codigo,Cuenta:c.nombre,Saldo:s});});return{rows:rows,tot:tot,exData:exData};}
-
-  // Calcular resultado neto (ingresos - gastos)
-  function calcS(cod,esIng){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo===cod)s+=esIng?parseFloat(l.haber)-parseFloat(l.debe):parseFloat(l.debe)-parseFloat(l.haber);});return s;}
-  var totIng=0,totGas=0;
-  C.cuentas.forEach(function(c){
-    if(c.tipo==='Ingreso'){totIng+=calcS(c.codigo,true);}
-    if(c.tipo==='Gasto'){var gasReg=0;C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)gasReg+=parseFloat(g.monto);});totGas+=calcS(c.codigo,false)+gasReg;}
-  });
-  var resultadoNeto=totIng-totGas;
-
+  var resultadoNeto=calcResultado();
   var act=seccion('Activo'),pas=seccion('Pasivo'),pat=seccion('Patrimonio');
-
-  // Agregar resultado neto al patrimonio
-  var patRows=pat.rows;
-  var patTot=pat.tot+resultadoNeto;
-  var patExData=pat.exData.slice();
+  var patRows=pat.rows,patTot=pat.tot+resultadoNeto,patEx=pat.exData.slice();
   if(resultadoNeto!==0){
     patRows+='<tr style="background:rgba(14,165,233,.05)"><td style="font-family:monospace;color:var(--cyan)">R.Eje</td><td style="color:var(--cyan)">Resultado del Ejercicio</td><td style="color:'+(resultadoNeto>=0?'var(--green)':'var(--red)')+'">'+fmt(resultadoNeto)+'</td></tr>';
-    patExData.push({Codigo:'R.Eje',Cuenta:'Resultado del Ejercicio',Saldo:resultadoNeto});
+    patEx.push({Codigo:'R.Eje',Cuenta:'Resultado del Ejercicio',Saldo:resultadoNeto});
   }
-
   var ok=Math.abs(act.tot-pas.tot-patTot)<1;
-  var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(patExData).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
-
+  var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(patEx).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
   return '<div class="pageTitle">Balance General — 2026<button class="btn bs sm" style="margin-left:auto" onclick=\'exportExcel('+JSON.stringify(allEx)+',[\"Codigo\",\"Cuenta\",\"Saldo\"],\"Balance_2026\",\"Balance\")\'>⬇ Excel</button></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
-    '<div>'+
-    '<div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
-    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div>'+
-    '</div></div>'+
+    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
+    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div></div></div>'+
     '<div class="alert '+(ok?'aok':'ainfo')+'" style="margin-top:12px">'+(ok?'✓ Balance cuadrado — Activo = Pasivo + Patrimonio':'⚠ Diferencia: '+fmt(act.tot-pas.tot-patTot))+'</div>';
 }
 
@@ -584,8 +580,7 @@ function pgProyectos(){
   var tabs='<div class="tabs">'+
     '<div class="tab'+(proyTab==='comex'?' active':'')+'" onclick="proyTab=\'comex\';go(\'proyectos\')">🌐 COMEX</div>'+
     '<div class="tab'+(proyTab==='ingresos'?' active':'')+'" onclick="proyTab=\'ingresos\';go(\'proyectos\')">📈 Ingresos</div>'+
-    '<div class="tab'+(proyTab==='gastos'?' active':'')+'" onclick="proyTab=\'gastos\';go(\'proyectos\')">📉 Gastos</div>'+
-    '</div>';
+    '<div class="tab'+(proyTab==='gastos'?' active':'')+'" onclick="proyTab=\'gastos\';go(\'proyectos\')">📉 Gastos</div></div>';
   var tabContent='';
   if(proyTab==='comex')tabContent=renderComex(proy,ro);
   if(proyTab==='ingresos')tabContent=renderProyIngresos(proy,ro);
@@ -596,29 +591,12 @@ function pgProyectos(){
     '<div style="font-size:16px;font-weight:700;margin-bottom:14px;color:var(--cyan)">📁 '+proy.nombre+'</div>'+
     tabs+tabContent+'</div>';
 }
-function crearProyecto(){
-  var nom=document.getElementById('npNom').value.trim(),desc=document.getElementById('npDesc').value.trim();
-  if(!nom){alert('Ingresá un nombre.');return;}
-  sbPost('proyectos',{nombre:nom,descripcion:desc,activo:true}).then(function(res){
-    var np=Array.isArray(res)?res[0]:res;
-    if(np&&np.id)selProyId=np.id;
-    proyTab='comex';reload('proyectos');
-  });
-}
+function crearProyecto(){var nom=document.getElementById('npNom').value.trim(),desc=document.getElementById('npDesc').value.trim();if(!nom){alert('Ingresá un nombre.');return;}sbPost('proyectos',{nombre:nom,descripcion:desc,activo:true}).then(function(res){var np=Array.isArray(res)?res[0]:res;if(np&&np.id)selProyId=np.id;proyTab='comex';reload('proyectos');});}
 function renderComex(proy,ro){
   var fil=C.comex.filter(function(r){return r.proyecto_id===proy.id;});
   var rows='';
-  fil.forEach(function(r){
-    var dolaresNac=(parseFloat(r.usd_fob)||0)*(parseFloat(r.pct_nac)||0)/100;
-    var importe=r.tipo_op==='Nacionalización'?dolaresNac*(parseFloat(r.tipo_cambio)||0):(parseFloat(r.usd_fob)||0)*(parseFloat(r.tipo_cambio)||0);
-    var archivoCell=r.archivo?'<a href="'+r.archivo+'" target="_blank" style="color:var(--cyan);font-size:11px">'+(r.archivo.indexOf('drive.google')>-1?'📁':'🔗')+' Ver</a>':'<span style="color:var(--text2);font-size:11px">—</span>';
-    rows+='<tr><td>'+fmtD(r.fecha_inicio)+'</td><td><span class="badge bb">'+r.tipo_op+'</span></td><td>'+r.pedido+'</td><td>'+r.proveedor+'</td><td class="cyan">'+fmtN(r.usd_fob)+'</td><td>'+fmtN(r.pct_nac)+'%</td><td class="cyan">'+fmtN(dolaresNac)+'</td><td>'+fmtN(r.tipo_cambio)+'</td><td class="yellow">$'+fmtN(importe)+'</td><td>'+archivoCell+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="delComex('+r.id+')">✕</button></td>':'')+'</tr>';
-  });
-  var form=ro?'':'<div class="panel"><h3>Nueva Operación COMEX — '+proy.nombre+'</h3>'+
-    '<div class="fg4"><div class="f"><label>Fecha Inicio</label><input type="date" id="cxF" value="'+hoy()+'"/></div><div class="f"><label>Tipo</label><select id="cxTipo">'+listOpts(C.cfg_tipo_op,'')+'</select></div><div class="f"><label>Pedido</label><input type="text" id="cxPed"/></div><div class="f"><label>Proveedor</label><select id="cxProv">'+listOpts(C.cfg_proveedores,'')+'</select></div></div>'+
-    '<div class="fg4" style="margin-top:10px"><div class="f"><label>USD FOB</label><input type="number" id="cxFob" placeholder="0.00" step="0.01" min="0" oninput="calcComex()"/></div><div class="f"><label>% Nac.</label><input type="number" id="cxPct" placeholder="0.00" step="0.01" min="0" max="100" oninput="calcComex()"/></div><div class="f"><label>USD Nac.</label><input type="number" id="cxNac" readonly style="color:var(--cyan)"/></div><div class="f"><label>T.Cambio</label><input type="number" id="cxTC" placeholder="0.00" step="0.01" min="0" oninput="calcComex()"/></div></div>'+
-    '<div class="fg2" style="margin-top:10px"><div class="f"><label>Importe ARS</label><input type="number" id="cxTotal" readonly style="color:var(--yellow)"/></div><div class="f"><label>Archivo/Drive</label><input type="text" id="cxArch" placeholder="https://drive.google.com/..."/></div></div>'+
-    '<div class="factions"><button class="btn bp" onclick="addComex()">Registrar</button></div></div>';
+  fil.forEach(function(r){var dolaresNac=(parseFloat(r.usd_fob)||0)*(parseFloat(r.pct_nac)||0)/100;var importe=r.tipo_op==='Nacionalización'?dolaresNac*(parseFloat(r.tipo_cambio)||0):(parseFloat(r.usd_fob)||0)*(parseFloat(r.tipo_cambio)||0);var archivoCell=r.archivo?'<a href="'+r.archivo+'" target="_blank" style="color:var(--cyan);font-size:11px">'+(r.archivo.indexOf('drive.google')>-1?'📁':'🔗')+' Ver</a>':'<span style="color:var(--text2);font-size:11px">—</span>';rows+='<tr><td>'+fmtD(r.fecha_inicio)+'</td><td><span class="badge bb">'+r.tipo_op+'</span></td><td>'+r.pedido+'</td><td>'+r.proveedor+'</td><td class="cyan">'+fmtN(r.usd_fob)+'</td><td>'+fmtN(r.pct_nac)+'%</td><td class="cyan">'+fmtN(dolaresNac)+'</td><td>'+fmtN(r.tipo_cambio)+'</td><td class="yellow">$'+fmtN(importe)+'</td><td>'+archivoCell+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="delComex('+r.id+')">✕</button></td>':'')+'</tr>';});
+  var form=ro?'':'<div class="panel"><h3>Nueva Operación COMEX — '+proy.nombre+'</h3><div class="fg4"><div class="f"><label>Fecha Inicio</label><input type="date" id="cxF" value="'+hoy()+'"/></div><div class="f"><label>Tipo</label><select id="cxTipo">'+listOpts(C.cfg_tipo_op,'')+'</select></div><div class="f"><label>Pedido</label><input type="text" id="cxPed"/></div><div class="f"><label>Proveedor</label><select id="cxProv">'+listOpts(C.cfg_proveedores,'')+'</select></div></div><div class="fg4" style="margin-top:10px"><div class="f"><label>USD FOB</label><input type="number" id="cxFob" placeholder="0.00" step="0.01" min="0" oninput="calcComex()"/></div><div class="f"><label>% Nac.</label><input type="number" id="cxPct" placeholder="0.00" step="0.01" min="0" max="100" oninput="calcComex()"/></div><div class="f"><label>USD Nac.</label><input type="number" id="cxNac" readonly style="color:var(--cyan)"/></div><div class="f"><label>T.Cambio</label><input type="number" id="cxTC" placeholder="0.00" step="0.01" min="0" oninput="calcComex()"/></div></div><div class="fg2" style="margin-top:10px"><div class="f"><label>Importe ARS</label><input type="number" id="cxTotal" readonly style="color:var(--yellow)"/></div><div class="f"><label>Archivo/Drive</label><input type="text" id="cxArch" placeholder="https://drive.google.com/..."/></div></div><div class="factions"><button class="btn bp" onclick="addComex()">Registrar</button></div></div>';
   return form+'<div class="twrap"><div class="thead2"><h3>COMEX — '+proy.nombre+'</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' registros</span></div><div style="overflow-x:auto"><table style="min-width:1000px"><thead><tr><th>Fecha</th><th>Tipo</th><th>Pedido</th><th>Proveedor</th><th>USD FOB</th><th>% Nac.</th><th>USD Nac.</th><th>T.Cambio</th><th>Total ARS</th><th>Archivo</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?10:11)+'" style="text-align:center;color:var(--text2);padding:14px">Sin operaciones</td></tr>')+'</tbody></table></div></div>';
 }
 function calcComex(){var fob=parseFloat(document.getElementById('cxFob').value)||0,pct=parseFloat(document.getElementById('cxPct').value)||0,tc=parseFloat(document.getElementById('cxTC').value)||0,tipo=document.getElementById('cxTipo').value,nac=fob*pct/100;document.getElementById('cxNac').value=nac.toFixed(2);document.getElementById('cxTotal').value=(tipo==='Nacionalización'?nac*tc:fob*tc).toFixed(2);}
@@ -630,13 +608,8 @@ function renderProyIngresos(proy,ro){
   fil.forEach(function(r){tot+=parseFloat(r.monto)||0;rows+='<tr><td>'+r.item+'</td><td>'+fmtD(r.fecha_facturacion)+'</td><td class="green">'+fmt(r.monto)+'</td><td>'+r.cliente+'</td><td>'+(r.url?'<a href="'+r.url+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗 Ver</a>':'-')+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="delProyIng('+r.id+')">✕</button></td>':'')+'</tr>';});
   var byMes={};fil.forEach(function(r){var m=r.fecha_facturacion?r.fecha_facturacion.substring(0,7):'';if(!m)return;byMes[m]=(byMes[m]||0)+(parseFloat(r.monto)||0);});
   var mesRows='';Object.keys(byMes).sort().forEach(function(m){mesRows+='<tr><td>'+mesLabel(m+'-01')+'</td><td class="green">'+fmt(byMes[m])+'</td></tr>';});
-  var form=ro?'':'<div class="panel"><h3>Registrar Ingreso — '+proy.nombre+'</h3>'+
-    '<div class="fg4"><div class="f"><label>Item</label><input type="number" id="piItem" value="'+(fil.length+1)+'" readonly style="color:var(--cyan)"/></div><div class="f"><label>Fecha Facturación</label><input type="date" id="piF" value="'+hoy()+'"/></div><div class="f"><label>Monto USD</label><input type="number" id="piM" placeholder="0.00" step="0.01" min="0"/></div><div class="f"><label>Cliente</label><input type="text" id="piCli"/></div></div>'+
-    '<div class="fg2" style="margin-top:10px"><div class="f"><label>URL/Adjunto</label><input type="text" id="piUrl" placeholder="https://..."/></div></div>'+
-    '<div class="factions"><button class="btn bp" onclick="addProyIng()">Registrar</button></div></div>';
-  return form+'<div style="display:grid;grid-template-columns:1fr 240px;gap:14px">'+
-    '<div class="twrap"><div class="thead2"><h3>Ingresos — '+proy.nombre+'</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="green">'+fmt(tot)+'</strong></span></div><table><thead><tr><th>#</th><th>Fecha</th><th>Monto</th><th>Cliente</th><th>Doc.</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?5:6)+'" style="text-align:center;color:var(--text2);padding:14px">Sin ingresos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL</td><td class="green">'+fmt(tot)+'</td><td colspan="'+(ro?2:3)+'"></td></tr></tbody></table></div>'+
-    '<div class="twrap"><div class="thead2"><h3>Por Mes</h3></div><table><thead><tr><th>Mes</th><th>Total</th></tr></thead><tbody>'+(mesRows||'<tr><td colspan="2" style="text-align:center;color:var(--text2);padding:12px">Sin datos</td></tr>')+'</tbody></table></div></div>';
+  var form=ro?'':'<div class="panel"><h3>Registrar Ingreso — '+proy.nombre+'</h3><div class="fg4"><div class="f"><label>Item</label><input type="number" id="piItem" value="'+(fil.length+1)+'" readonly style="color:var(--cyan)"/></div><div class="f"><label>Fecha Facturación</label><input type="date" id="piF" value="'+hoy()+'"/></div><div class="f"><label>Monto USD</label><input type="number" id="piM" placeholder="0.00" step="0.01" min="0"/></div><div class="f"><label>Cliente</label><input type="text" id="piCli"/></div></div><div class="fg2" style="margin-top:10px"><div class="f"><label>URL/Adjunto</label><input type="text" id="piUrl" placeholder="https://..."/></div></div><div class="factions"><button class="btn bp" onclick="addProyIng()">Registrar</button></div></div>';
+  return form+'<div style="display:grid;grid-template-columns:1fr 240px;gap:14px"><div class="twrap"><div class="thead2"><h3>Ingresos — '+proy.nombre+'</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="green">'+fmt(tot)+'</strong></span></div><table><thead><tr><th>#</th><th>Fecha</th><th>Monto</th><th>Cliente</th><th>Doc.</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?5:6)+'" style="text-align:center;color:var(--text2);padding:14px">Sin ingresos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL</td><td class="green">'+fmt(tot)+'</td><td colspan="'+(ro?2:3)+'"></td></tr></tbody></table></div><div class="twrap"><div class="thead2"><h3>Por Mes</h3></div><table><thead><tr><th>Mes</th><th>Total</th></tr></thead><tbody>'+(mesRows||'<tr><td colspan="2" style="text-align:center;color:var(--text2);padding:12px">Sin datos</td></tr>')+'</tbody></table></div></div>';
 }
 function addProyIng(){var f=document.getElementById('piF').value,m=parseFloat(document.getElementById('piM').value),cli=document.getElementById('piCli').value.trim();if(!f||isNaN(m)||m<=0||!cli){alert('Completá fecha, monto y cliente.');return;}var fil=C.proy_ingresos.filter(function(r){return r.proyecto_id===selProyId;});sbPost('proy_ingresos',{item:fil.length+1,fecha_facturacion:f,monto:m,cliente:cli,url:document.getElementById('piUrl').value,proyecto_id:selProyId}).then(function(){proyTab='ingresos';reload('proyectos');});}
 function delProyIng(id){if(!confirm('¿Eliminar?'))return;sbDelete('proy_ingresos',id).then(function(){proyTab='ingresos';reload('proyectos');});}
@@ -644,10 +617,7 @@ function renderProyGastos(proy,ro){
   var fil=C.proy_gastos.filter(function(r){return r.proyecto_id===proy.id;});
   var rows='',tot=0;
   fil.forEach(function(r){tot+=parseFloat(r.importe)||0;rows+='<tr><td>'+r.item+'</td><td>'+fmtD(r.fecha)+'</td><td>'+r.concepto+'</td><td class="red">'+fmt(r.importe)+'</td><td><span class="badge '+(r.estado==='Pagado'?'bg':'by')+'">'+r.estado+'</span></td><td>'+r.quien_pago+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="delProyGas('+r.id+')">✕</button></td>':'')+'</tr>';});
-  var form=ro?'':'<div class="panel"><h3>Registrar Gasto — '+proy.nombre+'</h3>'+
-    '<div class="fg4"><div class="f"><label>Item</label><input type="number" id="pgItem" value="'+(fil.length+1)+'" readonly style="color:var(--cyan)"/></div><div class="f"><label>Fecha</label><input type="date" id="pgF" value="'+hoy()+'"/></div><div class="f"><label>Concepto</label><select id="pgCon">'+listOpts(C.cfg_conceptos_gasto,'')+'</select></div><div class="f"><label>Importe USD</label><input type="number" id="pgImp" placeholder="0.00" step="0.01" min="0"/></div></div>'+
-    '<div class="fg3" style="margin-top:10px"><div class="f"><label>Estado</label><select id="pgEst">'+listOpts(C.cfg_estados_gasto,'')+'</select></div><div class="f"><label>Quien Pagó</label><select id="pgQP">'+listOpts(C.cfg_quien_pago,'')+'</select></div></div>'+
-    '<div class="factions"><button class="btn bp" onclick="addProyGas()">Registrar</button></div></div>';
+  var form=ro?'':'<div class="panel"><h3>Registrar Gasto — '+proy.nombre+'</h3><div class="fg4"><div class="f"><label>Item</label><input type="number" id="pgItem" value="'+(fil.length+1)+'" readonly style="color:var(--cyan)"/></div><div class="f"><label>Fecha</label><input type="date" id="pgF" value="'+hoy()+'"/></div><div class="f"><label>Concepto</label><select id="pgCon">'+listOpts(C.cfg_conceptos_gasto,'')+'</select></div><div class="f"><label>Importe USD</label><input type="number" id="pgImp" placeholder="0.00" step="0.01" min="0"/></div></div><div class="fg3" style="margin-top:10px"><div class="f"><label>Estado</label><select id="pgEst">'+listOpts(C.cfg_estados_gasto,'')+'</select></div><div class="f"><label>Quien Pagó</label><select id="pgQP">'+listOpts(C.cfg_quien_pago,'')+'</select></div></div><div class="factions"><button class="btn bp" onclick="addProyGas()">Registrar</button></div></div>';
   return form+'<div class="twrap"><div class="thead2"><h3>Gastos — '+proy.nombre+'</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="red">'+fmt(tot)+'</strong></span></div><table><thead><tr><th>#</th><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Estado</th><th>Quien Pagó</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?6:7)+'" style="text-align:center;color:var(--text2);padding:14px">Sin gastos</td></tr>')+'<tr class="trow"><td colspan="3">TOTAL</td><td class="red">'+fmt(tot)+'</td><td colspan="'+(ro?2:3)+'"></td></tr></tbody></table></div>';
 }
 function addProyGas(){var f=document.getElementById('pgF').value,imp=parseFloat(document.getElementById('pgImp').value);if(!f||isNaN(imp)||imp<=0){alert('Completá fecha e importe.');return;}var fil=C.proy_gastos.filter(function(r){return r.proyecto_id===selProyId;});sbPost('proy_gastos',{item:fil.length+1,fecha:f,concepto:document.getElementById('pgCon').value,importe:imp,estado:document.getElementById('pgEst').value,quien_pago:document.getElementById('pgQP').value,proyecto_id:selProyId}).then(function(){proyTab='gastos';reload('proyectos');});}
