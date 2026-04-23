@@ -7,21 +7,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 <style>
-/* ===== TEMA CLARO (default) - Paleta LEEX suave ===== */
+<style>
+/* ===== TEMA OSCURO ÚNICO - Gris azulado basado en logo LEEX ===== */
 :root{
---bg:#f8fafb;--bg2:#ffffff;--bg3:#f0f4f7;--border:#dfe6ec;
---text:#1a3a5c;--text2:#627a94;
---cyan:#3ebfd9;--cyan-dark:#00a3c7;--cyan-light:#e8f7fb;
---lime:#a0d468;--lime-dark:#7ab83f;--lime-light:#f0f9e8;
---blue:#1a3a5c;--blue-light:#e8edf3;
---red:#f07c8a;--red-light:#fef0f2;
---yellow:#ffc870;--yellow-light:#fff8eb;
---purple:#9b8fd9;--purple-light:#f3f1fb;
---shadow:0 2px 8px rgba(26,58,92,0.08);--shadow-lg:0 8px 20px rgba(26,58,92,0.12);
---login-gradient-1:#e8f4f8;--login-gradient-2:#f0f9f4;
-}
-/* ===== TEMA OSCURO - Gris azulado ===== */
-[data-theme="dark"]{
 --bg:#1e2a3a;--bg2:#263548;--bg3:#2f4158;--border:#3d5268;
 --text:#e8eef5;--text2:#95a7bd;
 --cyan:#3ebfd9;--cyan-dark:#2a9fb5;--cyan-light:rgba(62,191,217,0.12);
@@ -31,11 +19,10 @@
 --yellow:#ffc870;--yellow-light:rgba(255,200,112,0.15);
 --purple:#9b8fd9;--purple-light:rgba(155,143,217,0.15);
 --shadow:0 2px 8px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.35);
---login-gradient-1:#0f1a2a;--login-gradient-2:#1e2a3a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;transition:background .3s,color .3s}
-#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--login-gradient-1) 0%,var(--login-gradient-2) 100%);position:relative}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0f1a2a 0%,#1e2a3a 100%)}
 .loginBox{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;width:360px;box-shadow:var(--shadow-lg)}
 .fg{margin-bottom:14px}.fg label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
 .fg input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:14px;outline:none}
@@ -57,7 +44,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .uav{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
 .lout{margin-left:auto;cursor:pointer;color:var(--text2);font-size:11px}.lout:hover{color:var(--red)}
 .main{margin-left:225px;padding:22px;min-height:100vh}
-.pageTitle{font-size:19px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;color:var(--blue)}
+.pageTitle{font-size:19px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;color:var(--text)}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow);transition:all .2s}
 .card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
@@ -66,23 +53,19 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;mi
 .green{color:var(--lime)}.red{color:var(--red)}.cyan{color:var(--cyan)}.yellow{color:var(--yellow)}
 .twrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow)}
 .thead2{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
-.thead2 h3{font-size:14px;font-weight:600;color:var(--blue)}
+.thead2 h3{font-size:14px;font-weight:600;color:var(--text)}
 table{width:100%;border-collapse:collapse}
 th{background:var(--bg3);font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;white-space:nowrap;font-weight:700}
 td{padding:8px 12px;font-size:12px;border-top:1px solid var(--border)}
 tr:hover td{background:var(--bg3)}
 .trow td{font-weight:700;background:var(--bg3);border-top:2px solid var(--border)}
 .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}
-.bg{background:var(--lime-light);color:var(--lime-dark)}
-[data-theme="dark"] .bg{background:var(--lime-light);color:var(--lime);border:1px solid var(--lime)}
-.br{background:var(--red-light);color:var(--red)}
-[data-theme="dark"] .br{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
-.by{background:var(--yellow-light);color:var(--yellow)}
-[data-theme="dark"] .by{background:var(--yellow-light);color:var(--yellow);border:1px solid var(--yellow)}
-.bb{background:var(--cyan-light);color:var(--cyan-dark)}
-[data-theme="dark"] .bb{background:var(--cyan-light);color:var(--cyan);border:1px solid var(--cyan)}
+.bg{background:var(--lime-light);color:var(--lime);border:1px solid var(--lime)}
+.br{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
+.by{background:var(--yellow-light);color:var(--yellow);border:1px solid var(--yellow)}
+.bb{background:var(--cyan-light);color:var(--cyan);border:1px solid var(--cyan)}
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
-.panel h3{font-size:14px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--blue)}
+.panel h3{font-size:14px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);color:var(--text)}
 .fg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .fg4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
@@ -98,10 +81,8 @@ tr:hover td{background:var(--bg3)}
 .bd{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
 .sm{padding:4px 9px;font-size:11px}
 .alert{padding:9px 13px;border-radius:8px;font-size:13px;margin-bottom:13px}
-.aok{background:var(--lime-light);border:1px solid var(--lime);color:var(--lime-dark)}
-[data-theme="dark"] .aok{color:var(--lime)}
-.ainfo{background:var(--cyan-light);border:1px solid var(--cyan);color:var(--cyan-dark)}
-[data-theme="dark"] .ainfo{color:var(--cyan)}
+.aok{background:var(--lime-light);border:1px solid var(--lime);color:var(--lime)}
+.ainfo{background:var(--cyan-light);border:1px solid var(--cyan);color:var(--cyan)}
 .aerr{background:var(--red-light);border:1px solid var(--red);color:var(--red)}
 .aline{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 28px;gap:7px;align-items:center;margin-bottom:6px}
 .aline input,.aline select{padding:5px 8px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;font-size:12px;width:100%}
@@ -109,8 +90,7 @@ tr:hover td{background:var(--bg3)}
 .blbl{display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 28px;gap:7px;margin-bottom:4px}
 .blbl span{font-size:11px;color:var(--text2);font-weight:700}
 .bcheck{font-size:12px;padding:4px 9px;border-radius:6px;display:inline-block;margin-top:5px;font-weight:700}
-.bok{background:var(--lime-light);color:var(--lime-dark);border:1px solid var(--lime)}
-[data-theme="dark"] .bok{color:var(--lime)}
+.bok{background:var(--lime-light);color:var(--lime);border:1px solid var(--lime)}
 .berr{background:var(--red-light);color:var(--red);border:1px solid var(--red)}
 .loading{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;padding:20px}
 .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite}
@@ -124,26 +104,16 @@ tr:hover td{background:var(--bg3)}
 ::-webkit-scrollbar-track{background:var(--bg3)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text2)}
-.themeToggle{position:absolute;top:24px;right:24px;display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);font-weight:600;transition:all .2s;box-shadow:var(--shadow)}
-.themeToggle:hover{color:var(--text);border-color:var(--cyan);transform:translateY(-1px);box-shadow:var(--shadow-lg)}
-.themeToggle span{font-size:16px}
-.sbThemeToggle{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:11px;color:var(--text2);font-weight:600;transition:all .2s;margin-top:10px}
-.sbThemeToggle:hover{color:var(--text);border-color:var(--cyan);background:var(--bg2)}
-.sbThemeToggle span:first-child{font-size:14px}
 </style>
 </head>
 <body>
 <div id="loginScreen">
-  <button class="themeToggle" onclick="toggleTheme()">
-    <span id="loginThemeIcon">🌙</span>
-    <span id="loginThemeLbl">Oscuro</span>
-  </button>
   <div class="loginBox">
     <div style="text-align:center;margin-bottom:24px">
       <svg viewBox="0 0 280 90" width="170" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 14 L40 48 L10 82" stroke="#3ebfd9" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         <path d="M52 14 L22 48 L52 82" stroke="#a0d468" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#1a3a5c" letter-spacing="3">LEEX</text>
+        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#e8eef5" letter-spacing="3">LEEX</text>
       </svg>
     </div>
     <div class="fg"><label>Usuario</label><input type="text" id="lu" placeholder="usuario"/></div>
@@ -159,7 +129,7 @@ tr:hover td{background:var(--bg3)}
       <svg viewBox="0 0 280 90" width="120" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 14 L40 48 L10 82" stroke="#3ebfd9" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         <path d="M52 14 L22 48 L52 82" stroke="#a0d468" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#1a3a5c" letter-spacing="3">LEEX</text>
+        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#e8eef5" letter-spacing="3">LEEX</text>
       </svg>
     </div>
     <div class="sbSection">Contabilidad</div>
@@ -183,44 +153,11 @@ tr:hover td{background:var(--bg3)}
         <div><div id="uname" style="font-size:12px;font-weight:600">Admin</div><div id="urole" style="font-size:10px;color:var(--cyan)">Administrador</div></div>
         <div class="lout" onclick="logout()">✕</div>
       </div>
-      <button class="sbThemeToggle" onclick="toggleTheme()">
-        <span id="sidebarThemeIcon">🌙</span>
-        <span id="sidebarThemeLbl">Modo Oscuro</span>
-      </button>
     </div>
   </div>
   <div class="main" id="main"></div>
 </div>
 <script>
-// ===== THEME SYSTEM =====
-function getSystemTheme(){return window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}
-function applyTheme(theme){
-  document.documentElement.setAttribute('data-theme',theme);
-  var icon=theme==='dark'?'☀️':'🌙';
-  var label=theme==='dark'?'Claro':'Oscuro';
-  ['loginThemeIcon','sidebarThemeIcon'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=icon;});
-  ['loginThemeLbl','sidebarThemeLbl'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=theme==='dark'?'Modo Claro':'Modo Oscuro';});
-}
-function toggleTheme(){
-  var current=document.documentElement.getAttribute('data-theme')||'light';
-  var next=current==='dark'?'light':'dark';
-  applyTheme(next);
-  try{localStorage.setItem('leex_theme',next);}catch(e){}
-}
-function initTheme(){
-  var saved=null;
-  try{saved=localStorage.getItem('leex_theme');}catch(e){}
-  applyTheme(saved||getSystemTheme());
-}
-initTheme();
-if(window.matchMedia){
-  window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',function(e){
-    var saved=null;
-    try{saved=localStorage.getItem('leex_theme');}catch(e){}
-    if(!saved)applyTheme(e.matches?'dark':'light');
-  });
-}
-
 var SB_URL='https://metirtnwksooxukzqoti.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldGlydG53a3Nvb3h1a3pxb3RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDkwMTQsImV4cCI6MjA5MjI4NTAxNH0.AP0FRv8AyCWILlcbCa8aCpcp155CL0QwflYqDn5mrB0';
 function sbH(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};}
