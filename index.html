@@ -616,54 +616,76 @@ function loadPDFFile(e){
   r.readAsArrayBuffer(f);
 }
 function parsePDFBank(txt){
-  var lines=txt.split('\n');
+  var lines=txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
   var rows=[];
-  var i=0;
-  while(i<lines.length){
-    var line=lines[i].trim();
-    if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(line)){
-      var parts=line.split(/\s+/);
-      var fecha=parts[0];
-      var desc='';
-      var debito=null;
-      var credito=null;
-      var j=1;
-      while(j<parts.length){
-        if(/^-?\$[\d,]+\.?\d*$/.test(parts[j])){
-          var val=parseFloat(parts[j].replace(/[$,]/g,''));
-          if(parts[j].indexOf('-')>-1||parts[j].indexOf('$-')>-1){
-            debito=Math.abs(val);
-          }else{
-            credito=val;
-          }
-          j++;
-          if(j<parts.length&&/^-?\$[\d,]+\.?\d*$/.test(parts[j])){
-            var val2=parseFloat(parts[j].replace(/[$,]/g,''));
-            if(parts[j].indexOf('-')>-1||parts[j].indexOf('$-')>-1){
-              debito=Math.abs(val2);
-            }else{
-              credito=val2;
-            }
-            j++;
-          }
-          break;
+  
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    
+    // Buscar líneas que empiecen con fecha MM/DD/YYYY
+    var dateMatch=line.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(.+)/);
+    if(!dateMatch)continue;
+    
+    var fecha=dateMatch[1];
+    var resto=dateMatch[2];
+    
+    // Convertir fecha a formato YYYY-MM-DD
+    var p=fecha.split('/');
+    var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
+    
+    // Buscar montos en formato -$X,XXX.XX o $X,XXX.XX
+    var montos=resto.match(/-?\$[\d,]+\.?\d*/g);
+    
+    var desc='';
+    var debito=null;
+    var credito=null;
+    
+    if(montos&&montos.length>0){
+      // Extraer descripción (todo antes del primer monto)
+      var primerMonto=resto.indexOf(montos[0]);
+      desc=resto.substring(0,primerMonto).trim();
+      
+      // Procesar montos
+      montos.forEach(function(m){
+        var val=parseFloat(m.replace(/[$,]/g,''));
+        if(m.indexOf('-')===0||m.indexOf('$-')>-1){
+          debito=Math.abs(val);
+        }else{
+          credito=val;
         }
-        desc+=(desc?' ':'')+parts[j];
-        j++;
-      }
-      if(desc){
-        var p=fecha.split('/');
-        var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
-        var monto=0;
-        if(credito)monto=credito;
-        if(debito)monto=-debito;
-        if(monto!==0){
-          rows.push({fecha:fechaNorm,desc:desc,monto:monto});
+      });
+    }else{
+      // Si no hay montos en la misma línea, buscar en las siguientes
+      desc=resto;
+      // Buscar montos en las próximas 2 líneas
+      for(var j=i+1;j<Math.min(i+3,lines.length);j++){
+        var nextLine=lines[j];
+        if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(nextLine))break; // Nueva fecha, parar
+        var nextMontos=nextLine.match(/-?\$[\d,]+\.?\d*/g);
+        if(nextMontos){
+          nextMontos.forEach(function(m){
+            var val=parseFloat(m.replace(/[$,]/g,''));
+            if(m.indexOf('-')===0||m.indexOf('$-')>-1){
+              debito=Math.abs(val);
+            }else{
+              credito=val;
+            }
+          });
+          break;
         }
       }
     }
-    i++;
+    
+    // Solo agregar si tiene descripción y al menos un monto
+    if(desc&&(debito||credito)){
+      var monto=0;
+      if(credito)monto=credito;
+      if(debito)monto=-debito;
+      
+      rows.push({fecha:fechaNorm,desc:desc,monto:monto});
+    }
   }
+  
   return rows;
 }
 function confirmCSV(encoded){var rows=JSON.parse(decodeURIComponent(encoded));var nuevos=rows.filter(function(r){return !C.movs.find(function(m){return m.fecha===r.fecha&&m.descripcion===r.desc&&parseFloat(m.monto)===r.monto;});});if(nuevos.length===0){alert('Todos ya existen.');return;}sbPost('movimientos_banco',nuevos.map(function(r){return{fecha:r.fecha,descripcion:r.desc,monto:r.monto,conciliado:false};})).then(function(){reload('banco');if(nuevos.length<rows.length)alert(nuevos.length+' importados, '+(rows.length-nuevos.length)+' duplicados omitidos.');});}
