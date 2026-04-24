@@ -90,6 +90,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .tab{padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s}
 .tab.active{background:var(--bg3);color:var(--text)}
 .divider{height:1px;background:var(--border);margin:6px 14px}
+.ejSel{display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin-left:auto}
+.ejSel label{font-size:11px;color:var(--text2);font-weight:600}
+.ejSel select{background:var(--bg3);border:1px solid var(--cyan);color:var(--cyan);padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer}
 </style>
 </head>
 <body>
@@ -155,11 +158,15 @@ function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq
 
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
-var C={config:{saldo_inicial_banco:12453.05,banco_nombre:'International Finance Bank',banco_cuenta:'001-LEEX-2026'},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:['Asiento Genérico','Saldo Inicial','Cierre de Ejercicio','Ajuste'],cfg_proveedores:['Enmind','Comen'],cfg_conceptos_gasto:['Viáticos','Gastos Varios','Oficina Chile','Alquiler','Sueldo'],cfg_estados_gasto:['Pendiente','Pagado'],cfg_quien_pago:['Leex','Deam','IBS','Neuroventas'],cfg_tipo_op:['Pago Exterior','Nacionalización','Chile']};
+var C={config:{saldo_inicial_banco:0,banco_nombre:'',banco_cuenta:''},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:[],cfg_proveedores:[],cfg_conceptos_gasto:[],cfg_estados_gasto:[],cfg_quien_pago:[],cfg_tipo_op:[]};
 var asientoTab='libro',mayorCuenta='',aBusca='',pendingAsiento=null,alineCount=0,editCuentaId=null;
 var gFiltros={desde:'',hasta:'',cuenta:''};
 var selProyId=null,proyTab='comex';
 var bancoFiltro='todos',bancoDesde='',bancoHasta='';
+var ejercicioActual=2026;
+var EJERCICIOS=[2020,2021,2022,2023,2024,2025,2026];
+var CTA_RESULTADO_EJ='3.1.01';
+var CTA_RESULT_ACUM='3.1.02';
 
 function login(){
   var u=document.getElementById('lu').value.trim().toLowerCase();
@@ -244,16 +251,89 @@ function hoy(){return new Date().toISOString().split('T')[0];}
 function mesLabel(d){var ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];var p=d.split('-');return ms[parseInt(p[1])-1]+' '+p[0];}
 function exportExcel(data,cols,filename,sheet){var ws=XLSX.utils.json_to_sheet(data,{header:cols});var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,sheet||'Datos');XLSX.writeFile(wb,filename+'.xlsx');}
 
-function calcResultado(){
+function setEjercicio(ej){ejercicioActual=parseInt(ej);go(document.querySelector('.ni.active').getAttribute('data-page'));}
+function getEjDates(ej){return{desde:ej+'-01-01',hasta:ej+'-12-31'};}
+function isInEj(fecha,ej){if(!fecha)return false;return fecha>=ej+'-01-01'&&fecha<=ej+'-12-31';}
+function ejSelector(showLabel){
+  var opts='';EJERCICIOS.forEach(function(e){opts+='<option value="'+e+'"'+(e===ejercicioActual?' selected':'')+'>'+e+'</option>';});
+  return '<div class="ejSel">'+(showLabel!==false?'<label>📅 Ejercicio:</label>':'')+'<select onchange="setEjercicio(this.value)">'+opts+'</select></div>';
+}
+
+function calcResultado(ej){
+  var ejUse=ej||ejercicioActual;
   var totIng=0,totGas=0;
   C.cuentas.forEach(function(c){
-    if(c.tipo==='Ingreso'){C.lineas.forEach(function(l){if(l.cuenta_codigo===c.codigo)totIng+=parseFloat(l.haber)-parseFloat(l.debe);});}
+    if(c.tipo==='Ingreso'){
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==c.codigo)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a||!isInEj(a.fecha,ejUse))return;
+        totIng+=parseFloat(l.haber)-parseFloat(l.debe);
+      });
+    }
     if(c.tipo==='Gasto'){
-      C.lineas.forEach(function(l){if(l.cuenta_codigo===c.codigo)totGas+=parseFloat(l.debe)-parseFloat(l.haber);});
-      C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)totGas+=parseFloat(g.monto);});
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==c.codigo)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a||!isInEj(a.fecha,ejUse))return;
+        totGas+=parseFloat(l.debe)-parseFloat(l.haber);
+      });
+      C.gastos.forEach(function(g){
+        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ejUse))totGas+=parseFloat(g.monto);
+      });
     }
   });
   return totIng-totGas;
+}
+
+function generarCierreEjercicio(ej){
+  if(!isAdmin()){alert('Solo administradores pueden cerrar ejercicios.');return;}
+  var resultado=calcResultado(ej);
+  var ejDates=getEjDates(ej);
+  var lineas=[];
+  C.cuentas.forEach(function(c){
+    var saldo=0;
+    if(c.tipo==='Ingreso'){
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==c.codigo)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a||!isInEj(a.fecha,ej))return;
+        saldo+=parseFloat(l.haber)-parseFloat(l.debe);
+      });
+      if(saldo>0)lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:saldo,haber:0});
+    }
+    if(c.tipo==='Gasto'){
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==c.codigo)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a||!isInEj(a.fecha,ej))return;
+        saldo+=parseFloat(l.debe)-parseFloat(l.haber);
+      });
+      C.gastos.forEach(function(g){
+        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ej))saldo+=parseFloat(g.monto);
+      });
+      if(saldo>0)lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:0,haber:saldo});
+    }
+  });
+  lineas.push({cuenta:CTA_RESULTADO_EJ,det:'Resultado del Ejercicio '+ej,debe:resultado>=0?0:Math.abs(resultado),haber:resultado>=0?resultado:0});
+  pendingAsiento={fecha:ej+'-12-31',desc:'Cierre de Ejercicio '+ej,ref:'CIERRE-'+ej,movId:null,lineas:lineas};
+  asientoTab='nuevo';
+  go('asientos');
+}
+
+function sugerirCierre(){
+  var ejPrev=ejercicioActual-1;
+  if(ejPrev<EJERCICIOS[0])return'';
+  var tieneResultado=C.lineas.find(function(l){
+    if(l.cuenta_codigo!==CTA_RESULTADO_EJ)return false;
+    var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+    return a&&isInEj(a.fecha,ejPrev);
+  });
+  var tieneCierre=C.asientos.find(function(a){return a.categoria==='Cierre de Ejercicio'&&isInEj(a.fecha,ejPrev);});
+  if(!tieneCierre&&tieneResultado){
+    return'<div class="alert ainfo">💡 El ejercicio '+ejPrev+' tiene resultado contabilizado pero no tiene asiento de cierre. <button class="btn bp sm" onclick="generarCierreEjercicio('+ejPrev+')">Generar Cierre '+ejPrev+'</button></div>';
+  }
+  return'';
 }
 
 // ===== DASHBOARD =====
@@ -512,42 +592,91 @@ function addMov(){var t=document.getElementById('mT').value,m=parseFloat(documen
 
 // ===== BALANCE =====
 function pgBalance(){
-  function saldoCta(cod,tipo){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo!==cod)return;s+=tipo==='Activo'?parseFloat(l.debe)-parseFloat(l.haber):parseFloat(l.haber)-parseFloat(l.debe);});return s;}
-  function seccion(tipo){var rows='',tot=0,exData=[];C.cuentas.forEach(function(c){if(c.tipo!==tipo)return;var s=saldoCta(c.codigo,tipo);if(s===0)return;tot+=s;rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td>'+fmt(s)+'</td></tr>';exData.push({Codigo:c.codigo,Cuenta:c.nombre,Saldo:s});});return{rows:rows,tot:tot,exData:exData};}
-  var resultadoNeto=calcResultado();
+  function saldoCta(cod,tipo){
+    var s=0;
+    C.lineas.forEach(function(l){
+      if(l.cuenta_codigo!==cod)return;
+      var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+      if(!a||!isInEj(a.fecha,ejercicioActual))return;
+      s+=tipo==='Activo'?parseFloat(l.debe)-parseFloat(l.haber):parseFloat(l.haber)-parseFloat(l.debe);
+    });
+    return s;
+  }
+  function seccion(tipo){
+    var rows='',tot=0,exData=[];
+    C.cuentas.forEach(function(c){
+      if(c.tipo!==tipo)return;
+      var s=saldoCta(c.codigo,tipo);
+      if(s===0)return;
+      tot+=s;
+      rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td>'+fmt(s)+'</td></tr>';
+      exData.push({Codigo:c.codigo,Cuenta:c.nombre,Saldo:s});
+    });
+    return{rows:rows,tot:tot,exData:exData};
+  }
+  var resultadoNeto=calcResultado(ejercicioActual);
   var act=seccion('Activo'),pas=seccion('Pasivo'),pat=seccion('Patrimonio');
   var patRows=pat.rows,patTot=pat.tot+resultadoNeto,patEx=pat.exData.slice();
   if(resultadoNeto!==0){
-    patRows+='<tr style="background:rgba(14,165,233,.05)"><td style="font-family:monospace;color:var(--cyan)">R.Eje</td><td style="color:var(--cyan)">Resultado del Ejercicio</td><td style="color:'+(resultadoNeto>=0?'var(--green)':'var(--red)')+'">'+fmt(resultadoNeto)+'</td></tr>';
-    patEx.push({Codigo:'R.Eje',Cuenta:'Resultado del Ejercicio',Saldo:resultadoNeto});
+    patRows+='<tr style="background:rgba(14,165,233,.05)"><td style="font-family:monospace;color:var(--cyan)">'+CTA_RESULTADO_EJ+'</td><td style="color:var(--cyan)">Resultado del Ejercicio '+ejercicioActual+'</td><td style="color:'+(resultadoNeto>=0?'var(--lime)':'var(--red)')+'">'+fmt(resultadoNeto)+'</td></tr>';
+    patEx.push({Codigo:CTA_RESULTADO_EJ,Cuenta:'Resultado del Ejercicio '+ejercicioActual,Saldo:resultadoNeto});
   }
   var ok=Math.abs(act.tot-pas.tot-patTot)<1;
   var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(patEx).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
-  return '<div class="pageTitle">Balance General — 2026<button class="btn bs sm" style="margin-left:auto" onclick=\'exportExcel('+JSON.stringify(allEx)+',[\"Codigo\",\"Cuenta\",\"Saldo\"],\"Balance_2026\",\"Balance\")\'>⬇ Excel</button></div>'+
+  return '<div class="pageTitle">Balance General — '+ejercicioActual+ejSelector()+'<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(allEx)+',[\"Codigo\",\"Cuenta\",\"Saldo\"],\"Balance_'+ejercicioActual+'\",\"Balance\")\'>⬇ Excel</button></div>'+
+    sugerirCierre()+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
-    '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
-    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
-    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div></div></div>'+
+    '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
+    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
+    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div></div></div>'+
     '<div class="alert '+(ok?'aok':'ainfo')+'" style="margin-top:12px">'+(ok?'✓ Balance cuadrado — Activo = Pasivo + Patrimonio':'⚠ Diferencia: '+fmt(act.tot-pas.tot-patTot))+'</div>';
 }
 
 // ===== RESULTADOS =====
 function pgResultados(){
-  function calcS(cod,esIng){var s=0;C.lineas.forEach(function(l){if(l.cuenta_codigo===cod)s+=esIng?parseFloat(l.haber)-parseFloat(l.debe):parseFloat(l.debe)-parseFloat(l.haber);});return s;}
+  function calcS(cod,esIng){
+    var s=0;
+    C.lineas.forEach(function(l){
+      if(l.cuenta_codigo!==cod)return;
+      var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+      if(!a||!isInEj(a.fecha,ejercicioActual))return;
+      s+=esIng?parseFloat(l.haber)-parseFloat(l.debe):parseFloat(l.debe)-parseFloat(l.haber);
+    });
+    return s;
+  }
   var ingRows='',gasRows='',totIng=0,totGas=0,exData=[];
   C.cuentas.forEach(function(c){
-    if(c.tipo==='Ingreso'){var s=calcS(c.codigo,true);if(s){totIng+=s;ingRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="green">'+fmt(s)+'</td></tr>';exData.push({Tipo:'Ingreso',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});}}
-    if(c.tipo==='Gasto'){var gasReg=0;C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)gasReg+=parseFloat(g.monto);});var s=calcS(c.codigo,false)+gasReg;if(s){totGas+=s;gasRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="red">'+fmt(s)+'</td></tr>';exData.push({Tipo:'Gasto',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});}}
+    if(c.tipo==='Ingreso'){
+      var s=calcS(c.codigo,true);
+      if(s){
+        totIng+=s;
+        ingRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="green">'+fmt(s)+'</td></tr>';
+        exData.push({Tipo:'Ingreso',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});
+      }
+    }
+    if(c.tipo==='Gasto'){
+      var gasReg=0;
+      C.gastos.forEach(function(g){
+        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ejercicioActual))gasReg+=parseFloat(g.monto);
+      });
+      var s=calcS(c.codigo,false)+gasReg;
+      if(s){
+        totGas+=s;
+        gasRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="red">'+fmt(s)+'</td></tr>';
+        exData.push({Tipo:'Gasto',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});
+      }
+    }
   });
   exData.push({Tipo:'RESULTADO',Cuenta:'Neto',Codigo:'',Monto:totIng-totGas});
   var res=totIng-totGas;
-  return '<div class="pageTitle">Estado de Resultados — 2026<button class="btn bs sm" style="margin-left:auto" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Tipo\",\"Cuenta\",\"Codigo\",\"Monto\"],\"Resultados_2026\",\"Resultados\")\'>⬇ Excel</button></div>'+
-    '<div class="twrap" style="max-width:660px"><div class="thead2"><h3>LEEX — Estado de Resultados</h3></div><table><thead><tr><th>Concepto</th><th>Cuenta</th><th>Monto</th></tr></thead><tbody>'+
-    '<tr><td colspan="3" style="font-weight:700;color:var(--cyan);padding-top:10px">INGRESOS</td></tr>'+(ingRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin ingresos</td></tr>')+
+  return '<div class="pageTitle">Estado de Resultados — '+ejercicioActual+ejSelector()+'<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Tipo\",\"Cuenta\",\"Codigo\",\"Monto\"],\"Resultados_'+ejercicioActual+'\",\"Resultados\")\'>⬇ Excel</button></div>'+
+    sugerirCierre()+
+    '<div class="twrap" style="max-width:660px"><div class="thead2"><h3>LEEX — Estado de Resultados '+ejercicioActual+'</h3></div><table><thead><tr><th>Concepto</th><th>Cuenta</th><th>Monto</th></tr></thead><tbody>'+
+    '<tr><td colspan="3" style="font-weight:700;color:var(--cyan);padding-top:10px">INGRESOS</td></tr>'+(ingRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin ingresos en '+ejercicioActual+'</td></tr>')+
     '<tr class="trow"><td colspan="2">Total Ingresos</td><td class="green">'+fmt(totIng)+'</td></tr>'+
-    '<tr><td colspan="3" style="font-weight:700;color:var(--red);padding-top:10px">GASTOS</td></tr>'+(gasRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin gastos</td></tr>')+
+    '<tr><td colspan="3" style="font-weight:700;color:var(--red);padding-top:10px">GASTOS</td></tr>'+(gasRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin gastos en '+ejercicioActual+'</td></tr>')+
     '<tr class="trow"><td colspan="2">Total Gastos</td><td class="red">'+fmt(totGas)+'</td></tr>'+
-    '<tr class="trow" style="font-size:14px"><td colspan="2">RESULTADO NETO</td><td class="'+(res>=0?'green':'red')+'">'+(res>=0?'Ganancia ':'Pérdida ')+fmt(res)+'</td></tr></tbody></table></div>';
+    '<tr class="trow" style="font-size:14px"><td colspan="2">RESULTADO NETO '+ejercicioActual+'</td><td class="'+(res>=0?'green':'red')+'">'+(res>=0?'Ganancia ':'Pérdida ')+fmt(res)+'</td></tr></tbody></table></div>';
 }
 
 // ===== CUENTAS =====
