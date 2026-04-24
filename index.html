@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LEEX - Sistema Contable</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
 /* ===== MODO OSCURO ÚNICO - Gris azulado basado en logo LEEX ===== */
 :root{
@@ -26,7 +28,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 .fg input:focus{border-color:var(--cyan)}
 .btnLogin{width:100%;background:linear-gradient(135deg,#0ea5e9,#00b4d8);color:#fff;border:none;padding:12px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
 .errMsg{color:var(--red);font-size:12px;text-align:center;margin-top:10px;display:none}
-.loginHint{font-size:11px;color:var(--text2);text-align:center;margin-top:12px}
 #app{display:none}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:225px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
 .sbLogo{padding:16px 14px 12px;border-bottom:1px solid var(--border)}
@@ -102,14 +103,13 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <svg viewBox="0 0 280 90" width="170" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 14 L40 48 L10 82" stroke="#00b4d8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         <path d="M52 14 L22 48 L52 82" stroke="#8cc63f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#1a3a5c" letter-spacing="3">LEEX</text>
+        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#e8eef5" letter-spacing="3">LEEX</text>
       </svg>
     </div>
     <div class="fg"><label>Usuario</label><input type="text" id="lu" placeholder="usuario"/></div>
     <div class="fg"><label>Contraseña</label><input type="password" id="lp" placeholder="contraseña" onkeydown="if(event.key==='Enter')login()"/></div>
     <button class="btnLogin" onclick="login()">Ingresar</button>
     <div class="errMsg" id="lerr">Usuario o contraseña incorrectos</div>
-    <div class="loginHint">Usuario: <b>leex</b> &nbsp;|&nbsp; Contraseña: <b>2026</b></div>
   </div>
 </div>
 <div id="app">
@@ -544,9 +544,11 @@ function pgBanco(){
     '</div>';
 
   var csvForm=ro?'':
-    '<div class="panel"><h3>📂 Importar CSV</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">Columnas: Processed Date, Description, Credit or Debit, Amount</p>'+
-    '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"><label style="cursor:pointer;background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:14px 20px;text-align:center"><input type="file" accept=".csv,.txt" style="display:none" onchange="loadCSVFile(event)"/><div style="font-size:20px">📄</div><div style="font-size:12px;font-weight:600">Seleccionar CSV</div></label>'+
-    '<div style="flex:1;min-width:180px"><textarea id="csvTxt" rows="3" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-size:11px;font-family:monospace;resize:vertical"></textarea><button class="btn bp sm" style="margin-top:6px" onclick="loadCSVText()">Importar texto</button></div></div>'+
+    '<div class="panel"><h3>📂 Importar Movimientos</h3><p style="font-size:12px;color:var(--text2);margin-bottom:12px">Formatos: CSV (Processed Date, Description, Credit or Debit, Amount) o PDF del banco</p>'+
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">'+
+    '<label style="cursor:pointer;background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:14px 20px;text-align:center"><input type="file" accept=".csv,.txt" style="display:none" onchange="loadCSVFile(event)"/><div style="font-size:20px">📄</div><div style="font-size:12px;font-weight:600">CSV</div></label>'+
+    '<label style="cursor:pointer;background:var(--bg3);border:2px dashed var(--border);border-radius:10px;padding:14px 20px;text-align:center"><input type="file" accept=".pdf" style="display:none" onchange="loadPDFFile(event)"/><div style="font-size:20px">📑</div><div style="font-size:12px;font-weight:600">PDF</div></label>'+
+    '<div style="flex:1;min-width:180px"><textarea id="csvTxt" rows="3" placeholder="O pegá el texto aquí..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-size:11px;font-family:monospace;resize:vertical"></textarea><button class="btn bp sm" style="margin-top:6px" onclick="loadCSVText()">Importar texto</button></div></div>'+
     '<div id="csvPrev"></div></div>'+
     '<div class="panel"><h3>➕ Manual</h3><div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="mF" value="'+hoy()+'"/></div><div class="f"><label>Descripción</label><input type="text" id="mD"/></div><div class="f"><label>Tipo</label><select id="mT"><option>Crédito</option><option>Débito</option></select></div><div class="f"><label>Monto USD</label><input type="number" id="mM" placeholder="0.00" min="0" step="0.01"/></div></div><div class="factions"><button class="btn bp" onclick="addMov()">Agregar</button></div></div>';
 
@@ -587,6 +589,83 @@ function parseCSV(txt){var sep=txt.indexOf(';')>-1?';':',';var lines=txt.trim().
 function showCSVPrev(rows,nombre){if(rows.length===0){document.getElementById('csvPrev').innerHTML='<div class="alert aerr" style="margin-top:10px">⚠ No se interpretaron filas.</div>';return;}var cr=0,db=0;rows.forEach(function(r){if(r.monto>0)cr+=r.monto;else db+=r.monto;});var trs='';rows.slice(0,6).forEach(function(r){trs+='<tr><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+fmtD(r.fecha)+'</td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+r.desc+'</td><td style="padding:5px 10px;border-top:1px solid var(--border)"><span class="badge '+(r.monto>0?'bg':'br')+'">'+(r.monto>0?'Créd':'Déb')+'</span></td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border);color:'+(r.monto>0?'var(--green)':'var(--red)')+';">'+(r.monto>0?'+':'')+fmt(r.monto)+'</td></tr>';});var encoded=encodeURIComponent(JSON.stringify(rows));document.getElementById('csvPrev').innerHTML='<div style="margin-top:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:600"><span class="cyan">'+rows.length+' movimientos</span> · '+nombre+'</span><div style="display:flex;gap:8px"><span class="green" style="font-size:11px">+'+fmt(cr)+'</span><span class="red" style="font-size:11px">'+fmt(db)+'</span></div></div><div style="max-height:180px;overflow-y:auto"><table style="width:100%"><thead><tr><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Fecha</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Descripción</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Tipo</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Monto</th></tr></thead><tbody>'+trs+(rows.length>6?'<tr><td colspan="4" style="padding:6px 10px;font-size:11px;color:var(--text2);border-top:1px solid var(--border)">... y '+(rows.length-6)+' más</td></tr>':'')+'</tbody></table></div><div style="padding:9px 13px;border-top:1px solid var(--border);display:flex;gap:7px"><button class="btn bp" onclick="confirmCSV(\''+encoded+'\')">✓ Importar</button><button class="btn bs" onclick="document.getElementById(\'csvPrev\').innerHTML=\'\'">Cancelar</button></div></div>';}
 function loadCSVFile(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){showCSVPrev(parseCSV(ev.target.result),f.name);};r.readAsText(f,'UTF-8');}
 function loadCSVText(){var txt=document.getElementById('csvTxt').value.trim();if(!txt){alert('Pegá el contenido.');return;}showCSVPrev(parseCSV(txt),'texto pegado');}
+function loadPDFFile(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    var data=new Uint8Array(ev.target.result);
+    pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
+      var maxPages=pdf.numPages;
+      var textPromises=[];
+      for(var i=1;i<=maxPages;i++){
+        textPromises.push(pdf.getPage(i).then(function(page){
+          return page.getTextContent().then(function(content){
+            return content.items.map(function(item){return item.str;}).join(' ');
+          });
+        }));
+      }
+      Promise.all(textPromises).then(function(pages){
+        var fullText=pages.join('\n');
+        var rows=parsePDFBank(fullText);
+        showCSVPrev(rows,f.name);
+      });
+    }).catch(function(err){
+      alert('Error al leer PDF: '+err.message);
+    });
+  };
+  r.readAsArrayBuffer(f);
+}
+function parsePDFBank(txt){
+  var lines=txt.split('\n');
+  var rows=[];
+  var i=0;
+  while(i<lines.length){
+    var line=lines[i].trim();
+    if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(line)){
+      var parts=line.split(/\s+/);
+      var fecha=parts[0];
+      var desc='';
+      var debito=null;
+      var credito=null;
+      var j=1;
+      while(j<parts.length){
+        if(/^-?\$[\d,]+\.?\d*$/.test(parts[j])){
+          var val=parseFloat(parts[j].replace(/[$,]/g,''));
+          if(parts[j].indexOf('-')>-1||parts[j].indexOf('$-')>-1){
+            debito=Math.abs(val);
+          }else{
+            credito=val;
+          }
+          j++;
+          if(j<parts.length&&/^-?\$[\d,]+\.?\d*$/.test(parts[j])){
+            var val2=parseFloat(parts[j].replace(/[$,]/g,''));
+            if(parts[j].indexOf('-')>-1||parts[j].indexOf('$-')>-1){
+              debito=Math.abs(val2);
+            }else{
+              credito=val2;
+            }
+            j++;
+          }
+          break;
+        }
+        desc+=(desc?' ':'')+parts[j];
+        j++;
+      }
+      if(desc){
+        var p=fecha.split('/');
+        var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
+        var monto=0;
+        if(credito)monto=credito;
+        if(debito)monto=-debito;
+        if(monto!==0){
+          rows.push({fecha:fechaNorm,desc:desc,monto:monto});
+        }
+      }
+    }
+    i++;
+  }
+  return rows;
+}
 function confirmCSV(encoded){var rows=JSON.parse(decodeURIComponent(encoded));var nuevos=rows.filter(function(r){return !C.movs.find(function(m){return m.fecha===r.fecha&&m.descripcion===r.desc&&parseFloat(m.monto)===r.monto;});});if(nuevos.length===0){alert('Todos ya existen.');return;}sbPost('movimientos_banco',nuevos.map(function(r){return{fecha:r.fecha,descripcion:r.desc,monto:r.monto,conciliado:false};})).then(function(){reload('banco');if(nuevos.length<rows.length)alert(nuevos.length+' importados, '+(rows.length-nuevos.length)+' duplicados omitidos.');});}
 function addMov(){var t=document.getElementById('mT').value,m=parseFloat(document.getElementById('mM').value),f=document.getElementById('mF').value,d=document.getElementById('mD').value.trim();if(!f||!d||isNaN(m)){alert('Completá todos los campos.');return;}sbPost('movimientos_banco',{fecha:f,descripcion:d,monto:t==='Crédito'?Math.abs(m):-Math.abs(m),conciliado:false}).then(function(){reload('banco');});}
 
