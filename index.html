@@ -619,71 +619,69 @@ function parsePDFBank(txt){
   var lines=txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
   var rows=[];
   
-  for(var i=0;i<lines.length;i++){
+  // Eliminar encabezados comunes
+  lines=lines.filter(function(l){
+    return l!=='FECHA'&&l!=='DESCRIPCIÓN'&&l!=='DÉBITOS'&&l!=='CRÉDITOS'&&
+           l!=='Historial de transacciones'&&!l.match(/^Date:/)&&
+           !l.match(/^\d+ transactions/)&&!l.match(/^Search:/)&&l!=='Totales';
+  });
+  
+  var i=0;
+  while(i<lines.length){
     var line=lines[i];
     
-    // Buscar líneas que empiecen con fecha MM/DD/YYYY
-    var dateMatch=line.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(.+)/);
-    if(!dateMatch)continue;
-    
-    var fecha=dateMatch[1];
-    var resto=dateMatch[2];
-    
-    // Convertir fecha a formato YYYY-MM-DD
-    var p=fecha.split('/');
-    var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
-    
-    // Buscar montos en formato -$X,XXX.XX o $X,XXX.XX
-    var montos=resto.match(/-?\$[\d,]+\.?\d*/g);
-    
-    var desc='';
-    var debito=null;
-    var credito=null;
-    
-    if(montos&&montos.length>0){
-      // Extraer descripción (todo antes del primer monto)
-      var primerMonto=resto.indexOf(montos[0]);
-      desc=resto.substring(0,primerMonto).trim();
+    // Buscar fecha MM/DD/YYYY
+    if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(line)){
+      var fecha=line;
+      var p=fecha.split('/');
+      var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
       
-      // Procesar montos
-      montos.forEach(function(m){
-        var val=parseFloat(m.replace(/[$,]/g,''));
-        if(m.indexOf('-')===0||m.indexOf('$-')>-1){
-          debito=Math.abs(val);
-        }else{
-          credito=val;
+      // La siguiente línea debería ser la descripción
+      i++;
+      if(i>=lines.length)break;
+      var desc=lines[i];
+      
+      // Saltar si es otra fecha (caso de múltiples movimientos mismo día)
+      if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(desc)){
+        i--;
+        i++;
+        continue;
+      }
+      
+      // Las siguientes líneas pueden ser débito/crédito
+      var debito=null;
+      var credito=null;
+      
+      // Buscar montos en las próximas 3 líneas
+      for(var j=1;j<=3&&(i+j)<lines.length;j++){
+        var nextLine=lines[i+j];
+        
+        // Si encontramos otra fecha, parar
+        if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(nextLine))break;
+        
+        // Buscar montos
+        var montoMatch=nextLine.match(/-?\$[\d,]+\.?\d*/);
+        if(montoMatch){
+          var val=parseFloat(montoMatch[0].replace(/[$,]/g,''));
+          if(montoMatch[0].indexOf('-')===0||montoMatch[0].indexOf('$-')>-1){
+            debito=Math.abs(val);
+          }else{
+            credito=val;
+          }
         }
-      });
-    }else{
-      // Si no hay montos en la misma línea, buscar en las siguientes
-      desc=resto;
-      // Buscar montos en las próximas 2 líneas
-      for(var j=i+1;j<Math.min(i+3,lines.length);j++){
-        var nextLine=lines[j];
-        if(/^\d{1,2}\/\d{1,2}\/\d{4}/.test(nextLine))break; // Nueva fecha, parar
-        var nextMontos=nextLine.match(/-?\$[\d,]+\.?\d*/g);
-        if(nextMontos){
-          nextMontos.forEach(function(m){
-            var val=parseFloat(m.replace(/[$,]/g,''));
-            if(m.indexOf('-')===0||m.indexOf('$-')>-1){
-              debito=Math.abs(val);
-            }else{
-              credito=val;
-            }
-          });
-          break;
-        }
+      }
+      
+      // Agregar movimiento si tiene monto
+      if(debito||credito){
+        var monto=0;
+        if(credito)monto=credito;
+        if(debito)monto=-debito;
+        
+        rows.push({fecha:fechaNorm,desc:desc,monto:monto});
       }
     }
     
-    // Solo agregar si tiene descripción y al menos un monto
-    if(desc&&(debito||credito)){
-      var monto=0;
-      if(credito)monto=credito;
-      if(debito)monto=-debito;
-      
-      rows.push({fecha:fechaNorm,desc:desc,monto:monto});
-    }
+    i++;
   }
   
   return rows;
