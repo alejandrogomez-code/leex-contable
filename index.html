@@ -596,55 +596,46 @@ function loadPDFFile(e){
     return;
   }
   
-  alert('Archivo seleccionado: ' + f.name + ' (' + f.size + ' bytes)');
-  
   var r=new FileReader();
   r.onload=function(ev){
-    alert('Archivo leído, procesando PDF...');
-    
     var data=new Uint8Array(ev.target.result);
     pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
-      alert('PDF cargado! Páginas: ' + pdf.numPages);
-      
       var maxPages=pdf.numPages;
       var textPromises=[];
       for(var i=1;i<=maxPages;i++){
         textPromises.push(pdf.getPage(i).then(function(page){
           return page.getTextContent().then(function(content){
-            return content.items.map(function(item){return item.str;}).join(' ');
+            // Extraer texto preservando saltos de línea basados en posición Y
+            var lastY=null;
+            var text='';
+            content.items.forEach(function(item){
+              if(lastY!==null&&Math.abs(item.transform[5]-lastY)>5){
+                text+='\n';
+              }
+              text+=item.str+' ';
+              lastY=item.transform[5];
+            });
+            return text;
           });
         }));
       }
       Promise.all(textPromises).then(function(pages){
         var fullText=pages.join('\n');
-        alert('Texto extraído! Length: ' + fullText.length + '\nPrimeros 200 chars:\n' + fullText.substring(0, 200));
-        
         var rows=parsePDFBank(fullText);
-        alert('Parser ejecutado! Filas encontradas: ' + rows.length);
-        
-        showCSVPrev(rows,f.name);
+        if(rows.length===0){
+          alert('⚠ No se interpretaron filas del PDF. Intenta copiar y pegar el texto manualmente.');
+        }else{
+          showCSVPrev(rows,f.name);
+        }
       });
     }).catch(function(err){
-      alert('ERROR al cargar PDF: ' + err.message);
+      alert('Error al leer PDF: '+err.message);
     });
   };
-  
-  r.onerror=function(){
-    alert('ERROR al leer archivo');
-  };
-  
   r.readAsArrayBuffer(f);
 }
 function parsePDFBank(txt){
-  // DEBUG: Mostrar primeras líneas del texto recibido
-  console.log('=== DEBUG PARSER PDF ===');
-  console.log('Texto completo length:', txt.length);
-  console.log('Primeras 500 chars:', txt.substring(0, 500));
-  
   var lines=txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-  console.log('Total líneas después de filtrar:', lines.length);
-  console.log('Primeras 10 líneas:', lines.slice(0, 10));
-  
   var rows=[];
   
   // Intentar primero formato de tabla (fecha descripcion debito credito en misma línea)
