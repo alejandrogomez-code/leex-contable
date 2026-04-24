@@ -590,11 +590,22 @@ function showCSVPrev(rows,nombre){if(rows.length===0){document.getElementById('c
 function loadCSVFile(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){showCSVPrev(parseCSV(ev.target.result),f.name);};r.readAsText(f,'UTF-8');}
 function loadCSVText(){var txt=document.getElementById('csvTxt').value.trim();if(!txt){alert('Pegá el contenido.');return;}showCSVPrev(parseCSV(txt),'texto pegado');}
 function loadPDFFile(e){
-  var f=e.target.files[0];if(!f)return;
+  var f=e.target.files[0];
+  if(!f){
+    alert('No se seleccionó archivo');
+    return;
+  }
+  
+  alert('Archivo seleccionado: ' + f.name + ' (' + f.size + ' bytes)');
+  
   var r=new FileReader();
   r.onload=function(ev){
+    alert('Archivo leído, procesando PDF...');
+    
     var data=new Uint8Array(ev.target.result);
     pdfjsLib.getDocument({data:data}).promise.then(function(pdf){
+      alert('PDF cargado! Páginas: ' + pdf.numPages);
+      
       var maxPages=pdf.numPages;
       var textPromises=[];
       for(var i=1;i<=maxPages;i++){
@@ -606,82 +617,130 @@ function loadPDFFile(e){
       }
       Promise.all(textPromises).then(function(pages){
         var fullText=pages.join('\n');
+        alert('Texto extraído! Length: ' + fullText.length + '\nPrimeros 200 chars:\n' + fullText.substring(0, 200));
+        
         var rows=parsePDFBank(fullText);
+        alert('Parser ejecutado! Filas encontradas: ' + rows.length);
+        
         showCSVPrev(rows,f.name);
       });
     }).catch(function(err){
-      alert('Error al leer PDF: '+err.message);
+      alert('ERROR al cargar PDF: ' + err.message);
     });
   };
+  
+  r.onerror=function(){
+    alert('ERROR al leer archivo');
+  };
+  
   r.readAsArrayBuffer(f);
 }
 function parsePDFBank(txt){
+  // DEBUG: Mostrar primeras líneas del texto recibido
+  console.log('=== DEBUG PARSER PDF ===');
+  console.log('Texto completo length:', txt.length);
+  console.log('Primeras 500 chars:', txt.substring(0, 500));
+  
   var lines=txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  console.log('Total líneas después de filtrar:', lines.length);
+  console.log('Primeras 10 líneas:', lines.slice(0, 10));
+  
   var rows=[];
   
-  // Eliminar encabezados comunes
-  lines=lines.filter(function(l){
-    return l!=='FECHA'&&l!=='DESCRIPCIÓN'&&l!=='DÉBITOS'&&l!=='CRÉDITOS'&&
-           l!=='Historial de transacciones'&&!l.match(/^Date:/)&&
-           !l.match(/^\d+ transactions/)&&!l.match(/^Search:/)&&l!=='Totales';
-  });
-  
-  var i=0;
-  while(i<lines.length){
+  // Intentar primero formato de tabla (fecha descripcion debito credito en misma línea)
+  for(var i=0;i<lines.length;i++){
     var line=lines[i];
     
-    // Buscar fecha MM/DD/YYYY
-    if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(line)){
-      var fecha=line;
+    // Saltar encabezados y totales
+    if(line==='FECHA'||line==='DESCRIPCIÓN'||line==='DÉBITOS'||line==='CRÉDITOS'||
+       line==='Historial de transacciones'||line.match(/^Date:/)||
+       line.match(/^\d+ transactions/)||line.match(/^Search:/)||
+       line==='Totales'||line.match(/^Transactions:/))continue;
+    
+    // Formato 1: Todo en una línea (11/16/2020 DESCRIPCION -$35.00)
+    var match1=line.match(/^(\d{1,2}\/\d{1,2}\/\d{4})\s+(.+?)\s+(-?\$[\d,]+\.?\d*)(?:\s+(-?\$[\d,]+\.?\d*))?$/);
+    if(match1){
+      var fecha=match1[1];
       var p=fecha.split('/');
       var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
+      var desc=match1[2].trim();
       
-      // La siguiente línea debería ser la descripción
-      i++;
-      if(i>=lines.length)break;
-      var desc=lines[i];
-      
-      // Saltar si es otra fecha (caso de múltiples movimientos mismo día)
-      if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(desc)){
-        i--;
-        i++;
-        continue;
-      }
-      
-      // Las siguientes líneas pueden ser débito/crédito
       var debito=null;
       var credito=null;
       
-      // Buscar montos en las próximas 3 líneas
-      for(var j=1;j<=3&&(i+j)<lines.length;j++){
-        var nextLine=lines[i+j];
-        
-        // Si encontramos otra fecha, parar
-        if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(nextLine))break;
-        
-        // Buscar montos
-        var montoMatch=nextLine.match(/-?\$[\d,]+\.?\d*/);
-        if(montoMatch){
-          var val=parseFloat(montoMatch[0].replace(/[$,]/g,''));
-          if(montoMatch[0].indexOf('-')===0||montoMatch[0].indexOf('$-')>-1){
-            debito=Math.abs(val);
-          }else{
-            credito=val;
-          }
+      // Procesar primer monto
+      if(match1[3]){
+        var val=parseFloat(match1[3].replace(/[$,]/g,''));
+        if(match1[3].indexOf('-')>-1){
+          debito=Math.abs(val);
+        }else{
+          credito=val;
         }
       }
       
-      // Agregar movimiento si tiene monto
+      // Procesar segundo monto si existe
+      if(match1[4]){
+        var val2=parseFloat(match1[4].replace(/[$,]/g,''));
+        if(match1[4].indexOf('-')>-1){
+          debito=Math.abs(val2);
+        }else{
+          credito=val2;
+        }
+      }
+      
       if(debito||credito){
         var monto=0;
         if(credito)monto=credito;
         if(debito)monto=-debito;
-        
         rows.push({fecha:fechaNorm,desc:desc,monto:monto});
       }
+      continue;
     }
     
-    i++;
+    // Formato 2: Columnas separadas (fecha en una línea, descripción en siguiente)
+    if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(line)){
+      var fecha2=line;
+      var p2=fecha2.split('/');
+      var fechaNorm2=p2[2]+'-'+p2[0].padStart(2,'0')+'-'+p2[1].padStart(2,'0');
+      
+      // Siguiente línea debería ser descripción
+      i++;
+      if(i>=lines.length)break;
+      var desc2=lines[i];
+      
+      // Si la siguiente es otra fecha, este mov no tiene desc
+      if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(desc2)){
+        i--;
+        continue;
+      }
+      
+      // Buscar monto en las próximas líneas
+      var debito2=null;
+      var credito2=null;
+      
+      for(var j=1;j<=4&&(i+j)<lines.length;j++){
+        var nextLine=lines[i+j];
+        if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(nextLine))break;
+        
+        var montoMatch=nextLine.match(/-?\$[\d,]+\.?\d*/);
+        if(montoMatch){
+          var val3=parseFloat(montoMatch[0].replace(/[$,]/g,''));
+          if(montoMatch[0].indexOf('-')>-1){
+            debito2=Math.abs(val3);
+          }else{
+            credito2=val3;
+          }
+          break;
+        }
+      }
+      
+      if(debito2||credito2){
+        var monto2=0;
+        if(credito2)monto2=credito2;
+        if(debito2)monto2=-debito2;
+        rows.push({fecha:fechaNorm2,desc:desc2,monto:monto2});
+      }
+    }
   }
   
   return rows;
