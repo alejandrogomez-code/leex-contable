@@ -149,12 +149,28 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 var SB_URL='https://metirtnwksooxukzqoti.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldGlydG53a3Nvb3h1a3pxb3RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDkwMTQsImV4cCI6MjA5MjI4NTAxNH0.AP0FRv8AyCWILlcbCa8aCpcp155CL0QwflYqDn5mrB0';
+var SB_BUCKET='facturas';
 function sbH(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};}
 function sbGet(t,p){return fetch(SB_URL+'/rest/v1/'+t+'?'+(p||''),{headers:sbH()}).then(function(r){return r.json();});}
 function sbPost(t,b){return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function sbPatch(t,id,b){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
 function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH()});}
 function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
+// === Storage helpers ===
+function sbUpload(file,path){
+  return fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+encodeURIComponent(path),{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
+    body:file
+  }).then(function(r){return r.json().then(function(j){return{ok:r.ok,status:r.status,body:j};});});
+}
+function sbPublicUrl(path){return SB_URL+'/storage/v1/object/public/'+SB_BUCKET+'/'+encodeURIComponent(path);}
+function sbStorageDelete(path){
+  return fetch(SB_URL+'/storage/v1/object/'+SB_BUCKET+'/'+encodeURIComponent(path),{
+    method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  });
+}
 
 var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},{id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}];
 var CU=null;
@@ -191,13 +207,15 @@ function saveCfg(){try{localStorage.setItem('leex_cfg',JSON.stringify({cfg_cat_a
 
 function loadAll(){
   document.getElementById('main').innerHTML='<div class="loading"><div class="spinner"></div>Cargando datos...</div>';
+  // FIX: select explícito sin las columnas pesadas factura_data/factura_tipo (legacy base64)
+  var movsCols='id,fecha,descripcion,monto,conciliado,asiento_id,factura_nombre,factura_url';
   return Promise.all([
     sbGet('configuracion','select=clave,valor').catch(function(){return[];}),
     sbGet('cuentas','select=*&order=codigo').catch(function(){return[];}),
     sbGet('gastos','select=*&order=fecha').catch(function(){return[];}),
     sbGet('asientos','select=*&order=fecha').catch(function(){return[];}),
     sbGet('asiento_lineas','select=*&order=asiento_id').catch(function(){return[];}),
-    sbGet('movimientos_banco','select=*&order=fecha').catch(function(){return[];}),
+    sbGet('movimientos_banco','select='+movsCols+'&order=fecha').catch(function(){return[];}),
     sbGet('comex','select=*&order=id').catch(function(){return[];}),
     sbGet('proy_ingresos','select=*&order=id').catch(function(){return[];}),
     sbGet('proy_gastos','select=*&order=id').catch(function(){return[];}),
@@ -508,9 +526,10 @@ function pgBanco(){
     m=movsFil[i];
     var tieneAsiento=!!m.asiento_id;
     var factNombre=m.factura_nombre||'';
+    var factUrl=m.factura_url||'';
     var factBtn='';
     if(!ro){
-      factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(factNombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(factNombre?'var(--green)':'var(--text2)')+';border:1px solid '+(factNombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(factNombre?factNombre.substring(0,10)+'...':'Factura')+'</label>'+(factNombre?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button>':'');
+      factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(factNombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(factNombre?'var(--green)':'var(--text2)')+';border:1px solid '+(factNombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(factNombre?factNombre.substring(0,10)+'...':'Factura')+'</label>'+(factUrl?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button><button class="btn sm bd" onclick="removeFact('+m.id+')" style="padding:3px 6px;font-size:10px" title="Quitar factura">✕</button>':'');
     }
     var monto=parseFloat(m.monto)||0;
     rows+='<tr>'+
@@ -573,18 +592,44 @@ function setBancoDesde(v){bancoDesde=v;go('banco');}
 function setBancoHasta(v){bancoHasta=v;go('banco');}
 function conciliar(id){sbPatch('movimientos_banco',id,{conciliado:true}).then(function(){reload('banco');});}
 function desconciliar(id){if(!confirm('¿Desconciliar este movimiento?'))return;sbPatch('movimientos_banco',id,{conciliado:false}).then(function(){reload('banco');});}
+
+// === FACTURA: ahora va a Supabase Storage en lugar de base64 en la DB ===
 function attachFact(id,inp){
   var f=inp.files[0];if(!f)return;
-  var r=new FileReader();
-  r.onload=function(e){
-    sbPatch('movimientos_banco',id,{factura_nombre:f.name,factura_tipo:f.type,factura_data:e.target.result}).then(function(res){
-      if(res&&res.code){alert('Error al guardar factura. Verificá que existan las columnas factura_nombre, factura_tipo y factura_data en la tabla movimientos_banco.\n\n'+res.message);return;}
+  // Limite razonable para evitar errores en uploads grandes
+  if(f.size>10*1024*1024){alert('El archivo supera 10 MB. Subí uno más chico.');inp.value='';return;}
+  // Path único: id del movimiento + timestamp + nombre saneado
+  var safeName=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var path='mov_'+id+'/'+Date.now()+'_'+safeName;
+  // Mostramos un mini feedback visual (cambiar el cursor del label sería ideal pero alcanza con un alert silencioso)
+  sbUpload(f,path).then(function(up){
+    if(!up.ok){
+      var msg=(up.body&&up.body.message)?up.body.message:JSON.stringify(up.body);
+      alert('Error al subir el archivo a Storage:\n'+msg+'\n\n¿Creaste el bucket "facturas" como PÚBLICO en Supabase?');
+      return;
+    }
+    var url=sbPublicUrl(path);
+    sbPatch('movimientos_banco',id,{factura_nombre:f.name,factura_url:url}).then(function(res){
+      if(res&&res.code){
+        alert('Archivo subido pero no se pudo guardar la URL en la fila.\n\n'+res.message+'\n\n¿Existe la columna factura_url en movimientos_banco?');
+        return;
+      }
       reload('banco');
     });
-  };
-  r.readAsDataURL(f);
+  }).catch(function(e){
+    alert('Error de red al subir: '+e.message);
+  });
 }
-function viewFact(id){var m=C.movs.find(function(x){return x.id===id;});if(!m||!m.factura_data)return;var w=window.open('','_blank');if(m.factura_tipo==='application/pdf')w.document.write('<iframe src="'+m.factura_data+'" style="width:100%;height:100vh;border:none"></iframe>');else w.document.write('<img src="'+m.factura_data+'" style="max-width:100%"/>');}
+function viewFact(id){
+  var m=C.movs.find(function(x){return x.id===id;});
+  if(!m||!m.factura_url){alert('Esta factura no tiene archivo asociado.');return;}
+  window.open(m.factura_url,'_blank');
+}
+function removeFact(id){
+  if(!confirm('¿Quitar la factura adjunta de este movimiento?'))return;
+  sbPatch('movimientos_banco',id,{factura_nombre:null,factura_url:null}).then(function(){reload('banco');});
+}
+
 function parseCSV(txt){var sep=txt.indexOf(';')>-1?';':',';var lines=txt.trim().split(/\r?\n/).filter(function(l){return l.trim();});if(lines.length<2)return[];function splitL(line){var res=[],cur='',inq=false;for(var i=0;i<line.length;i++){if(line[i]==='"'){inq=!inq;}else if(line[i]===sep&&!inq){res.push(cur.trim().replace(/^"|"$/g,''));cur='';}else cur+=line[i];}res.push(cur.trim().replace(/^"|"$/g,''));return res;}var hdr=splitL(lines[0]).map(function(h){return h.toLowerCase().trim();});function gi(ns){for(var i=0;i<ns.length;i++){var x=hdr.indexOf(ns[i]);if(x>-1)return x;}return -1;}var iDate=gi(['processed date','date','fecha']),iDesc=gi(['description','descripcion','descripción','concepto']),iCOD=gi(['credit or debit','tipo']),iAmt=gi(['amount','monto','importe']),iDebe=gi(['debe','débito','debito']),iHaber=gi(['haber','crédito','credito']);function normF(f){f=f.trim();if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(f)){var p=f.split('/');return p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');}if(/^\d{4}-\d{2}-\d{2}/.test(f))return f.slice(0,10);return f;}function pM(v){return parseFloat((v||'').replace(/[$,]/g,''))||0;}var res=[];for(var i=1;i<lines.length;i++){var c=splitL(lines[i]);if(c.length<2)continue;var fecha=normF(iDate>-1?c[iDate]:'');if(!fecha)continue;var desc=(iDesc>-1?c[iDesc]:'')||'Sin descripción';var monto=0;if(iCOD>-1&&iAmt>-1){var cod=(c[iCOD]||'').toLowerCase();var amt=pM(c[iAmt]);monto=cod.indexOf('debit')>-1?-Math.abs(amt):Math.abs(amt);}else if(iDebe>-1&&iHaber>-1){monto=pM(c[iHaber])-pM(c[iDebe]);}else if(iAmt>-1){monto=pM(c[iAmt]);}if(monto===0)continue;res.push({fecha:fecha,desc:desc,monto:monto});}return res;}
 function showCSVPrev(rows,nombre){if(rows.length===0){document.getElementById('csvPrev').innerHTML='<div class="alert aerr" style="margin-top:10px">⚠ No se interpretaron filas.</div>';return;}var cr=0,db=0;rows.forEach(function(r){if(r.monto>0)cr+=r.monto;else db+=r.monto;});var trs='';rows.slice(0,6).forEach(function(r){trs+='<tr><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+fmtD(r.fecha)+'</td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border)">'+r.desc+'</td><td style="padding:5px 10px;border-top:1px solid var(--border)"><span class="badge '+(r.monto>0?'bg':'br')+'">'+(r.monto>0?'Créd':'Déb')+'</span></td><td style="padding:5px 10px;font-size:11px;border-top:1px solid var(--border);color:'+(r.monto>0?'var(--green)':'var(--red)')+';">'+(r.monto>0?'+':'')+fmt(r.monto)+'</td></tr>';});var encoded=encodeURIComponent(JSON.stringify(rows));document.getElementById('csvPrev').innerHTML='<div style="margin-top:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;overflow:hidden"><div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:600"><span class="cyan">'+rows.length+' movimientos</span> · '+nombre+'</span><div style="display:flex;gap:8px"><span class="green" style="font-size:11px">+'+fmt(cr)+'</span><span class="red" style="font-size:11px">'+fmt(db)+'</span></div></div><div style="max-height:180px;overflow-y:auto"><table style="width:100%"><thead><tr><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Fecha</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Descripción</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Tipo</th><th style="padding:6px 10px;font-size:10px;background:var(--bg2)">Monto</th></tr></thead><tbody>'+trs+(rows.length>6?'<tr><td colspan="4" style="padding:6px 10px;font-size:11px;color:var(--text2);border-top:1px solid var(--border)">... y '+(rows.length-6)+' más</td></tr>':'')+'</tbody></table></div><div style="padding:9px 13px;border-top:1px solid var(--border);display:flex;gap:7px"><button class="btn bp" onclick="confirmCSV(\''+encoded+'\')">✓ Importar</button><button class="btn bs" onclick="document.getElementById(\'csvPrev\').innerHTML=\'\'">Cancelar</button></div></div>';}
 function loadCSVFile(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){showCSVPrev(parseCSV(ev.target.result),f.name);};r.readAsText(f,'UTF-8');}
