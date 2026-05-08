@@ -417,8 +417,27 @@ function calcResultado(ej){
 function generarCierreEjercicio(ej){
   if(!isAdmin()){alert('Solo administradores pueden cerrar ejercicios.');return;}
   if(ejercicioCerrado(ej)){alert('El ejercicio '+ej+' ya está cerrado.');return;}
+
+  // Verificar que la cuenta de Resultado Acumulado exista
+  var ctaRA=getCta(CTA_RESULT_ACUM);
+  if(!ctaRA){
+    if(!confirm('No existe la cuenta '+CTA_RESULT_ACUM+' (Resultados Acumulados). Es necesaria para el cierre.\n\n¿Crearla automáticamente como tipo Patrimonio?'))return;
+    return sbPost('cuentas',{codigo:CTA_RESULT_ACUM,nombre:'Resultados Acumulados',tipo:'Patrimonio'}).then(function(){
+      reload('balance');setTimeout(function(){generarCierreEjercicio(ej);},500);
+    });
+  }
+  var ctaRE=getCta(CTA_RESULTADO_EJ);
+  if(!ctaRE){
+    if(!confirm('No existe la cuenta '+CTA_RESULTADO_EJ+' (Resultado del Ejercicio). Es necesaria para el cierre.\n\n¿Crearla automáticamente como tipo Patrimonio?'))return;
+    return sbPost('cuentas',{codigo:CTA_RESULTADO_EJ,nombre:'Resultado del Ejercicio',tipo:'Patrimonio'}).then(function(){
+      reload('balance');setTimeout(function(){generarCierreEjercicio(ej);},500);
+    });
+  }
+
+  // Calcular cierre de Ingresos y Gastos
   var resultado=calcResultado(ej);
   var lineas=[];
+  var totalIng=0,totalGas=0;
   C.cuentas.forEach(function(c){
     var saldo=0;
     if(c.tipo==='Ingreso'){
@@ -428,7 +447,7 @@ function generarCierreEjercicio(ej){
         if(!a||!isInEj(a.fecha,ej))return;
         saldo+=parseFloat(l.haber)-parseFloat(l.debe);
       });
-      if(saldo>0)lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:saldo,haber:0});
+      if(saldo>0){lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:saldo,haber:0});totalIng+=saldo;}
     }
     if(c.tipo==='Gasto'){
       C.lineas.forEach(function(l){
@@ -437,13 +456,109 @@ function generarCierreEjercicio(ej){
         if(!a||!isInEj(a.fecha,ej))return;
         saldo+=parseFloat(l.debe)-parseFloat(l.haber);
       });
-      if(saldo>0)lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:0,haber:saldo});
+      if(saldo>0){lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:0,haber:saldo});totalGas+=saldo;}
     }
   });
+
+  if(lineas.length===0){alert('No hay cuentas de Ingreso o Gasto con saldo en el ejercicio '+ej+'. Nada que cerrar.');return;}
+
+  // La línea de Resultado del Ejercicio balancea
   lineas.push({cuenta:CTA_RESULTADO_EJ,det:'Resultado del Ejercicio '+ej,debe:resultado>=0?0:Math.abs(resultado),haber:resultado>=0?resultado:0});
-  pendingAsiento={fecha:ej+'-12-31',desc:'Cierre de Ejercicio '+ej,ref:'CIERRE-'+ej,categoria:'Cierre de Ejercicio',movId:null,lineas:lineas};
-  asientoTab='nuevo';
-  go('asientos');
+
+  // Resumen para confirmación
+  var resumen='═══ CIERRE AUTOMÁTICO DEL EJERCICIO '+ej+' ═══\n\n';
+  resumen+='Se generarán DOS asientos automáticamente:\n\n';
+  resumen+='1) ASIENTO DE CIERRE (fecha 31/12/'+ej+')\n';
+  resumen+='   Cancela todas las cuentas de Ingreso y Gasto.\n';
+  resumen+='   Total Ingresos: '+fmt(totalIng)+'\n';
+  resumen+='   Total Gastos: '+fmt(totalGas)+'\n';
+  resumen+='   Resultado: '+fmt(resultado)+(resultado>=0?' (Ganancia)':' (Pérdida)')+'\n\n';
+  resumen+='2) ASIENTO DE DISTRIBUCIÓN (fecha 31/12/'+ej+')\n';
+  resumen+='   Traslada el Resultado del Ejercicio ('+CTA_RESULTADO_EJ+')\n';
+  resumen+='   a Resultados Acumulados ('+CTA_RESULT_ACUM+').\n';
+  resumen+='   Monto: '+fmt(Math.abs(resultado))+'\n\n';
+  resumen+='Después del cierre:\n';
+  resumen+='• Los Ingresos y Gastos quedarán en cero al iniciar '+(ej+1)+'.\n';
+  resumen+='• El resultado quedará acumulado en '+CTA_RESULT_ACUM+'.\n';
+  resumen+='• El ejercicio quedará BLOQUEADO para nuevos asientos.\n\n';
+  resumen+='⚠ Esta acción es irreversible. ¿Proceder?';
+
+  if(!confirm(resumen))return;
+
+  // Ejecutar en cadena los dos asientos
+  var refCierre='CIERRE-'+ej;
+  var refDistrib='DISTRIB-'+ej;
+  var fechaCierre=ej+'-12-31';
+
+  // 1) ASIENTO DE CIERRE
+  sbPost('asientos',{fecha:fechaCierre,descripcion:'Cierre de Ejercicio '+ej,referencia:refCierre,categoria:'Cierre de Ejercicio',origen:'manual',moneda:'USD',tipo_cambio:1}).then(function(ra){
+    var ast1=Array.isArray(ra)?ra[0]:ra;
+    if(!ast1||!ast1.id){alert('Error al crear asiento de cierre.');return;}
+    var lineasPost=lineas.map(function(l){return{asiento_id:ast1.id,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};});
+    sbPost('asiento_lineas',lineasPost).then(function(){
+
+      // 2) ASIENTO DE DISTRIBUCIÓN: 3.1.01 → 3.1.02
+      // Si resultado > 0 (ganancia): Debe 3.1.01 / Haber 3.1.02
+      // Si resultado < 0 (pérdida): Debe 3.1.02 / Haber 3.1.01
+      var monto=Math.abs(resultado);
+      if(monto<0.01){
+        // No hay resultado para distribuir
+        if(typeof logAudit==='function')logAudit('cerrar','ejercicio',ej,null,{ejercicio:ej,resultado:resultado,asiento_cierre:ast1.id},'Cierre de ejercicio '+ej+' (sin distribución, resultado=0)');
+        // Bloquear período automáticamente
+        bloquearPeriodoCierre(ej);
+        alert('✓ Cierre del ejercicio '+ej+' completado.\nResultado: '+fmt(resultado));
+        reload('balance');
+        return;
+      }
+
+      sbPost('asientos',{fecha:fechaCierre,descripcion:'Distribución de Resultados '+ej,referencia:refDistrib,categoria:'Cierre de Ejercicio',origen:'manual',moneda:'USD',tipo_cambio:1}).then(function(rd){
+        var ast2=Array.isArray(rd)?rd[0]:rd;
+        if(!ast2||!ast2.id){alert('Error al crear asiento de distribución.');return;}
+
+        var lineasDistrib;
+        if(resultado>=0){
+          // Ganancia: 3.1.01 al Debe (cancela), 3.1.02 al Haber (acumula)
+          lineasDistrib=[
+            {asiento_id:ast2.id,cuenta_codigo:CTA_RESULTADO_EJ,detalle:'Distribución resultado '+ej+' (cancela)',debe:monto,haber:0},
+            {asiento_id:ast2.id,cuenta_codigo:CTA_RESULT_ACUM,detalle:'Acumulación resultado '+ej,debe:0,haber:monto}
+          ];
+        }else{
+          // Pérdida: 3.1.02 al Debe (acumula la pérdida), 3.1.01 al Haber (cancela)
+          lineasDistrib=[
+            {asiento_id:ast2.id,cuenta_codigo:CTA_RESULT_ACUM,detalle:'Acumulación pérdida '+ej,debe:monto,haber:0},
+            {asiento_id:ast2.id,cuenta_codigo:CTA_RESULTADO_EJ,detalle:'Distribución pérdida '+ej+' (cancela)',debe:0,haber:monto}
+          ];
+        }
+
+        sbPost('asiento_lineas',lineasDistrib).then(function(){
+          if(typeof logAudit==='function')logAudit('cerrar','ejercicio',ej,null,{ejercicio:ej,resultado:resultado,asiento_cierre:ast1.id,asiento_distribucion:ast2.id},'Cierre automático del ejercicio '+ej);
+          // Bloquear período automáticamente
+          bloquearPeriodoCierre(ej);
+          alert('✓ Cierre del ejercicio '+ej+' completado.\n\n'+
+            '• Asiento de cierre: AST-'+String(ast1.id).padStart(3,'0')+'\n'+
+            '• Asiento de distribución: AST-'+String(ast2.id).padStart(3,'0')+'\n'+
+            '• Resultado distribuido: '+fmt(resultado)+'\n'+
+            '• Período '+ej+' bloqueado para nuevos asientos.');
+          reload('balance');
+        });
+      });
+    });
+  });
+}
+
+// Helper: bloquea automáticamente el período del ejercicio cerrado
+function bloquearPeriodoCierre(ej){
+  // Solo bloquea si no hay un bloqueo previo que ya cubra todo el ejercicio
+  var yaBloqueado=C.periodosBloqueados.some(function(p){
+    return p.fecha_desde<=ej+'-01-01'&&p.fecha_hasta>=ej+'-12-31';
+  });
+  if(yaBloqueado)return;
+  return sbPost('periodos_bloqueados',{
+    fecha_desde:ej+'-01-01',
+    fecha_hasta:ej+'-12-31',
+    motivo:'Cierre automático del ejercicio '+ej,
+    usuario:CU?CU.name:'sistema'
+  });
 }
 
 function sugerirCierre(){
