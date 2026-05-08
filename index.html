@@ -399,6 +399,8 @@ function calcResultado(ej){
         if(l.cuenta_codigo!==c.codigo)return;
         var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
         if(!a||!isInEj(a.fecha,ejUse))return;
+        // Excluir los asientos de cierre y distribución (que cancelan estas cuentas)
+        if(a.categoria==='Cierre de Ejercicio')return;
         totIng+=parseFloat(l.haber)-parseFloat(l.debe);
       });
     }
@@ -407,6 +409,8 @@ function calcResultado(ej){
         if(l.cuenta_codigo!==c.codigo)return;
         var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
         if(!a||!isInEj(a.fecha,ejUse))return;
+        // Excluir los asientos de cierre y distribución
+        if(a.categoria==='Cierre de Ejercicio')return;
         totGas+=parseFloat(l.debe)-parseFloat(l.haber);
       });
     }
@@ -1413,14 +1417,28 @@ function addMov(){var t=document.getElementById('mT').value,m=parseFloat(documen
 
 // ===== BALANCE =====
 function calcResultAcumAnterior(ejActual){
-  // Suma todos los resultados (Ingresos - Gastos) de ejercicios anteriores
-  // EXCLUYE los movimientos en la cuenta CTA_RESULTADO_EJ ya hechos por cierre
-  // y suma los resultados netos de cada ejercicio
+  // Combina dos fuentes:
+  // 1. Saldo REAL de la cuenta CTA_RESULT_ACUM (3.1.02) hasta el cierre del ej anterior
+  //    (refleja resultados acumulados de ejercicios YA cerrados)
+  // 2. Resultado calculado al vuelo de ejercicios anteriores que NO fueron cerrados
+  //    (excluyendo los asientos de cierre para no doble-contar)
   var acum=0;
+
+  // Parte 1: saldo de 3.1.02 al cierre del ejercicio anterior (cuenta acreedora -> haber - debe)
+  C.lineas.forEach(function(l){
+    if(l.cuenta_codigo!==CTA_RESULT_ACUM)return;
+    var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+    if(!a)return;
+    if(a.fecha>=ejActual+'-01-01')return; // solo hasta el ejercicio anterior
+    acum+=parseFloat(l.haber)-parseFloat(l.debe);
+  });
+
+  // Parte 2: resultados de ejercicios anteriores NO cerrados (sin asiento de cierre)
   for(var ej=EJERCICIOS[0];ej<ejActual;ej++){
-    var r=calcResultado(ej);
-    acum+=r;
+    if(ejercicioCerrado(ej))continue; // ya está reflejado en parte 1
+    acum+=calcResultado(ej);
   }
+
   return acum;
 }
 function pgBalance(){
