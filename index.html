@@ -562,18 +562,45 @@ function bloquearPeriodoCierre(ej){
 }
 
 function sugerirCierre(){
-  var ejPrev=ejercicioActual-1;
-  if(ejPrev<EJERCICIOS[0])return'';
-  var tieneResultado=C.lineas.find(function(l){
-    if(l.cuenta_codigo!==CTA_RESULTADO_EJ)return false;
-    var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
-    return a&&isInEj(a.fecha,ejPrev);
-  });
-  var tieneCierre=C.asientos.find(function(a){return a.categoria==='Cierre de Ejercicio'&&isInEj(a.fecha,ejPrev);});
-  if(!tieneCierre&&tieneResultado){
-    return'<div class="alert ainfo">💡 El ejercicio '+ejPrev+' tiene resultado contabilizado pero no tiene asiento de cierre. <button class="btn bp sm" onclick="generarCierreEjercicio('+ejPrev+')">Generar Cierre '+ejPrev+'</button></div>';
+  // Mostrar botón en dos casos:
+  // a) Ejercicio actual ya finalizó (fecha actual posterior al 31/12 del ej) y no está cerrado
+  // b) Ejercicio anterior tiene operaciones y no fue cerrado todavía
+  var hoyD=hoy();
+  var html='';
+
+  // Helper: verifica si un ejercicio tiene ingresos o gastos sin cerrar
+  function tieneOperacionesAbiertas(ej){
+    var tieneIngGas=false;
+    for(var i=0;i<C.lineas.length&&!tieneIngGas;i++){
+      var l=C.lineas[i];
+      var c=getCta(l.cuenta_codigo);
+      if(!c||(c.tipo!=='Ingreso'&&c.tipo!=='Gasto'))continue;
+      var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+      if(!a||!isInEj(a.fecha,ej))continue;
+      // Excluir el propio asiento de cierre
+      if(a.categoria==='Cierre de Ejercicio')continue;
+      tieneIngGas=true;
+    }
+    return tieneIngGas;
   }
-  return'';
+
+  // Caso A: ejercicio actual finalizado y no cerrado
+  if(hoyD>ejercicioActual+'-12-31'&&!ejercicioCerrado(ejercicioActual)&&tieneOperacionesAbiertas(ejercicioActual)){
+    html+='<div class="alert ainfo" style="margin-bottom:10px">💡 El ejercicio <strong>'+ejercicioActual+'</strong> ya finalizó y tiene operaciones sin cerrar. <button class="btn bp sm" onclick="generarCierreEjercicio('+ejercicioActual+')" style="margin-left:8px">🔒 Generar Cierre Automático '+ejercicioActual+'</button></div>';
+  }
+
+  // Caso B: ejercicio anterior sin cerrar
+  var ejPrev=ejercicioActual-1;
+  if(ejPrev>=EJERCICIOS[0]&&!ejercicioCerrado(ejPrev)&&tieneOperacionesAbiertas(ejPrev)){
+    html+='<div class="alert ainfo" style="margin-bottom:10px">💡 El ejercicio <strong>'+ejPrev+'</strong> tiene operaciones pero no fue cerrado. <button class="btn bp sm" onclick="generarCierreEjercicio('+ejPrev+')" style="margin-left:8px">🔒 Generar Cierre Automático '+ejPrev+'</button></div>';
+  }
+
+  // Caso C: el ejercicio actual ya está en curso pero igual permitir cerrar (admin) - botón siempre visible
+  if(!html&&isAdmin()&&tieneOperacionesAbiertas(ejercicioActual)&&!ejercicioCerrado(ejercicioActual)){
+    html+='<div class="alert ainfo" style="margin-bottom:10px;font-size:11px">ℹ️ Si querés cerrar el ejercicio <strong>'+ejercicioActual+'</strong> ahora, <button class="btn bs sm" onclick="generarCierreEjercicio('+ejercicioActual+')" style="margin-left:8px">🔒 Cerrar Ejercicio '+ejercicioActual+'</button></div>';
+  }
+
+  return html;
 }
 
 // ===== DASHBOARD =====
