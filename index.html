@@ -176,9 +176,11 @@ var USERS=[{id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},{
 var CU=null;
 var C={config:{saldo_inicial_banco:0,banco_nombre:'',banco_cuenta:''},proyectos:[],cuentas:[],gastos:[],asientos:[],lineas:[],movs:[],comex:[],proy_ingresos:[],proy_gastos:[],cfg_cat_asientos:[],cfg_proveedores:[],cfg_conceptos_gasto:[],cfg_estados_gasto:[],cfg_quien_pago:[],cfg_tipo_op:[]};
 var asientoTab='libro',mayorCuenta='',aBusca='',pendingAsiento=null,alineCount=0,editCuentaId=null;
+var aFiltCuenta='',aFiltSoloEj=true,editAsientoId=null,mayorEjercicioFilter=true;
 var gFiltros={desde:'',hasta:'',cuenta:''};
 var selProyId=null,proyTab='comex';
 var bancoFiltro='todos',bancoDesde='',bancoHasta='';
+var bancoSel={};
 var ejercicioActual=2026;
 var EJERCICIOS=[2020,2021,2022,2023,2024,2025,2026];
 var CTA_RESULTADO_EJ='3.1.01';
@@ -272,6 +274,20 @@ function exportExcel(data,cols,filename,sheet){var ws=XLSX.utils.json_to_sheet(d
 function setEjercicio(ej){ejercicioActual=parseInt(ej);go(document.querySelector('.ni.active').getAttribute('data-page'));}
 function getEjDates(ej){return{desde:ej+'-01-01',hasta:ej+'-12-31'};}
 function isInEj(fecha,ej){if(!fecha)return false;return fecha>=ej+'-01-01'&&fecha<=ej+'-12-31';}
+function ejercicioDeFecha(fecha){if(!fecha)return null;return parseInt(fecha.substring(0,4));}
+function ejercicioCerrado(ej){
+  return !!C.asientos.find(function(a){
+    return (a.categoria==='Cierre de Ejercicio'||(a.referencia||'').indexOf('CIERRE-'+ej)>-1)&&isInEj(a.fecha,ej);
+  });
+}
+function fechaEnFuturo(fecha){if(!fecha)return false;return fecha>hoy();}
+function validarFechaParaCarga(fecha){
+  if(!fecha)return'Falta la fecha.';
+  if(fechaEnFuturo(fecha))return'La fecha no puede ser futura.';
+  var ej=ejercicioDeFecha(fecha);
+  if(ejercicioCerrado(ej))return'El ejercicio '+ej+' está cerrado. No se pueden cargar movimientos en él.';
+  return null;
+}
 function ejSelector(showLabel){
   var opts='';EJERCICIOS.forEach(function(e){opts+='<option value="'+e+'"'+(e===ejercicioActual?' selected':'')+'>'+e+'</option>';});
   return '<div class="ejSel">'+(showLabel!==false?'<label>📅 Ejercicio:</label>':'')+'<select onchange="setEjercicio(this.value)">'+opts+'</select></div>';
@@ -296,9 +312,6 @@ function calcResultado(ej){
         if(!a||!isInEj(a.fecha,ejUse))return;
         totGas+=parseFloat(l.debe)-parseFloat(l.haber);
       });
-      C.gastos.forEach(function(g){
-        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ejUse))totGas+=parseFloat(g.monto);
-      });
     }
   });
   return totIng-totGas;
@@ -306,8 +319,8 @@ function calcResultado(ej){
 
 function generarCierreEjercicio(ej){
   if(!isAdmin()){alert('Solo administradores pueden cerrar ejercicios.');return;}
+  if(ejercicioCerrado(ej)){alert('El ejercicio '+ej+' ya está cerrado.');return;}
   var resultado=calcResultado(ej);
-  var ejDates=getEjDates(ej);
   var lineas=[];
   C.cuentas.forEach(function(c){
     var saldo=0;
@@ -327,14 +340,11 @@ function generarCierreEjercicio(ej){
         if(!a||!isInEj(a.fecha,ej))return;
         saldo+=parseFloat(l.debe)-parseFloat(l.haber);
       });
-      C.gastos.forEach(function(g){
-        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ej))saldo+=parseFloat(g.monto);
-      });
       if(saldo>0)lineas.push({cuenta:c.codigo,det:'Cierre '+c.nombre+' '+ej,debe:0,haber:saldo});
     }
   });
   lineas.push({cuenta:CTA_RESULTADO_EJ,det:'Resultado del Ejercicio '+ej,debe:resultado>=0?0:Math.abs(resultado),haber:resultado>=0?resultado:0});
-  pendingAsiento={fecha:ej+'-12-31',desc:'Cierre de Ejercicio '+ej,ref:'CIERRE-'+ej,movId:null,lineas:lineas};
+  pendingAsiento={fecha:ej+'-12-31',desc:'Cierre de Ejercicio '+ej,ref:'CIERRE-'+ej,categoria:'Cierre de Ejercicio',movId:null,lineas:lineas};
   asientoTab='nuevo';
   go('asientos');
 }
@@ -356,52 +366,161 @@ function sugerirCierre(){
 
 // ===== DASHBOARD =====
 function pgDashboard(){
-  var ing=0;C.lineas.forEach(function(l){var c=getCta(l.cuenta_codigo);if(c&&c.tipo==='Ingreso')ing+=parseFloat(l.haber)-parseFloat(l.debe);});
-  var gas=0;C.gastos.forEach(function(g){gas+=parseFloat(g.monto);});
-  var sb=C.config.saldo_inicial_banco;C.movs.forEach(function(m){sb+=parseFloat(m.monto);});
+  // Filtrado por ejercicio (#20)
+  var ing=0,gas=0;
+  C.lineas.forEach(function(l){
+    var c=getCta(l.cuenta_codigo);if(!c)return;
+    var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+    if(!a||!isInEj(a.fecha,ejercicioActual))return;
+    if(c.tipo==='Ingreso')ing+=parseFloat(l.haber)-parseFloat(l.debe);
+    if(c.tipo==='Gasto')gas+=parseFloat(l.debe)-parseFloat(l.haber);
+  });
+  // Saldo banco al cierre del ejercicio actual
+  var sb=parseFloat(C.config.saldo_inicial_banco)||0;
+  C.movs.forEach(function(m){
+    if(m.fecha&&m.fecha<=ejercicioActual+'-12-31')sb+=parseFloat(m.monto)||0;
+  });
   var res=ing-gas;
-  var pend=C.movs.filter(function(m){return !m.conciliado;}).length;
-  var rows='';C.gastos.slice().reverse().slice(0,5).forEach(function(g){rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+'</td><td class="red">'+fmt(g.monto)+'</td></tr>';});
-  return '<div class="pageTitle">Dashboard Contable — 2026</div>'+
+  var pendMovs=C.movs.filter(function(m){return !m.conciliado&&isInEj(m.fecha,ejercicioActual);}).length;
+  var asientosEj=C.asientos.filter(function(a){return isInEj(a.fecha,ejercicioActual);}).length;
+  // Asientos descuadrados como alerta (#15)
+  var descuadrados=0;
+  C.asientos.forEach(function(a){
+    if(!isInEj(a.fecha,ejercicioActual))return;
+    var ls=lineasDeAsiento(a.id),d=0,h=0;
+    ls.forEach(function(l){d+=parseFloat(l.debe);h+=parseFloat(l.haber);});
+    if(Math.abs(d-h)>=0.01)descuadrados++;
+  });
+  // Últimos gastos del ejercicio
+  var rows='';
+  C.gastos.filter(function(g){return isInEj(g.fecha,ejercicioActual);}).slice().reverse().slice(0,5).forEach(function(g){
+    rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+'</td><td class="red">'+fmt(g.monto)+'</td></tr>';
+  });
+  var alertaDesc=descuadrados>0?'<div class="alert aerr">⚠ Hay '+descuadrados+' asiento(s) descuadrado(s) en '+ejercicioActual+'. Revisalos en Asientos Contables.</div>':'';
+  return '<div class="pageTitle">Dashboard Contable — '+ejercicioActual+ejSelector()+'</div>'+
+    alertaDesc+
     '<div class="cards">'+
-    '<div class="card"><div class="lbl">Ingresos</div><div class="val green">'+fmt(ing)+'</div><div class="sub">USD</div></div>'+
-    '<div class="card"><div class="lbl">Gastos</div><div class="val red">'+fmt(gas)+'</div><div class="sub">USD</div></div>'+
-    '<div class="card"><div class="lbl">Resultado</div><div class="val '+(res>=0?'cyan':'red')+'">'+fmt(res)+'</div><div class="sub">USD</div></div>'+
-    '<div class="card"><div class="lbl">Saldo Banco</div><div class="val cyan">'+fmt(sb)+'</div><div class="sub">'+C.config.banco_nombre+'</div></div>'+
-    '<div class="card"><div class="lbl">Sin Conciliar</div><div class="val yellow">'+pend+'</div></div>'+
-    '<div class="card"><div class="lbl">Asientos</div><div class="val">'+C.asientos.length+'</div></div>'+
+    '<div class="card"><div class="lbl">Ingresos '+ejercicioActual+'</div><div class="val green">'+fmt(ing)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Gastos '+ejercicioActual+'</div><div class="val red">'+fmt(gas)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Resultado '+ejercicioActual+'</div><div class="val '+(res>=0?'cyan':'red')+'">'+fmt(res)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Banco</div><div class="val cyan">'+fmt(sb)+'</div><div class="sub">al 31/12/'+ejercicioActual+'</div></div>'+
+    '<div class="card"><div class="lbl">Sin Conciliar</div><div class="val yellow">'+pendMovs+'</div></div>'+
+    '<div class="card"><div class="lbl">Asientos '+ejercicioActual+'</div><div class="val">'+asientosEj+'</div></div>'+
     '</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Últimos Gastos</h3></div>'+
+    '<div class="twrap"><div class="thead2"><h3>Últimos Gastos — '+ejercicioActual+'</h3></div>'+
     '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:16px">Sin gastos</td></tr>')+'</tbody></table></div>';
+    '<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:16px">Sin gastos en '+ejercicioActual+'</td></tr>')+'</tbody></table></div>';
 }
 
 // ===== GASTOS =====
+var editGastoId=null;
 function pgGastos(){
   var ro=!isAdmin();
   var fil=C.gastos.filter(function(g){
     if(gFiltros.desde&&g.fecha<gFiltros.desde)return false;
     if(gFiltros.hasta&&g.fecha>gFiltros.hasta)return false;
     if(gFiltros.cuenta&&g.cuenta_codigo!==gFiltros.cuenta)return false;
+    if(!isInEj(g.fecha,ejercicioActual))return false;
     return true;
   });
   var tot=0;fil.forEach(function(g){tot+=parseFloat(g.monto);});
-  var rows='';fil.forEach(function(g){rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+'</td><td>'+(g.comprobante||'-')+'</td><td>'+g.cuenta_codigo+'</td><td>'+g.metodo+'</td><td class="red">'+fmt(g.monto)+'</td></tr>';});
+  var rows='';fil.forEach(function(g){
+    var astLink=g.asiento_id?'<span class="badge bb" style="font-size:10px" title="Asiento AST-'+String(g.asiento_id).padStart(3,'0')+'">📋</span>':'';
+    rows+='<tr><td>'+fmtD(g.fecha)+'</td><td>'+g.descripcion+' '+astLink+'</td><td>'+(g.comprobante||'-')+'</td><td>'+g.cuenta_codigo+'</td><td>'+g.metodo+'</td><td class="red">'+fmt(g.monto)+'</td>'+
+      (!ro?'<td><button class="btn sm bs" onclick="editGasto('+g.id+')" style="margin-right:3px">✏</button><button class="btn sm bd" onclick="deleteGasto('+g.id+')">🗑</button></td>':'')+'</tr>';
+  });
+  // Solo muestra cuentas tipo Gasto en el select
+  var ctasGastoOpts='';
+  C.cuentas.forEach(function(c){if(c.tipo==='Gasto')ctasGastoOpts+='<option value="'+c.codigo+'">'+c.codigo+' - '+c.nombre+'</option>';});
+  // Cuentas para contrapartida (Activo de tipo banco/caja)
+  var ctasContraOpts='';
+  C.cuentas.forEach(function(c){if(c.tipo==='Activo')ctasContraOpts+='<option value="'+c.codigo+'"'+(c.codigo==='1.1.01'?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});
+
+  var editingForm='';
+  if(editGastoId!==null){
+    var eg=C.gastos.find(function(x){return x.id===editGastoId;});
+    if(eg){
+      var ctasGastoOptsE='';
+      C.cuentas.forEach(function(c){if(c.tipo==='Gasto')ctasGastoOptsE+='<option value="'+c.codigo+'"'+(c.codigo===eg.cuenta_codigo?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});
+      editingForm='<div class="panel" style="border-color:var(--cyan)"><h3>✏ Editando Gasto</h3>'+
+        '<div class="alert ainfo" style="font-size:11px">⚠ Editar el gasto NO modifica automáticamente el asiento contable asociado. Si cambian montos importantes, considerá anular y rehacer.</div>'+
+        '<div class="fg3"><div class="f"><label>Fecha</label><input type="date" id="egF" value="'+eg.fecha+'"/></div><div class="f"><label>Descripción</label><input type="text" id="egD" value="'+(eg.descripcion||'').replace(/"/g,'&quot;')+'"/></div><div class="f"><label>Comprobante</label><input type="text" id="egC" value="'+(eg.comprobante||'').replace(/"/g,'&quot;')+'"/></div></div>'+
+        '<div class="fg3" style="margin-top:10px"><div class="f"><label>Cuenta (Gasto)</label><select id="egCta">'+ctasGastoOptsE+'</select></div><div class="f"><label>Monto USD</label><input type="number" id="egM" value="'+eg.monto+'" step="0.01" min="0"/></div><div class="f"><label>Método</label><select id="egMet"><option'+(eg.metodo==='Transferencia'?' selected':'')+'>Transferencia</option><option'+(eg.metodo==='Tarjeta'?' selected':'')+'>Tarjeta</option><option'+(eg.metodo==='Efectivo'?' selected':'')+'>Efectivo</option><option'+(eg.metodo==='Cheque'?' selected':'')+'>Cheque</option></select></div></div>'+
+        '<div class="factions"><button class="btn bp" onclick="updateGasto()">Guardar</button><button class="btn bs" onclick="editGastoId=null;go(\'gastos\')">Cancelar</button></div></div>';
+    }
+  }
+
   var form=ro?'<div class="alert ainfo">Modo lectura.</div>':
     '<div class="panel"><h3>Nuevo Gasto</h3>'+
+    '<div class="alert ainfo" style="font-size:11px">💡 Al registrar un gasto se genera automáticamente su asiento contable: Cuenta de Gasto al Debe / Banco al Haber.</div>'+
     '<div class="fg3"><div class="f"><label>Fecha</label><input type="date" id="gF" value="'+hoy()+'"/></div><div class="f"><label>Descripción</label><input type="text" id="gD"/></div><div class="f"><label>Comprobante</label><input type="text" id="gC"/></div></div>'+
-    '<div class="fg3" style="margin-top:10px"><div class="f"><label>Cuenta</label><select id="gCta">'+ctasOpts('')+'</select></div><div class="f"><label>Monto USD</label><input type="number" id="gM" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Método</label><select id="gMet"><option>Transferencia</option><option>Tarjeta</option><option>Efectivo</option><option>Cheque</option></select></div></div>'+
-    '<div class="factions"><button class="btn bp" onclick="addGasto()">Registrar</button></div></div>';
-  return '<div class="pageTitle">Registro de Gastos</div>'+form+
+    '<div class="fg4" style="margin-top:10px"><div class="f"><label>Cuenta (Gasto)</label><select id="gCta">'+(ctasGastoOpts||'<option value="">Sin cuentas de gasto</option>')+'</select></div><div class="f"><label>Contrapartida</label><select id="gCtaContra">'+(ctasContraOpts||'<option value="1.1.01">1.1.01 - Banco</option>')+'</select></div><div class="f"><label>Monto USD</label><input type="number" id="gM" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Método</label><select id="gMet"><option>Transferencia</option><option>Tarjeta</option><option>Efectivo</option><option>Cheque</option></select></div></div>'+
+    '<div class="factions"><button class="btn bp" onclick="addGasto()">Registrar y Generar Asiento</button></div></div>';
+  return '<div class="pageTitle">Registro de Gastos — '+ejercicioActual+ejSelector()+'</div>'+editingForm+form+
     '<div class="twrap"><div class="thead2"><h3>Gastos — '+fil.length+'</h3><span style="font-size:12px;color:var(--text2)">Total: <strong class="red">'+fmt(tot)+'</strong></span></div>'+
-    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Comprobante</th><th>Cuenta</th><th>Método</th><th>Monto</th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:16px">Sin registros</td></tr>')+
-    '<tr class="trow"><td colspan="5">TOTAL</td><td>'+fmt(tot)+'</td></tr></tbody></table></div>';
+    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Comprobante</th><th>Cuenta</th><th>Método</th><th>Monto</th>'+(!ro?'<th></th>':'')+'</tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="'+(ro?6:7)+'" style="text-align:center;color:var(--text2);padding:16px">Sin registros</td></tr>')+
+    '<tr class="trow"><td colspan="5">TOTAL</td><td>'+fmt(tot)+'</td>'+(!ro?'<td></td>':'')+'</tr></tbody></table></div>';
 }
 function addGasto(){
-  var f=document.getElementById('gF').value,d=document.getElementById('gD').value.trim(),m=parseFloat(document.getElementById('gM').value);
+  var f=document.getElementById('gF').value,d=document.getElementById('gD').value.trim(),c=document.getElementById('gC').value,cta=document.getElementById('gCta').value,ctaContra=document.getElementById('gCtaContra').value,m=parseFloat(document.getElementById('gM').value),met=document.getElementById('gMet').value;
   if(!f||!d||isNaN(m)||m<=0){alert('Completá todos los campos.');return;}
-  sbPost('gastos',{fecha:f,descripcion:d,comprobante:document.getElementById('gC').value,cuenta_codigo:document.getElementById('gCta').value,monto:m,metodo:document.getElementById('gMet').value}).then(function(){reload('gastos');});
+  if(!cta){alert('Seleccioná una cuenta de gasto. Si no aparece ninguna, creá una en Plan de Cuentas con tipo "Gasto".');return;}
+  // Validar tipo de cuenta
+  var ctaObj=getCta(cta);
+  if(!ctaObj||ctaObj.tipo!=='Gasto'){alert('La cuenta seleccionada no es de tipo Gasto.');return;}
+  var errFecha=validarFechaParaCarga(f);
+  if(errFecha){alert(errFecha);return;}
+  // 1) Creo el gasto
+  sbPost('gastos',{fecha:f,descripcion:d,comprobante:c,cuenta_codigo:cta,monto:m,metodo:met}).then(function(resG){
+    var gasto=Array.isArray(resG)?resG[0]:resG;
+    if(!gasto||!gasto.id){alert('Error al crear el gasto.');return;}
+    // 2) Genero asiento contable automáticamente
+    sbPost('asientos',{fecha:f,descripcion:'Gasto: '+d,referencia:'AST-nuevo',origen:'gasto',categoria:'Gasto'}).then(function(resA){
+      var ast=Array.isArray(resA)?resA[0]:resA;
+      if(!ast||!ast.id){
+        // Si falla el asiento, borro el gasto para no dejar inconsistencia
+        sbDelete('gastos',gasto.id);
+        alert('Error al generar asiento. Gasto cancelado.');
+        return;
+      }
+      // 3) Genero líneas: Gasto (debe) / Banco (haber)
+      sbPost('asiento_lineas',[
+        {asiento_id:ast.id,cuenta_codigo:cta,detalle:d,debe:m,haber:0},
+        {asiento_id:ast.id,cuenta_codigo:ctaContra,detalle:d,debe:0,haber:m}
+      ]).then(function(){
+        // 4) Asocio el asiento al gasto
+        sbPatch('gastos',gasto.id,{asiento_id:ast.id});
+        sbPatch('asientos',ast.id,{referencia:'AST-'+String(ast.id).padStart(3,'0')});
+        reload('gastos');
+      });
+    });
+  });
+}
+function editGasto(id){editGastoId=id;go('gastos');}
+function updateGasto(){
+  var f=document.getElementById('egF').value,d=document.getElementById('egD').value.trim(),c=document.getElementById('egC').value,cta=document.getElementById('egCta').value,m=parseFloat(document.getElementById('egM').value),met=document.getElementById('egMet').value;
+  if(!f||!d||isNaN(m)||m<=0){alert('Completá todos los campos.');return;}
+  var errFecha=validarFechaParaCarga(f);
+  if(errFecha){alert(errFecha);return;}
+  sbPatch('gastos',editGastoId,{fecha:f,descripcion:d,comprobante:c,cuenta_codigo:cta,monto:m,metodo:met}).then(function(){editGastoId=null;reload('gastos');});
+}
+function deleteGasto(id){
+  var g=C.gastos.find(function(x){return x.id===id;});
+  if(!g)return;
+  var msg='¿Eliminar el gasto?';
+  if(g.asiento_id){msg+='\n\nEl asiento contable asociado AST-'+String(g.asiento_id).padStart(3,'0')+' también será eliminado.';}
+  if(!confirm(msg))return;
+  if(g.asiento_id){
+    // Eliminar también el asiento
+    sbDeleteWhere('asiento_lineas','asiento_id',g.asiento_id).then(function(){
+      sbDelete('asientos',g.asiento_id).then(function(){
+        sbDelete('gastos',id).then(function(){reload('gastos');});
+      });
+    });
+  }else{
+    sbDelete('gastos',id).then(function(){reload('gastos');});
+  }
 }
 
 // ===== ASIENTOS =====
@@ -410,36 +529,91 @@ function pgAsientos(){
   var tabs='<div class="tabs">'+
     (ro?'':'<div class="tab'+(asientoTab==='nuevo'?' active':'')+'" onclick="asientoTab=\'nuevo\';go(\'asientos\')">✏ Nuevo</div>')+
     '<div class="tab'+(asientoTab==='libro'?' active':'')+'" onclick="asientoTab=\'libro\';go(\'asientos\')">📋 Libro Diario</div>'+
-    '<div class="tab'+(asientoTab==='mayor'?' active':'')+'" onclick="asientoTab=\'mayor\';go(\'asientos\')">📊 Mayor</div></div>';
+    '<div class="tab'+(asientoTab==='mayor'?' active':'')+'" onclick="asientoTab=\'mayor\';go(\'asientos\')">📊 Mayor</div>'+
+    '<div class="tab'+(asientoTab==='sumas'?' active':'')+'" onclick="asientoTab=\'sumas\';go(\'asientos\')">⚖ Sumas y Saldos</div></div>';
   var content='';
+
+  // ---- TAB NUEVO / EDITAR ----
   if(asientoTab==='nuevo'&&!ro){
-    var pa=pendingAsiento,lineasHTML='';
-    if(pa){pa.lineas.forEach(function(l){alineCount++;var aid=alineCount;lineasHTML+='<div class="aline" id="al'+aid+'"><select onchange="chkBal()"><option value="">--</option>'+ctasOpts(l.cuenta)+'</select><input type="text" value="'+l.det+'"/><input type="number" min="0" step="0.01" value="'+(l.debe||'')+'" oninput="chkBal()"/><input type="number" min="0" step="0.01" value="'+(l.haber||'')+'" oninput="chkBal()"/><button class="rlbtn" onclick="document.getElementById(\'al'+aid+'\').remove();chkBal()">✕</button></div>';});}
-    content=(pa?'<div class="alert ainfo" style="margin-bottom:12px">⚙ Desde banco: <strong>'+pa.desc+'</strong></div>':'')+
-      '<div class="panel"><h3>'+(pa?'Confirmar Asiento':'Nuevo Asiento')+'</h3>'+
-      '<div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="aF" value="'+(pa?pa.fecha:hoy())+'"/></div><div class="f"><label>Descripción</label><input type="text" id="aD" value="'+(pa?pa.desc:'')+'" placeholder="Descripción"/></div><div class="f"><label>Categoría</label><select id="aCat"><option value="">Sin categoría</option>'+listOpts(C.cfg_cat_asientos,'')+'</select></div><div class="f"><label>Referencia</label><input type="text" id="aR" value="'+(pa?pa.ref:'')+'" placeholder="AST-00X"/></div></div>'+
-      '<input type="hidden" id="aPendMovId" value="'+(pa?pa.movId:'')+'"/>'+
+    var pa=pendingAsiento,lineasHTML='',titulo='Nuevo Asiento';
+    if(editAsientoId){
+      titulo='Editar Asiento AST-'+String(editAsientoId).padStart(3,'0');
+      var ea=C.asientos.find(function(x){return x.id===editAsientoId;});
+      var els=lineasDeAsiento(editAsientoId);
+      if(ea){
+        pa={fecha:ea.fecha,desc:ea.descripcion,ref:ea.referencia||'',categoria:ea.categoria||'',moneda:ea.moneda||'USD',tipo_cambio:ea.tipo_cambio||1,movId:null,lineas:els.map(function(l){return{cuenta:l.cuenta_codigo,det:l.detalle||'',debe:parseFloat(l.debe),haber:parseFloat(l.haber)};})};
+      }
+    }
+    if(pa){pa.lineas.forEach(function(l){alineCount++;var aid=alineCount;lineasHTML+='<div class="aline" id="al'+aid+'"><select onchange="chkBal()"><option value="">--</option>'+ctasOpts(l.cuenta)+'</select><input type="text" value="'+(l.det||'').replace(/"/g,'&quot;')+'"/><input type="number" min="0" step="0.01" value="'+(l.debe||'')+'" oninput="chkBal()"/><input type="number" min="0" step="0.01" value="'+(l.haber||'')+'" oninput="chkBal()"/><button class="rlbtn" onclick="document.getElementById(\'al'+aid+'\').remove();chkBal()">✕</button></div>';});}
+    var catSel=pa&&pa.categoria?pa.categoria:'';
+    content=(pa&&pa.movId?'<div class="alert ainfo" style="margin-bottom:12px">⚙ Desde banco: <strong>'+pa.desc+'</strong></div>':'')+
+      (editAsientoId?'<div class="alert ainfo" style="margin-bottom:12px">✏ Editando — los cambios reemplazan el asiento original</div>':'')+
+      '<div class="panel"><h3>'+titulo+'</h3>'+
+      '<div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="aF" value="'+(pa?pa.fecha:hoy())+'"/></div><div class="f"><label>Descripción</label><input type="text" id="aD" value="'+(pa?(pa.desc||'').replace(/"/g,'&quot;'):'')+'" placeholder="Descripción"/></div><div class="f"><label>Categoría</label><select id="aCat"><option value="">Sin categoría</option>'+listOpts(C.cfg_cat_asientos.concat(['Cierre de Ejercicio','Apertura','Anulación','Gasto']),catSel)+'</select></div><div class="f"><label>Referencia</label><input type="text" id="aR" value="'+(pa?(pa.ref||''):'')+'" placeholder="Auto"/></div></div>'+
+      '<div class="fg2" style="margin-top:10px"><div class="f"><label>Moneda</label><select id="aMon" onchange="document.getElementById(\'aTC\').disabled=this.value===\'USD\';"><option value="USD"'+(pa&&pa.moneda==='USD'?' selected':(!pa||!pa.moneda?' selected':''))+'>USD (funcional)</option><option value="ARS"'+(pa&&pa.moneda==='ARS'?' selected':'')+'>ARS</option><option value="EUR"'+(pa&&pa.moneda==='EUR'?' selected':'')+'>EUR</option></select></div><div class="f"><label>Tipo de Cambio (a USD)</label><input type="number" id="aTC" value="'+(pa&&pa.tipo_cambio?pa.tipo_cambio:1)+'" step="0.0001" min="0"'+(pa&&pa.moneda&&pa.moneda!=='USD'?'':' disabled')+'/></div></div>'+
+      '<div class="alert ainfo" style="margin-top:10px;font-size:11px">💡 Si seleccionás otra moneda, ingresá el TC al USD. El asiento se registra en USD para el balance. Por ejemplo, si pagaste $100.000 ARS con TC 1000, ingresá Debe/Haber 100 (en USD).</div>'+
+      '<input type="hidden" id="aPendMovId" value="'+(pa&&pa.movId?pa.movId:'')+'"/>'+
       '<div style="margin-top:12px"><div class="blbl"><span>Cuenta</span><span>Detalle</span><span>Debe</span><span>Haber</span><span></span></div><div id="alines">'+lineasHTML+'</div></div>'+
       '<div style="display:flex;gap:8px;align-items:center;margin-top:7px"><button class="btn bs sm" onclick="addLine()">+ Línea</button><span id="bchk" class="bcheck '+(pa?'bok':'berr')+'">'+(pa?'✓ Balanceado':'Sin líneas')+'</span></div>'+
-      '<div class="factions"><button class="btn bp" onclick="saveAsiento()">Guardar</button><button class="btn bs" onclick="pendingAsiento=null;asientoTab=\'libro\';go(\'asientos\')">Cancelar</button></div></div>';
+      '<div class="factions"><button class="btn bp" onclick="saveAsiento()">'+(editAsientoId?'Guardar Cambios':'Guardar')+'</button><button class="btn bs" onclick="pendingAsiento=null;editAsientoId=null;alineCount=0;asientoTab=\'libro\';go(\'asientos\')">Cancelar</button></div></div>';
   }
+
+  // ---- TAB LIBRO DIARIO ----
   if(asientoTab==='libro'){
-    var fil=C.asientos.filter(function(a){if(!aBusca)return true;var b=aBusca.toLowerCase();return(a.descripcion||'').toLowerCase().indexOf(b)>-1||(a.referencia||'').toLowerCase().indexOf(b)>-1;});
-    var rows='';
+    var fil=C.asientos.filter(function(a){
+      if(aFiltSoloEj&&!isInEj(a.fecha,ejercicioActual))return false;
+      if(aFiltCuenta){
+        var ls=lineasDeAsiento(a.id);
+        if(!ls.find(function(l){return l.cuenta_codigo===aFiltCuenta;}))return false;
+      }
+      if(!aBusca)return true;
+      var b=aBusca.toLowerCase();
+      return(a.descripcion||'').toLowerCase().indexOf(b)>-1||(a.referencia||'').toLowerCase().indexOf(b)>-1;
+    }).sort(function(a,b){return a.fecha.localeCompare(b.fecha);});
+    var rows='',totDebe=0,totHaber=0,exData=[];
     fil.forEach(function(a){
-      var ls=lineasDeAsiento(a.id),d=0,h=0;ls.forEach(function(l){d+=parseFloat(l.debe);h+=parseFloat(l.haber);});
-      rows+='<tr><td>AST-'+String(a.id).padStart(3,'0')+'</td><td>'+fmtD(a.fecha)+'</td><td>'+a.descripcion+(a.origen==='banco'?'<span class="badge bb" style="font-size:10px;margin-left:5px">🏦</span>':'')+(a.categoria?'<span class="badge by" style="font-size:10px;margin-left:5px">'+a.categoria+'</span>':'')+'</td><td>'+(a.referencia||'')+'</td><td class="green">'+fmt(d)+'</td><td class="cyan">'+fmt(h)+'</td>'+(!ro?'<td><button class="btn sm bd" onclick="deleteAsiento('+a.id+')">🗑</button></td>':'')+'</tr>';
-      ls.forEach(function(l){rows+='<tr style="font-size:11px;color:var(--text2)"><td></td><td></td><td style="padding-left:24px">'+l.cuenta_codigo+' — '+l.detalle+'</td><td></td><td>'+(parseFloat(l.debe)>0?fmt(l.debe):'')+'</td><td>'+(parseFloat(l.haber)>0?fmt(l.haber):'')+'</td></tr>';});
+      var ls=lineasDeAsiento(a.id),d=0,h=0;
+      ls.forEach(function(l){d+=parseFloat(l.debe);h+=parseFloat(l.haber);});
+      totDebe+=d;totHaber+=h;
+      var balOk=Math.abs(d-h)<0.01;
+      var balBadge=balOk?'':' <span class="badge br" style="font-size:9px" title="Asiento descuadrado">⚠ '+fmt(d-h)+'</span>';
+      var anulado=(a.categoria==='Anulación')?' <span class="badge br" style="font-size:9px">ANULADO</span>':'';
+      var tieneAnula=C.asientos.find(function(x){return x.categoria==='Anulación'&&x.referencia&&x.referencia.indexOf('ANUL-AST-'+String(a.id).padStart(3,'0'))===0;});
+      var anulaBadge=tieneAnula?' <span class="badge by" style="font-size:9px" title="Este asiento fue anulado">↺</span>':'';
+      var puedeEliminar=!ro&&!tieneAnula&&isInEj(a.fecha,ejercicioActual)&&!ejercicioCerrado(ejercicioDeFecha(a.fecha));
+      var puedeAnular=!ro&&!tieneAnula&&a.categoria!=='Anulación';
+      rows+='<tr><td>AST-'+String(a.id).padStart(3,'0')+'</td><td>'+fmtD(a.fecha)+'</td><td>'+a.descripcion+(a.origen==='banco'?' <span class="badge bb" style="font-size:10px" title="Generado desde banco">🏦</span>':'')+(a.origen==='gasto'?' <span class="badge by" style="font-size:10px" title="Generado desde gasto">💸</span>':'')+(a.categoria&&a.categoria!=='Anulación'?' <span class="badge by" style="font-size:10px">'+a.categoria+'</span>':'')+anulado+anulaBadge+balBadge+'</td><td>'+(a.referencia||'')+'</td><td class="green">'+fmt(d)+'</td><td class="cyan">'+fmt(h)+'</td>'+(!ro?'<td style="display:flex;gap:3px;flex-wrap:wrap">'+(puedeAnular?'<button class="btn sm bs" onclick="anularAsiento('+a.id+')" title="Generar asiento de anulación" style="font-size:10px">↺ Anular</button>':'')+'<button class="btn sm bs" onclick="editarAsiento('+a.id+')" title="Editar" style="font-size:10px">✏</button>'+(puedeEliminar?'<button class="btn sm bd" onclick="deleteAsiento('+a.id+')" title="Eliminar (solo ej. actual)">🗑</button>':'')+'</td>':'')+'</tr>';
+      ls.forEach(function(l){rows+='<tr style="font-size:11px;color:var(--text2)"><td></td><td></td><td style="padding-left:24px">'+l.cuenta_codigo+' — '+(l.detalle||'')+'</td><td></td><td>'+(parseFloat(l.debe)>0?fmt(l.debe):'')+'</td><td>'+(parseFloat(l.haber)>0?fmt(l.haber):'')+'</td>'+(!ro?'<td></td>':'')+'</tr>';});
+      ls.forEach(function(l){exData.push({Asiento:'AST-'+String(a.id).padStart(3,'0'),Fecha:fmtD(a.fecha),Descripcion:a.descripcion,Referencia:a.referencia||'',Categoria:a.categoria||'',Cuenta:l.cuenta_codigo,Detalle:l.detalle||'',Debe:parseFloat(l.debe)||0,Haber:parseFloat(l.haber)||0});});
     });
-    content='<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center"><input type="text" placeholder="🔍 Buscar..." value="'+aBusca+'" oninput="aBusca=this.value;go(\'asientos\')" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;outline:none"/>'+(aBusca?'<button class="btn bs sm" onclick="aBusca=\'\';go(\'asientos\')">✕</button>':'')+(!ro?'<button class="btn bp sm" onclick="asientoTab=\'nuevo\';go(\'asientos\')">+ Nuevo</button>':'')+'</div>'+
-      '<div class="twrap"><div class="thead2"><h3>Libro Diario — '+fil.length+' asientos</h3></div><table><thead><tr><th>Nro.</th><th>Fecha</th><th>Descripción</th><th>Ref.</th><th>Debe</th><th>Haber</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?6:7)+'" style="text-align:center;color:var(--text2);padding:20px">Sin asientos</td></tr>')+'</tbody></table></div>';
+    var asientosDescuadrados=fil.filter(function(a){var ls=lineasDeAsiento(a.id),d=0,h=0;ls.forEach(function(l){d+=parseFloat(l.debe);h+=parseFloat(l.haber);});return Math.abs(d-h)>=0.01;}).length;
+    var ctaOpts='<option value="">— Todas las cuentas —</option>';C.cuentas.forEach(function(c){ctaOpts+='<option value="'+c.codigo+'"'+(aFiltCuenta===c.codigo?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});
+    var alertaDesc=asientosDescuadrados>0?'<div class="alert aerr" style="margin-bottom:12px">⚠ Hay '+asientosDescuadrados+' asiento(s) descuadrado(s) en este filtro. Buscá el badge ⚠ para ubicarlos.</div>':'';
+    content=alertaDesc+
+      '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">'+
+      '<input type="text" placeholder="🔍 Buscar..." value="'+aBusca+'" oninput="aBusca=this.value;go(\'asientos\')" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;outline:none"/>'+
+      '<select onchange="aFiltCuenta=this.value;go(\'asientos\')" style="padding:7px 11px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px">'+ctaOpts+'</select>'+
+      '<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox"'+(aFiltSoloEj?' checked':'')+' onchange="aFiltSoloEj=this.checked;go(\'asientos\')" style="cursor:pointer;accent-color:var(--cyan)"/>Solo '+ejercicioActual+'</label>'+
+      ((aBusca||aFiltCuenta)?'<button class="btn bs sm" onclick="aBusca=\'\';aFiltCuenta=\'\';go(\'asientos\')">✕</button>':'')+
+      '<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Asiento\",\"Fecha\",\"Descripcion\",\"Referencia\",\"Categoria\",\"Cuenta\",\"Detalle\",\"Debe\",\"Haber\"],\"Libro_Diario\",\"LibroDiario\")\'>⬇ Excel</button>'+
+      (!ro?'<button class="btn bp sm" onclick="pendingAsiento=null;editAsientoId=null;alineCount=0;asientoTab=\'nuevo\';go(\'asientos\')">+ Nuevo</button>':'')+
+      '</div>'+
+      '<div class="twrap"><div class="thead2"><h3>Libro Diario — '+fil.length+' asientos</h3><span style="font-size:12px;color:var(--text2)">Debe '+fmt(totDebe)+' / Haber '+fmt(totHaber)+'</span></div><table><thead><tr><th>Nro.</th><th>Fecha</th><th>Descripción</th><th>Ref.</th><th>Debe</th><th>Haber</th>'+(!ro?'<th></th>':'')+'</tr></thead><tbody>'+(rows||'<tr><td colspan="'+(ro?6:7)+'" style="text-align:center;color:var(--text2);padding:20px">Sin asientos</td></tr>')+'</tbody></table></div>';
   }
+
+  // ---- TAB MAYOR ----
   if(asientoTab==='mayor'){
     var opts='<option value="">— Cuenta —</option>';C.cuentas.forEach(function(c){opts+='<option value="'+c.codigo+'"'+(mayorCuenta===c.codigo?' selected':'')+'>'+c.codigo+' - '+c.nombre+'</option>';});
     var mc='<div style="color:var(--text2);font-size:13px;padding:12px 0">Seleccioná una cuenta.</div>';
     if(mayorCuenta){
       var cta=getCta(mayorCuenta),mvs=[];
-      C.lineas.forEach(function(l){if(l.cuenta_codigo!==mayorCuenta)return;var a=C.asientos.find(function(a){return a.id===l.asiento_id;});if(a)mvs.push({fecha:a.fecha,ref:a.referencia||'',asDesc:a.descripcion,det:l.detalle||'',debe:parseFloat(l.debe),haber:parseFloat(l.haber)});});
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==mayorCuenta)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a)return;
+        if(mayorEjercicioFilter&&!isInEj(a.fecha,ejercicioActual))return;
+        mvs.push({fecha:a.fecha,ref:a.referencia||'',asDesc:a.descripcion,det:l.detalle||'',debe:parseFloat(l.debe),haber:parseFloat(l.haber)});
+      });
       mvs.sort(function(a,b){return a.fecha.localeCompare(b.fecha);});
       var saldo=0,totD=0,totH=0,mRows='';
       mvs.forEach(function(m){totD+=m.debe;totH+=m.haber;saldo+=(cta&&(cta.tipo==='Activo'||cta.tipo==='Gasto'))?m.debe-m.haber:m.haber-m.debe;mRows+='<tr><td>'+fmtD(m.fecha)+'</td><td>'+m.ref+'</td><td>'+m.asDesc+'</td><td>'+m.det+'</td><td class="green">'+(m.debe>0?fmt(m.debe):'')+'</td><td class="cyan">'+(m.haber>0?fmt(m.haber):'')+'</td><td style="font-family:monospace;font-size:11px;color:'+(saldo>=0?'var(--green)':'var(--red)')+'">'+fmt(saldo)+'</td></tr>';});
@@ -448,44 +622,150 @@ function pgAsientos(){
         '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Fecha\",\"Ref\",\"Asiento\",\"Detalle\",\"Debe\",\"Haber\",\"Saldo\"],\"Mayor_'+mayorCuenta+'\",\"Mayor\")\'>⬇ Excel</button></div>'+
         '<div class="twrap"><div class="thead2"><h3>Mayor: '+(cta?cta.nombre:mayorCuenta)+'</h3></div><table><thead><tr><th>Fecha</th><th>Ref.</th><th>Asiento</th><th>Detalle</th><th>Debe</th><th>Haber</th><th>Saldo</th></tr></thead><tbody>'+(mRows||'<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:16px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="4">TOTALES</td><td class="green">'+fmt(totD)+'</td><td class="cyan">'+fmt(totH)+'</td><td>'+fmt(saldo)+'</td></tr></tbody></table></div>';
     }
-    content='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><select onchange="mayorCuenta=this.value;go(\'asientos\')" style="padding:7px 11px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px">'+opts+'</select></div>'+mc;
+    content='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap"><select onchange="mayorCuenta=this.value;go(\'asientos\')" style="padding:7px 11px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:12px;min-width:280px">'+opts+'</select><label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox"'+(mayorEjercicioFilter?' checked':'')+' onchange="mayorEjercicioFilter=this.checked;go(\'asientos\')" style="cursor:pointer;accent-color:var(--cyan)"/>Solo '+ejercicioActual+'</label></div>'+mc;
   }
-  return '<div class="pageTitle">Asientos Contables</div>'+tabs+content;
+
+  // ---- TAB SUMAS Y SALDOS (#13) ----
+  if(asientoTab==='sumas'){
+    var rowsS='',totD=0,totH=0,totSdoD=0,totSdoH=0,exData=[];
+    C.cuentas.forEach(function(c){
+      var d=0,h=0;
+      C.lineas.forEach(function(l){
+        if(l.cuenta_codigo!==c.codigo)return;
+        var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
+        if(!a||!isInEj(a.fecha,ejercicioActual))return;
+        d+=parseFloat(l.debe);h+=parseFloat(l.haber);
+      });
+      if(d===0&&h===0)return;
+      var saldo=d-h;
+      var sdoD=saldo>0?saldo:0,sdoH=saldo<0?-saldo:0;
+      totD+=d;totH+=h;totSdoD+=sdoD;totSdoH+=sdoH;
+      rowsS+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td><span class="badge bb">'+c.tipo+'</span></td><td class="green">'+fmt(d)+'</td><td class="cyan">'+fmt(h)+'</td><td>'+(sdoD>0?'<span class="green">'+fmt(sdoD)+'</span>':'')+'</td><td>'+(sdoH>0?'<span class="red">'+fmt(sdoH)+'</span>':'')+'</td></tr>';
+      exData.push({Codigo:c.codigo,Cuenta:c.nombre,Tipo:c.tipo,Debe:d,Haber:h,SaldoDeudor:sdoD,SaldoAcreedor:sdoH});
+    });
+    var balOk=Math.abs(totD-totH)<0.01&&Math.abs(totSdoD-totSdoH)<0.01;
+    content='<div class="alert '+(balOk?'aok':'aerr')+'" style="margin-bottom:12px">'+(balOk?'✓ Sumas y Saldos cuadrado en '+ejercicioActual:'⚠ Diferencia: Sumas '+fmt(totD-totH)+' / Saldos '+fmt(totSdoD-totSdoH))+'</div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Codigo\",\"Cuenta\",\"Tipo\",\"Debe\",\"Haber\",\"SaldoDeudor\",\"SaldoAcreedor\"],\"SumasYSaldos_'+ejercicioActual+'\",\"SumasYSaldos\")\'>⬇ Excel</button></div>'+
+      '<div class="twrap"><div class="thead2"><h3>Balance de Sumas y Saldos — '+ejercicioActual+'</h3></div>'+
+      '<table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th>Debe</th><th>Haber</th><th>Sdo. Deudor</th><th>Sdo. Acreedor</th></tr></thead>'+
+      '<tbody>'+(rowsS||'<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:18px">Sin movimientos en '+ejercicioActual+'</td></tr>')+
+      '<tr class="trow"><td colspan="3">TOTALES</td><td class="green">'+fmt(totD)+'</td><td class="cyan">'+fmt(totH)+'</td><td><span class="green">'+fmt(totSdoD)+'</span></td><td><span class="red">'+fmt(totSdoH)+'</span></td></tr>'+
+      '</tbody></table></div>';
+  }
+
+  // Leyenda de íconos (#19)
+  var leyenda='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:11px;color:var(--text2)">'+
+    '<strong style="color:var(--text)">Iconos:</strong> '+
+    '<span class="badge bb" style="font-size:10px">🏦</span> Generado desde banco · '+
+    '<span class="badge by" style="font-size:10px">💸</span> Generado desde gasto · '+
+    '<span class="badge by" style="font-size:10px">↺</span> Anulado · '+
+    '<span class="badge br" style="font-size:9px">⚠</span> Descuadrado'+
+    '</div>';
+
+  return '<div class="pageTitle">Asientos Contables — '+ejercicioActual+ejSelector()+'</div>'+tabs+content+leyenda;
 }
 function addLine(){alineCount++;var id=alineCount;var div=document.createElement('div');div.className='aline';div.id='al'+id;div.innerHTML='<select onchange="chkBal()"><option value="">--</option>'+ctasOpts('')+'</select><input type="text" placeholder="Detalle"/><input type="number" placeholder="Debe" min="0" step="0.01" oninput="chkBal()"/><input type="number" placeholder="Haber" min="0" step="0.01" oninput="chkBal()"/><button class="rlbtn" onclick="document.getElementById(\'al'+id+'\').remove();chkBal()">✕</button>';document.getElementById('alines').appendChild(div);chkBal();}
 function getLines(){var rows=document.querySelectorAll('#alines .aline'),res=[];for(var i=0;i<rows.length;i++){var r=rows[i],ins=r.querySelectorAll('input');res.push({cuenta:r.querySelector('select').value,det:ins[0].value,debe:parseFloat(ins[1].value)||0,haber:parseFloat(ins[2].value)||0});}return res;}
 function chkBal(){var ls=getLines(),d=0,h=0;ls.forEach(function(l){d+=l.debe;h+=l.haber;});var el=document.getElementById('bchk');if(!el)return;if(Math.abs(d-h)<0.001&&d>0){el.className='bcheck bok';el.textContent='✓ Balanceado: '+fmt(d);}else{el.className='bcheck berr';el.textContent='✗ '+fmt(d)+' ≠ '+fmt(h);}}
+function nextRefByEjercicio(fecha){
+  var ej=ejercicioDeFecha(fecha);
+  var n=0;
+  C.asientos.forEach(function(a){
+    if(!isInEj(a.fecha,ej))return;
+    var ref=(a.referencia||'');
+    var match=ref.match(/^AST-(\d{4})-(\d+)$/);
+    if(match&&parseInt(match[1])===ej){
+      var num=parseInt(match[2]);
+      if(num>n)n=num;
+    }
+  });
+  return'AST-'+ej+'-'+String(n+1).padStart(4,'0');
+}
 function saveAsiento(){
   var f=document.getElementById('aF').value,d=document.getElementById('aD').value.trim(),r=document.getElementById('aR').value.trim(),cat=document.getElementById('aCat').value,movId=document.getElementById('aPendMovId').value;
+  var monEl=document.getElementById('aMon'),tcEl=document.getElementById('aTC');
+  var moneda=monEl?monEl.value:'USD';
+  var tipoCambio=tcEl?(parseFloat(tcEl.value)||1):1;
   var ls=getLines(),db=0,hb=0;ls.forEach(function(l){db+=l.debe;hb+=l.haber;});
   if(!f||!d){alert('Completá fecha y descripción.');return;}
   if(ls.length<2){alert('Mínimo 2 líneas.');return;}
   if(Math.abs(db-hb)>0.001){alert('No balanceado.');return;}
   for(var i=0;i<ls.length;i++){if(!ls[i].cuenta){alert('Seleccioná una cuenta en todas las líneas.');return;}}
-  sbPost('asientos',{fecha:f,descripcion:d,referencia:r||'AST-nuevo',origen:movId?'banco':'manual',categoria:cat}).then(function(res){
+  if(cat!=='Cierre de Ejercicio'&&cat!=='Apertura'){
+    var errFecha=validarFechaParaCarga(f);
+    if(errFecha){alert(errFecha);return;}
+  }
+
+  var payload={fecha:f,descripcion:d,referencia:r||'',categoria:cat,moneda:moneda,tipo_cambio:tipoCambio};
+
+  if(editAsientoId){
+    sbPatch('asientos',editAsientoId,payload).then(function(){
+      sbDeleteWhere('asiento_lineas','asiento_id',editAsientoId).then(function(){
+        sbPost('asiento_lineas',ls.map(function(l){return{asiento_id:editAsientoId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};})).then(function(){
+          editAsientoId=null;pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');
+        });
+      });
+    });
+    return;
+  }
+
+  var refFinal=r||nextRefByEjercicio(f);
+  payload.referencia=refFinal;
+  payload.origen=movId?'banco':'manual';
+  sbPost('asientos',payload).then(function(res){
     var ast=Array.isArray(res)?res[0]:res;
     if(!ast||!ast.id){alert('Error al crear el asiento: '+(res&&res.message?res.message:JSON.stringify(res)));return;}
     var astId=ast.id;
-    sbPatch('asientos',astId,{referencia:r||'AST-'+String(astId).padStart(3,'0')});
     sbPost('asiento_lineas',ls.map(function(l){return{asiento_id:astId,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber};})).then(function(resL){
       if(resL&&resL.code){alert('Error en líneas: '+resL.message);sbDelete('asientos',astId);return;}
-      if(movId){sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');});}
+      if(movId){sbPatch('movimientos_banco',movId,{asiento_id:astId}).then(function(){pendingAsiento=null;alineCount=0;asientoTab='libro';reload('banco');});}
       else{pendingAsiento=null;alineCount=0;asientoTab='libro';reload('asientos');}
     });
   });
 }
+function editarAsiento(id){
+  var a=C.asientos.find(function(x){return x.id===id;});
+  if(!a)return;
+  if(ejercicioCerrado(ejercicioDeFecha(a.fecha))){alert('No podés editar un asiento de un ejercicio cerrado. Generá un asiento de anulación si necesitás corregirlo.');return;}
+  if(!confirm('¿Editar el asiento AST-'+String(id).padStart(3,'0')+'?\n\nLas líneas se reemplazarán al guardar.'))return;
+  editAsientoId=id;pendingAsiento=null;alineCount=0;asientoTab='nuevo';go('asientos');
+}
+function anularAsiento(id){
+  var a=C.asientos.find(function(x){return x.id===id;});
+  if(!a)return;
+  if(!confirm('¿Generar asiento de anulación de AST-'+String(id).padStart(3,'0')+'?\n\nSe creará un asiento contrario con misma fecha. El original NO se borra.'))return;
+  var ls=lineasDeAsiento(id);
+  // Genero líneas invertidas
+  var lineasAnul=ls.map(function(l){return{cuenta:l.cuenta_codigo,det:'Anulación: '+(l.detalle||''),debe:parseFloat(l.haber),haber:parseFloat(l.debe)};});
+  pendingAsiento={fecha:hoy(),desc:'Anulación de AST-'+String(id).padStart(3,'0')+' — '+a.descripcion,ref:'ANUL-AST-'+String(id).padStart(3,'0'),categoria:'Anulación',movId:null,lineas:lineasAnul};
+  editAsientoId=null;alineCount=0;asientoTab='nuevo';go('asientos');
+}
 function deleteAsiento(id){
-  if(!confirm('¿Eliminar asiento AST-'+String(id).padStart(3,'0')+'?'))return;
+  var a=C.asientos.find(function(x){return x.id===id;});
+  if(!a)return;
+  if(ejercicioCerrado(ejercicioDeFecha(a.fecha))){alert('No se puede eliminar un asiento de un ejercicio cerrado.');return;}
+  if(!isInEj(a.fecha,ejercicioActual)){alert('Solo se permite eliminar asientos del ejercicio actual ('+ejercicioActual+'). Para asientos de otros años usá Anular.');return;}
+  if(!confirm('¿Eliminar permanentemente AST-'+String(id).padStart(3,'0')+'?\n\nEsta acción no es reversible. Se recomienda usar Anular en lugar de eliminar.'))return;
   var movConc=C.movs.find(function(m){return m.asiento_id===id&&m.conciliado;});
   if(movConc){alert('Este asiento está vinculado a un movimiento conciliado.\nPrimero desconciliá el movimiento.');return;}
+  // Si proviene de un gasto, también borrar el gasto
+  var gasto=C.gastos.find(function(g){return g.asiento_id===id;});
   var movVinc=C.movs.find(function(m){return m.asiento_id===id;});
   var p=movVinc?sbPatch('movimientos_banco',movVinc.id,{asiento_id:null}):Promise.resolve();
-  p.then(function(){sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){sbDelete('asientos',id).then(function(){reload('asientos');});});});
+  p.then(function(){
+    sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){
+      sbDelete('asientos',id).then(function(){
+        if(gasto){sbDelete('gastos',gasto.id).then(function(){reload('asientos');});}
+        else reload('asientos');
+      });
+    });
+  });
 }
 function genAsiento(id){
   var m=C.movs.find(function(x){return x.id===id;});if(!m)return;
+  pendingAsiento=null;editAsientoId=null;alineCount=0;
   asientoTab='nuevo';
-  pendingAsiento={fecha:m.fecha,desc:m.descripcion,ref:'AST-nuevo',movId:m.id,
+  pendingAsiento={fecha:m.fecha,desc:m.descripcion,ref:'',movId:m.id,categoria:'',
     lineas:parseFloat(m.monto)>0?[{cuenta:'1.1.01',det:m.descripcion,debe:Math.abs(m.monto),haber:0},{cuenta:'4.1.01',det:m.descripcion,debe:0,haber:Math.abs(m.monto)}]:[{cuenta:'5.1.07',det:m.descripcion,debe:Math.abs(m.monto),haber:0},{cuenta:'1.1.01',det:m.descripcion,debe:0,haber:Math.abs(m.monto)}]};
   go('asientos');
 }
@@ -532,15 +812,17 @@ function pgBanco(){
       factBtn='<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;background:'+(factNombre?'rgba(144,224,160,.15)':'var(--bg3)')+';color:'+(factNombre?'var(--green)':'var(--text2)')+';border:1px solid '+(factNombre?'rgba(144,224,160,.4)':'var(--border)')+'"><input type="file" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="attachFact('+m.id+',this)"/>📎 '+(factNombre?factNombre.substring(0,10)+'...':'Factura')+'</label>'+(factUrl?'<button class="btn sm bs" onclick="viewFact('+m.id+')" style="padding:3px 6px;font-size:10px">👁</button><button class="btn sm bd" onclick="removeFact('+m.id+')" style="padding:3px 6px;font-size:10px" title="Quitar factura">✕</button>':'');
     }
     var monto=parseFloat(m.monto)||0;
-    rows+='<tr>'+
-      '<td>'+fmtD(m.fecha)+'</td><td>'+(m.descripcion||'')+'</td>'+
+    var chkCell=ro?'':('<td style="width:30px;text-align:center">'+(m.conciliado?'':'<input type="checkbox" class="bsel" data-id="'+m.id+'"'+(bancoSel[m.id]?' checked':'')+' onchange="toggleSel('+m.id+',this.checked)" style="cursor:pointer;width:15px;height:15px;accent-color:var(--cyan)"/>')+'</td>');
+    var alertaPend=(!tieneAsiento&&!m.conciliado)?' <span class="badge by" style="font-size:9px" title="Pendiente de asiento y conciliación">⚠</span>':'';
+    rows+='<tr>'+chkCell+
+      '<td>'+fmtD(m.fecha)+'</td><td>'+(m.descripcion||'')+alertaPend+'</td>'+
       '<td><span class="badge '+(monto>0?'bg':'br')+'">'+(monto>0?'Crédito':'Débito')+'</span></td>'+
       '<td class="'+(monto>0?'green':'red')+'">'+(monto>0?'+':'')+fmt(monto)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+fmt(saldos[m.id])+'</td>'+
-      '<td><span class="badge '+(m.conciliado?'bg':'by')+'">'+(m.conciliado?'✓':'Pendiente')+'</span>'+(tieneAsiento?' <span class="badge bb" style="font-size:10px">📋</span>':'')+'</td>'+
+      '<td><span class="badge '+(m.conciliado?'bg':'by')+'">'+(m.conciliado?'✓':'Pendiente')+'</span>'+(tieneAsiento?' <span class="badge bb" style="font-size:10px" title="Tiene asiento contable">📋</span>':'')+'</td>'+
       (ro?'':'<td style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">'+
         (!m.conciliado?'<button class="btn sm bp" onclick="conciliar('+m.id+')">Conciliar</button>':'<button class="btn sm bs" onclick="desconciliar('+m.id+')" style="font-size:10px">↩ Desc.</button>')+
-        (!tieneAsiento?'<button class="btn sm bs" onclick="genAsiento('+m.id+')" title="Generar asiento">⚙ Asiento</button>':'<span class="green" style="font-size:11px">✓Ast</span>')+
+        (!tieneAsiento?'<button class="btn sm bs" onclick="genAsiento('+m.id+')" title="Generar asiento nuevo">⚙ Asiento</button><button class="btn sm bs" onclick="vincularAsiento('+m.id+')" title="Vincular un asiento existente" style="font-size:10px">🔗</button>':'<button class="btn sm bs" onclick="desvincularAsiento('+m.id+')" title="Desvincular asiento" style="font-size:10px">✓Ast ✕</button>')+
         factBtn+'</td>')+
       '</tr>';
   }
@@ -571,6 +853,17 @@ function pgBanco(){
     '<div id="csvPrev"></div></div>'+
     '<div class="panel"><h3>➕ Manual</h3><div class="fg4"><div class="f"><label>Fecha</label><input type="date" id="mF" value="'+hoy()+'"/></div><div class="f"><label>Descripción</label><input type="text" id="mD"/></div><div class="f"><label>Tipo</label><select id="mT"><option>Crédito</option><option>Débito</option></select></div><div class="f"><label>Monto USD</label><input type="number" id="mM" placeholder="0.00" min="0" step="0.01"/></div></div><div class="factions"><button class="btn bp" onclick="addMov()">Agregar</button></div></div>';
 
+  // Selección múltiple
+  var pendVisibles=0;for(i=0;i<movsFil.length;i++){if(!movsFil[i].conciliado)pendVisibles++;}
+  var nSel=Object.keys(bancoSel).filter(function(k){return bancoSel[k];}).length;
+  var allChecked=pendVisibles>0&&movsFil.every(function(x){return x.conciliado||bancoSel[x.id];});
+  var bulkBar=(ro||nSel===0)?'':
+    '<div style="background:rgba(0,180,216,.08);border:1px solid var(--cyan);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<span style="font-size:13px;font-weight:600;color:var(--cyan)">✓ '+nSel+' seleccionado'+(nSel===1?'':'s')+'</span>'+
+    '<button class="btn bp sm" onclick="conciliarSel()">Conciliar seleccionados</button>'+
+    '<button class="btn bs sm" onclick="limpiarSel()">Limpiar selección</button>'+
+    '</div>';
+
   return '<div class="pageTitle">Conciliación Bancaria</div>'+
     '<div class="cards">'+
     '<div class="card"><div class="lbl">Saldo Inicial</div><div class="val cyan">'+fmt(C.config.saldo_inicial_banco)+'</div><div class="sub">01/01/2026</div></div>'+
@@ -580,18 +873,74 @@ function pgBanco(){
     '<div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conc+'</div></div>'+
     '<div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pend+'</div></div>'+
     '</div>'+
-    filtros+csvForm+
+    filtros+csvForm+bulkBar+
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn bs sm" onclick="exportConcilExcel()">⬇ Exportar Excel</button></div>'+
     '<div class="twrap"><div class="thead2"><h3>Movimientos</h3><span style="font-size:12px;color:var(--text2)">'+movsFil.length+' de '+C.movs.length+'</span></div>'+
     (C.movs.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos</div>':
     movsFil.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados para los filtros aplicados</div>':
-    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead>'+
-    '<tbody>'+rows+'<tr class="trow"><td colspan="3">SALDO FINAL</td><td></td><td class="cyan">'+fmt(saldoActual)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
+    '<table><thead><tr>'+(ro?'':'<th style="width:30px;text-align:center"><input type="checkbox"'+(allChecked?' checked':'')+(pendVisibles===0?' disabled':'')+' onchange="toggleSelAll(this.checked)" style="cursor:pointer;width:15px;height:15px;accent-color:var(--cyan)" title="Seleccionar todos los pendientes visibles"/></th>')+'<th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead>'+
+    '<tbody>'+rows+'<tr class="trow"><td colspan="'+(ro?3:4)+'">SALDO FINAL</td><td></td><td class="cyan">'+fmt(saldoActual)+'</td><td colspan="'+(ro?1:2)+'"></td></tr></tbody></table>')+
     '</div>';
 }
 function setBancoDesde(v){bancoDesde=v;go('banco');}
 function setBancoHasta(v){bancoHasta=v;go('banco');}
+function toggleSel(id,checked){if(checked)bancoSel[id]=true;else delete bancoSel[id];go('banco');}
+function toggleSelAll(checked){
+  bancoSel={};
+  if(checked){
+    var movsFil=[];
+    for(var i=0;i<C.movs.length;i++){
+      var m=C.movs[i];
+      if(bancoDesde&&m.fecha<bancoDesde)continue;
+      if(bancoHasta&&m.fecha>bancoHasta)continue;
+      if(bancoFiltro==='conciliado'&&!m.conciliado)continue;
+      if(bancoFiltro==='pendiente'&&m.conciliado)continue;
+      if(bancoFiltro==='con_asiento'&&!m.asiento_id)continue;
+      if(bancoFiltro==='sin_asiento'&&m.asiento_id)continue;
+      if(!m.conciliado)bancoSel[m.id]=true;
+    }
+  }
+  go('banco');
+}
+function limpiarSel(){bancoSel={};go('banco');}
+function conciliarSel(){
+  var ids=Object.keys(bancoSel).filter(function(k){return bancoSel[k];});
+  if(ids.length===0){alert('No hay movimientos seleccionados.');return;}
+  if(!confirm('¿Conciliar '+ids.length+' movimiento'+(ids.length===1?'':'s')+'?'))return;
+  var promesas=ids.map(function(id){return sbPatch('movimientos_banco',id,{conciliado:true});});
+  Promise.all(promesas).then(function(){bancoSel={};reload('banco');}).catch(function(e){alert('Error: '+e.message);});
+}
+function exportConcilExcel(){
+  var saldo=parseFloat(C.config.saldo_inicial_banco)||0;
+  var data=C.movs.map(function(m){
+    var monto=parseFloat(m.monto)||0;
+    saldo+=monto;
+    return{Fecha:fmtD(m.fecha),Descripcion:m.descripcion||'',Tipo:monto>0?'Crédito':'Débito',Monto:monto,Saldo:saldo,Conciliado:m.conciliado?'Sí':'No',Asiento:m.asiento_id?'AST-'+String(m.asiento_id).padStart(3,'0'):''};
+  });
+  exportExcel(data,['Fecha','Descripcion','Tipo','Monto','Saldo','Conciliado','Asiento'],'Conciliacion_Bancaria','Banco');
+}
 function conciliar(id){sbPatch('movimientos_banco',id,{conciliado:true}).then(function(){reload('banco');});}
 function desconciliar(id){if(!confirm('¿Desconciliar este movimiento?'))return;sbPatch('movimientos_banco',id,{conciliado:false}).then(function(){reload('banco');});}
+function vincularAsiento(movId){
+  var libres=C.asientos.filter(function(a){
+    return !C.movs.find(function(m){return m.asiento_id===a.id&&m.id!==movId;});
+  });
+  if(libres.length===0){alert('No hay asientos disponibles para vincular.');return;}
+  var opts=libres.map(function(a){
+    var ls=lineasDeAsiento(a.id),tot=0;ls.forEach(function(l){tot+=parseFloat(l.debe);});
+    return'AST-'+String(a.id).padStart(3,'0')+' | '+fmtD(a.fecha)+' | '+a.descripcion+' | '+fmt(tot);
+  });
+  var seleccion=prompt('Asientos disponibles:\n\n'+opts.map(function(o,i){return(i+1)+'. '+o;}).join('\n')+'\n\nIngresá el número del asiento a vincular:');
+  if(!seleccion)return;
+  var idx=parseInt(seleccion)-1;
+  if(isNaN(idx)||idx<0||idx>=libres.length){alert('Selección inválida.');return;}
+  var ast=libres[idx];
+  sbPatch('movimientos_banco',movId,{asiento_id:ast.id}).then(function(){reload('banco');});
+}
+function desvincularAsiento(movId){
+  if(!confirm('¿Desvincular el asiento de este movimiento?\n\nEl asiento NO se elimina, solo se desvincula.'))return;
+  sbPatch('movimientos_banco',movId,{asiento_id:null}).then(function(){reload('banco');});
+}
 
 // === FACTURA: ahora va a Supabase Storage en lugar de base64 en la DB ===
 function attachFact(id,inp){
@@ -785,13 +1134,31 @@ function confirmCSV(encoded){var rows=JSON.parse(decodeURIComponent(encoded));va
 function addMov(){var t=document.getElementById('mT').value,m=parseFloat(document.getElementById('mM').value),f=document.getElementById('mF').value,d=document.getElementById('mD').value.trim();if(!f||!d||isNaN(m)){alert('Completá todos los campos.');return;}sbPost('movimientos_banco',{fecha:f,descripcion:d,monto:t==='Crédito'?Math.abs(m):-Math.abs(m),conciliado:false}).then(function(){reload('banco');});}
 
 // ===== BALANCE =====
+function calcResultAcumAnterior(ejActual){
+  // Suma todos los resultados (Ingresos - Gastos) de ejercicios anteriores
+  // EXCLUYE los movimientos en la cuenta CTA_RESULTADO_EJ ya hechos por cierre
+  // y suma los resultados netos de cada ejercicio
+  var acum=0;
+  for(var ej=EJERCICIOS[0];ej<ejActual;ej++){
+    var r=calcResultado(ej);
+    acum+=r;
+  }
+  return acum;
+}
 function pgBalance(){
   function saldoCta(cod,tipo){
     var s=0;
     C.lineas.forEach(function(l){
       if(l.cuenta_codigo!==cod)return;
       var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
-      if(!a||!isInEj(a.fecha,ejercicioActual))return;
+      if(!a)return;
+      // Para cuentas patrimoniales (Activo, Pasivo, Patrimonio) acumulamos histórico hasta ej actual
+      // Para Ingresos y Gastos solo del ejercicio
+      if(tipo==='Activo'||tipo==='Pasivo'||tipo==='Patrimonio'){
+        if(a.fecha>ejercicioActual+'-12-31')return;
+      }else{
+        if(!isInEj(a.fecha,ejercicioActual))return;
+      }
       s+=tipo==='Activo'?parseFloat(l.debe)-parseFloat(l.haber):parseFloat(l.haber)-parseFloat(l.debe);
     });
     return s;
@@ -800,6 +1167,8 @@ function pgBalance(){
     var rows='',tot=0,exData=[];
     C.cuentas.forEach(function(c){
       if(c.tipo!==tipo)return;
+      // No incluyo CTA_RESULTADO_EJ y CTA_RESULT_ACUM acá porque las muestro aparte
+      if(c.codigo===CTA_RESULTADO_EJ||c.codigo===CTA_RESULT_ACUM)return;
       var s=saldoCta(c.codigo,tipo);
       if(s===0)return;
       tot+=s;
@@ -809,81 +1178,124 @@ function pgBalance(){
     return{rows:rows,tot:tot,exData:exData};
   }
   var resultadoNeto=calcResultado(ejercicioActual);
+  var resultAcum=calcResultAcumAnterior(ejercicioActual);
   var act=seccion('Activo'),pas=seccion('Pasivo'),pat=seccion('Patrimonio');
-  var patRows=pat.rows,patTot=pat.tot+resultadoNeto,patEx=pat.exData.slice();
-  if(resultadoNeto!==0){
+  var patRows=pat.rows,patTot=pat.tot,patEx=pat.exData.slice();
+
+  // Resultado acumulado de ejercicios anteriores
+  if(Math.abs(resultAcum)>0.001){
+    patRows+='<tr style="background:rgba(140,198,63,.05)"><td style="font-family:monospace;color:var(--lime)">'+CTA_RESULT_ACUM+'</td><td style="color:var(--lime)">Resultado Acumulado (ej. anteriores)</td><td style="color:'+(resultAcum>=0?'var(--lime)':'var(--red)')+'">'+fmt(resultAcum)+'</td></tr>';
+    patEx.push({Codigo:CTA_RESULT_ACUM,Cuenta:'Resultado Acumulado (ej. anteriores)',Saldo:resultAcum});
+    patTot+=resultAcum;
+  }
+  // Resultado del ejercicio actual
+  if(Math.abs(resultadoNeto)>0.001){
     patRows+='<tr style="background:rgba(14,165,233,.05)"><td style="font-family:monospace;color:var(--cyan)">'+CTA_RESULTADO_EJ+'</td><td style="color:var(--cyan)">Resultado del Ejercicio '+ejercicioActual+'</td><td style="color:'+(resultadoNeto>=0?'var(--lime)':'var(--red)')+'">'+fmt(resultadoNeto)+'</td></tr>';
     patEx.push({Codigo:CTA_RESULTADO_EJ,Cuenta:'Resultado del Ejercicio '+ejercicioActual,Saldo:resultadoNeto});
+    patTot+=resultadoNeto;
   }
   var ok=Math.abs(act.tot-pas.tot-patTot)<1;
   var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}]).concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}]).concat(patEx).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
   return '<div class="pageTitle">Balance General — '+ejercicioActual+ejSelector()+'<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(allEx)+',[\"Codigo\",\"Cuenta\",\"Saldo\"],\"Balance_'+ejercicioActual+'\",\"Balance\")\'>⬇ Excel</button></div>'+
     sugerirCierre()+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
-    '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
-    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
-    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos en '+ejercicioActual+'</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div></div></div>'+
+    '<div class="twrap"><div class="thead2"><h3>ACTIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(act.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL ACTIVO</td><td class="green">'+fmt(act.tot)+'</td></tr></tbody></table></div>'+
+    '<div><div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>PASIVO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(pas.rows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PASIVO</td><td class="red">'+fmt(pas.tot)+'</td></tr></tbody></table></div>'+
+    '<div class="twrap"><div class="thead2"><h3>PATRIMONIO</h3></div><table><thead><tr><th>Código</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>'+(patRows||'<tr><td colspan="3" style="text-align:center;color:var(--text2);padding:12px">Sin movimientos</td></tr>')+'<tr class="trow"><td colspan="2">TOTAL PATRIMONIO</td><td class="cyan">'+fmt(patTot)+'</td></tr></tbody></table></div></div></div>'+
     '<div class="alert '+(ok?'aok':'ainfo')+'" style="margin-top:12px">'+(ok?'✓ Balance cuadrado — Activo = Pasivo + Patrimonio':'⚠ Diferencia: '+fmt(act.tot-pas.tot-patTot))+'</div>';
 }
 
 // ===== RESULTADOS =====
+var resCompara=false;
 function pgResultados(){
-  function calcS(cod,esIng){
+  function calcS(cod,esIng,ej){
     var s=0;
     C.lineas.forEach(function(l){
       if(l.cuenta_codigo!==cod)return;
       var a=C.asientos.find(function(x){return x.id===l.asiento_id;});
-      if(!a||!isInEj(a.fecha,ejercicioActual))return;
+      if(!a||!isInEj(a.fecha,ej))return;
       s+=esIng?parseFloat(l.haber)-parseFloat(l.debe):parseFloat(l.debe)-parseFloat(l.haber);
     });
     return s;
   }
-  var ingRows='',gasRows='',totIng=0,totGas=0,exData=[];
+  var ejPrev=ejercicioActual-1;
+  var ingRows='',gasRows='',totIng=0,totGas=0,totIngP=0,totGasP=0,exData=[];
   C.cuentas.forEach(function(c){
     if(c.tipo==='Ingreso'){
-      var s=calcS(c.codigo,true);
-      if(s){
-        totIng+=s;
-        ingRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="green">'+fmt(s)+'</td></tr>';
-        exData.push({Tipo:'Ingreso',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});
+      var s=calcS(c.codigo,true,ejercicioActual);
+      var sP=calcS(c.codigo,true,ejPrev);
+      if(s||sP){
+        totIng+=s;totIngP+=sP;
+        var varPct=sP!==0?((s-sP)/Math.abs(sP)*100):(s!==0?100:0);
+        ingRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="green">'+fmt(s)+'</td>'+(resCompara?'<td class="green" style="opacity:.7">'+fmt(sP)+'</td><td style="font-size:11px;color:'+(varPct>=0?'var(--green)':'var(--red)')+'">'+(varPct>=0?'+':'')+varPct.toFixed(1)+'%</td>':'')+'</tr>';
+        exData.push({Tipo:'Ingreso',Cuenta:c.nombre,Codigo:c.codigo,Monto:s,Anterior:sP});
       }
     }
     if(c.tipo==='Gasto'){
-      var gasReg=0;
-      C.gastos.forEach(function(g){
-        if(g.cuenta_codigo===c.codigo&&isInEj(g.fecha,ejercicioActual))gasReg+=parseFloat(g.monto);
-      });
-      var s=calcS(c.codigo,false)+gasReg;
-      if(s){
-        totGas+=s;
-        gasRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="red">'+fmt(s)+'</td></tr>';
-        exData.push({Tipo:'Gasto',Cuenta:c.nombre,Codigo:c.codigo,Monto:s});
+      var s=calcS(c.codigo,false,ejercicioActual);
+      var sP=calcS(c.codigo,false,ejPrev);
+      if(s||sP){
+        totGas+=s;totGasP+=sP;
+        var varPct=sP!==0?((s-sP)/Math.abs(sP)*100):(s!==0?100:0);
+        gasRows+='<tr><td>'+c.nombre+'</td><td>'+c.codigo+'</td><td class="red">'+fmt(s)+'</td>'+(resCompara?'<td class="red" style="opacity:.7">'+fmt(sP)+'</td><td style="font-size:11px;color:'+(varPct<=0?'var(--green)':'var(--red)')+'">'+(varPct>=0?'+':'')+varPct.toFixed(1)+'%</td>':'')+'</tr>';
+        exData.push({Tipo:'Gasto',Cuenta:c.nombre,Codigo:c.codigo,Monto:s,Anterior:sP});
       }
     }
   });
-  exData.push({Tipo:'RESULTADO',Cuenta:'Neto',Codigo:'',Monto:totIng-totGas});
+  exData.push({Tipo:'RESULTADO',Cuenta:'Neto',Codigo:'',Monto:totIng-totGas,Anterior:totIngP-totGasP});
   var res=totIng-totGas;
-  return '<div class="pageTitle">Estado de Resultados — '+ejercicioActual+ejSelector()+'<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Tipo\",\"Cuenta\",\"Codigo\",\"Monto\"],\"Resultados_'+ejercicioActual+'\",\"Resultados\")\'>⬇ Excel</button></div>'+
+  var resP=totIngP-totGasP;
+  var colspan=resCompara?5:3;
+  var headExtra=resCompara?'<th>'+ejPrev+'</th><th>Var.%</th>':'';
+  return '<div class="pageTitle">Estado de Resultados — '+ejercicioActual+ejSelector()+
+    '<button class="btn '+(resCompara?'bp':'bs')+' sm" onclick="resCompara=!resCompara;go(\'resultados\')">📊 Comparar vs '+ejPrev+'</button>'+
+    '<button class="btn bs sm" onclick=\'exportExcel('+JSON.stringify(exData)+',[\"Tipo\",\"Cuenta\",\"Codigo\",\"Monto\",\"Anterior\"],\"Resultados_'+ejercicioActual+'\",\"Resultados\")\'>⬇ Excel</button></div>'+
     sugerirCierre()+
-    '<div class="twrap" style="max-width:660px"><div class="thead2"><h3>LEEX — Estado de Resultados '+ejercicioActual+'</h3></div><table><thead><tr><th>Concepto</th><th>Cuenta</th><th>Monto</th></tr></thead><tbody>'+
-    '<tr><td colspan="3" style="font-weight:700;color:var(--cyan);padding-top:10px">INGRESOS</td></tr>'+(ingRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin ingresos en '+ejercicioActual+'</td></tr>')+
-    '<tr class="trow"><td colspan="2">Total Ingresos</td><td class="green">'+fmt(totIng)+'</td></tr>'+
-    '<tr><td colspan="3" style="font-weight:700;color:var(--red);padding-top:10px">GASTOS</td></tr>'+(gasRows||'<tr><td colspan="3" style="color:var(--text2);font-size:12px;padding-left:12px">Sin gastos en '+ejercicioActual+'</td></tr>')+
-    '<tr class="trow"><td colspan="2">Total Gastos</td><td class="red">'+fmt(totGas)+'</td></tr>'+
-    '<tr class="trow" style="font-size:14px"><td colspan="2">RESULTADO NETO '+ejercicioActual+'</td><td class="'+(res>=0?'green':'red')+'">'+(res>=0?'Ganancia ':'Pérdida ')+fmt(res)+'</td></tr></tbody></table></div>';
+    '<div class="twrap" style="max-width:'+(resCompara?'880px':'660px')+'"><div class="thead2"><h3>LEEX — Estado de Resultados '+ejercicioActual+'</h3></div><table><thead><tr><th>Concepto</th><th>Cuenta</th><th>'+ejercicioActual+'</th>'+headExtra+'</tr></thead><tbody>'+
+    '<tr><td colspan="'+colspan+'" style="font-weight:700;color:var(--cyan);padding-top:10px">INGRESOS</td></tr>'+(ingRows||'<tr><td colspan="'+colspan+'" style="color:var(--text2);font-size:12px;padding-left:12px">Sin ingresos en '+ejercicioActual+'</td></tr>')+
+    '<tr class="trow"><td colspan="2">Total Ingresos</td><td class="green">'+fmt(totIng)+'</td>'+(resCompara?'<td class="green" style="opacity:.7">'+fmt(totIngP)+'</td><td></td>':'')+'</tr>'+
+    '<tr><td colspan="'+colspan+'" style="font-weight:700;color:var(--red);padding-top:10px">GASTOS</td></tr>'+(gasRows||'<tr><td colspan="'+colspan+'" style="color:var(--text2);font-size:12px;padding-left:12px">Sin gastos en '+ejercicioActual+'</td></tr>')+
+    '<tr class="trow"><td colspan="2">Total Gastos</td><td class="red">'+fmt(totGas)+'</td>'+(resCompara?'<td class="red" style="opacity:.7">'+fmt(totGasP)+'</td><td></td>':'')+'</tr>'+
+    '<tr class="trow" style="font-size:14px"><td colspan="2">RESULTADO NETO '+ejercicioActual+'</td><td class="'+(res>=0?'green':'red')+'">'+(res>=0?'Ganancia ':'Pérdida ')+fmt(res)+'</td>'+(resCompara?'<td class="'+(resP>=0?'green':'red')+'" style="opacity:.7">'+(resP>=0?'Gan. ':'Pérd. ')+fmt(resP)+'</td><td></td>':'')+'</tr></tbody></table></div>';
 }
 
 // ===== CUENTAS =====
+var ctaBusca='';
 function pgCuentas(){
   var ro=!isAdmin(),rows='';
-  C.cuentas.forEach(function(c){var bc=c.tipo==='Activo'?'bg':c.tipo==='Pasivo'?'br':c.tipo==='Patrimonio'?'bb':c.tipo==='Ingreso'?'bg':'by';rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td><span class="badge '+bc+'">'+c.tipo+'</span></td><td>'+(!ro?'<button class="btn sm bs" onclick="editCuenta('+c.id+')" style="margin-right:4px">✏</button><button class="btn sm bd" onclick="deleteCuenta('+c.id+',\''+c.codigo+'\')">🗑</button>':'')+'</td></tr>';});
+  var fil=C.cuentas.filter(function(c){
+    if(!ctaBusca)return true;
+    var b=ctaBusca.toLowerCase();
+    return c.codigo.toLowerCase().indexOf(b)>-1||(c.nombre||'').toLowerCase().indexOf(b)>-1||(c.tipo||'').toLowerCase().indexOf(b)>-1;
+  });
+  fil.forEach(function(c){
+    var bc=c.tipo==='Activo'?'bg':c.tipo==='Pasivo'?'br':c.tipo==='Patrimonio'?'bb':c.tipo==='Ingreso'?'bg':'by';
+    var nMovs=0;C.lineas.forEach(function(l){if(l.cuenta_codigo===c.codigo)nMovs++;});
+    C.gastos.forEach(function(g){if(g.cuenta_codigo===c.codigo)nMovs++;});
+    rows+='<tr><td style="font-family:monospace">'+c.codigo+'</td><td>'+c.nombre+'</td><td><span class="badge '+bc+'">'+c.tipo+'</span></td><td style="font-size:11px;color:var(--text2)">'+nMovs+' movs.</td><td>'+(!ro?'<button class="btn sm bs" onclick="editCuenta('+c.id+')" style="margin-right:4px">✏</button><button class="btn sm bd" onclick="deleteCuenta('+c.id+',\''+c.codigo+'\')">🗑</button>':'')+'</td></tr>';
+  });
   var editForm='';
   if(editCuentaId!==null){var ec=C.cuentas.find(function(c){return c.id===editCuentaId;});if(ec)editForm='<div class="panel" style="border-color:var(--cyan)"><h3>✏ Editando: '+ec.codigo+'</h3><div class="fg3"><div class="f"><label>Código</label><input type="text" id="eCod" value="'+ec.codigo+'"/></div><div class="f"><label>Nombre</label><input type="text" id="eNom" value="'+ec.nombre+'"/></div><div class="f"><label>Tipo</label><select id="eTip"><option'+(ec.tipo==='Activo'?' selected':'')+'>Activo</option><option'+(ec.tipo==='Pasivo'?' selected':'')+'>Pasivo</option><option'+(ec.tipo==='Patrimonio'?' selected':'')+'>Patrimonio</option><option'+(ec.tipo==='Ingreso'?' selected':'')+'>Ingreso</option><option'+(ec.tipo==='Gasto'?' selected':'')+'>Gasto</option></select></div></div><div class="factions"><button class="btn bp" onclick="updateCuenta()">Guardar</button><button class="btn bs" onclick="editCuentaId=null;go(\'cuentas\')">Cancelar</button></div></div>';}
-  return '<div class="pageTitle">Plan de Cuentas</div>'+(!ro?'<div class="panel"><h3>Nueva Cuenta</h3><div class="fg3"><div class="f"><label>Código</label><input type="text" id="cC" placeholder="5.1.08"/></div><div class="f"><label>Nombre</label><input type="text" id="cN"/></div><div class="f"><label>Tipo</label><select id="cT"><option>Activo</option><option>Pasivo</option><option>Patrimonio</option><option>Ingreso</option><option>Gasto</option></select></div></div><div class="factions"><button class="btn bp" onclick="addCuenta()">Agregar</button></div></div>':'')+editForm+'<div class="twrap"><div class="thead2"><h3>Plan de Cuentas</h3><span style="font-size:12px;color:var(--text2)">'+C.cuentas.length+' cuentas</span></div><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  return '<div class="pageTitle">Plan de Cuentas</div>'+
+    (!ro?'<div class="panel"><h3>Nueva Cuenta</h3><div class="fg3"><div class="f"><label>Código</label><input type="text" id="cC" placeholder="5.1.08"/></div><div class="f"><label>Nombre</label><input type="text" id="cN"/></div><div class="f"><label>Tipo</label><select id="cT"><option>Activo</option><option>Pasivo</option><option>Patrimonio</option><option>Ingreso</option><option>Gasto</option></select></div></div><div class="factions"><button class="btn bp" onclick="addCuenta()">Agregar</button></div></div>':'')+
+    editForm+
+    '<div style="display:flex;gap:8px;margin-bottom:12px"><input type="text" placeholder="🔍 Buscar por código, nombre o tipo..." value="'+ctaBusca+'" oninput="ctaBusca=this.value;go(\'cuentas\')" style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:12px;outline:none"/>'+(ctaBusca?'<button class="btn bs sm" onclick="ctaBusca=\'\';go(\'cuentas\')">✕</button>':'')+'</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Plan de Cuentas</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' / '+C.cuentas.length+' cuentas</span></div><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Uso</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:18px">Sin resultados</td></tr>')+'</tbody></table></div>';
 }
 function editCuenta(id){editCuentaId=id;go('cuentas');}
 function updateCuenta(){var cod=document.getElementById('eCod').value.trim(),nom=document.getElementById('eNom').value.trim(),tip=document.getElementById('eTip').value;if(!cod||!nom){alert('Completá los campos.');return;}sbPatch('cuentas',editCuentaId,{codigo:cod,nombre:nom,tipo:tip}).then(function(){editCuentaId=null;reload('cuentas');});}
-function deleteCuenta(id,cod){if(!confirm('¿Eliminar la cuenta '+cod+'?'))return;sbDelete('cuentas',id).then(function(){reload('cuentas');});}
+function deleteCuenta(id,cod){
+  // Validación: chequea si tiene movimientos asociados (#5)
+  var nLineas=0;C.lineas.forEach(function(l){if(l.cuenta_codigo===cod)nLineas++;});
+  var nGastos=0;C.gastos.forEach(function(g){if(g.cuenta_codigo===cod)nGastos++;});
+  var total=nLineas+nGastos;
+  if(total>0){
+    alert('No se puede eliminar la cuenta '+cod+'.\n\nTiene '+total+' movimiento'+(total===1?'':'s')+' asociado'+(total===1?'':'s')+' ('+nLineas+' en asientos, '+nGastos+' en gastos).\n\nPara desactivar la cuenta, editala y cambiale el nombre, o anulá los asientos primero.');
+    return;
+  }
+  if(!confirm('¿Eliminar la cuenta '+cod+'?\n\nNo tiene movimientos asociados.'))return;
+  sbDelete('cuentas',id).then(function(){reload('cuentas');});
+}
 function addCuenta(){var cod=document.getElementById('cC').value.trim(),nom=document.getElementById('cN').value.trim();if(!cod||!nom){alert('Completá código y nombre.');return;}if(C.cuentas.find(function(c){return c.codigo===cod;})){alert('Código ya existe.');return;}sbPost('cuentas',{codigo:cod,nombre:nom,tipo:document.getElementById('cT').value}).then(function(){reload('cuentas');});}
 
 // ===== PROYECTOS =====
