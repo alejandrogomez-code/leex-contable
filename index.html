@@ -1043,25 +1043,28 @@ function generarAsientoDesdeMov(mov,cuentaContrapartida,descripcion,categoria,re
 }
 
 // ============================================================
-// PÁGINA: MOVIMIENTOS BANCO
+// PÁGINA: MOVIMIENTOS BANCO  (REEMPLAZA la versión anterior)
 // ============================================================
 function pgBanco(){
   var ro=!isAdmin();
-  // Filtrar por ejercicio actual + filtros adicionales
   var filtrados=C.movs.filter(function(m){
     var y=getEjYear(m.fecha);
     if(y!==ejercicioActual)return false;
     if(bancoDesde&&m.fecha<bancoDesde)return false;
     if(bancoHasta&&m.fecha>bancoHasta)return false;
-    if(bancoFiltro==='con_asiento'&&!m.asiento_id)return false;
+    if(bancoFiltro==='con_asiento'&&!(m.asiento_id&&!m.conciliado))return false;
     if(bancoFiltro==='sin_asiento'&&m.asiento_id)return false;
+    if(bancoFiltro==='conciliado'&&!m.conciliado)return false;
+    if(bancoFiltro==='pendiente'&&m.asiento_id)return false;
     return true;
   });
 
-  var conAst=0,sinAst=0;
+  var pendientes=0,conAst=0,conciliados=0;
   C.movs.forEach(function(m){
     if(getEjYear(m.fecha)!==ejercicioActual)return;
-    if(m.asiento_id)conAst++;else sinAst++;
+    if(m.conciliado)conciliados++;
+    else if(m.asiento_id)conAst++;
+    else pendientes++;
   });
 
   // saldo acumulado durante el ejercicio
@@ -1073,24 +1076,41 @@ function pgBanco(){
 
   var rows='';
   filtrados.forEach(function(m){
-    var tieneAst=!!m.asiento_id;
-    var ast=tieneAst?C.asientos.find(function(a){return a.id===m.asiento_id;}):null;
-    var astLabel=ast?refAsiento(ast):'';
     var monto=parseFloat(m.monto)||0;
+    var ast=m.asiento_id?C.asientos.find(function(a){return a.id===m.asiento_id;}):null;
+    var astLabel=ast?refAsiento(ast):'';
+
+    // Estado: Pendiente / Con Asiento / Conciliado
+    var estadoBadge;
+    if(m.conciliado)estadoBadge='<span class="badge bg" title="Revisado y aprobado">✅ Conciliado</span>';
+    else if(m.asiento_id)estadoBadge='<span class="badge bb" title="'+astLabel+'">📋 '+astLabel+'</span>';
+    else estadoBadge='<span class="badge by">⏳ Pendiente</span>';
+
+    // Botones según estado
+    var btns='';
+    if(!ro){
+      if(m.conciliado){
+        btns+='<button class="btn sm bs" onclick="verAsiento('+m.asiento_id+')" title="Ver asiento">👁</button> ';
+        btns+='<button class="btn sm bw" onclick="desconciliarMov('+m.id+')" title="Des-conciliar">↩ Des-conciliar</button>';
+      }else if(m.asiento_id){
+        btns+='<button class="btn sm bs" onclick="verAsiento('+m.asiento_id+')" title="Ver asiento">👁 Ver</button> ';
+        btns+='<button class="btn sm bv" onclick="conciliarMov('+m.id+')" title="Marcar como revisado">✓ Conciliar</button> ';
+        btns+='<button class="btn sm bw" onclick="desvincularAsiento('+m.id+')" title="Desvincular asiento (no lo borra)">↩</button> ';
+        btns+='<button class="btn sm bd" onclick="delMov('+m.id+')" title="Eliminar">🗑</button>';
+      }else{
+        btns+='<button class="btn sm bp" onclick="abrirModalAsiento('+m.id+')" title="Generar asiento">➕ Generar Asiento</button> ';
+        btns+='<button class="btn sm bd" onclick="delMov('+m.id+')" title="Eliminar">🗑</button>';
+      }
+    }
+
     rows+='<tr>'+
       '<td>'+fmtD(m.fecha)+'</td>'+
       '<td>'+escapeHtml(m.descripcion||'')+'</td>'+
       '<td><span class="badge '+(monto>0?'bg':'br')+'">'+(monto>0?'Crédito':'Débito')+'</span></td>'+
       '<td class="'+(monto>0?'green':'red')+'" style="font-variant-numeric:tabular-nums">'+(monto>0?'+':'')+fmt(monto)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+fmtS(saldos[m.id]||0)+'</td>'+
-      '<td>'+(tieneAst?
-        '<span class="badge bb" title="Asiento '+astLabel+'">📋 '+astLabel+'</span>':
-        '<span class="badge by">Pendiente</span>')+'</td>'+
-      (ro?'':'<td>'+
-        (!tieneAst?'<button class="btn sm bp" onclick="generarAsientoMov('+m.id+')" title="Generar asiento">⚙ Asentar</button>':
-         '<button class="btn sm bs" onclick="verAsiento('+m.asiento_id+')" title="Ver">👁</button>')+
-        ' <button class="btn sm bd" onclick="delMov('+m.id+')" title="Eliminar">🗑</button>'+
-      '</td>')+
+      '<td>'+estadoBadge+'</td>'+
+      (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
       '</tr>';
   });
 
@@ -1101,10 +1121,11 @@ function pgBanco(){
     '<div class="pageTitle">🏦 Movimientos Bancarios</div>'+
     (cerrado?'<div class="lockBanner">🔒 Ejercicio '+ejercicioActual+' cerrado — solo lectura</div>':'')+
     '<div class="cards">'+
-    '<div class="card"><div class="lbl">Saldo inicial ejercicio</div><div class="val cyan">'+fmtS(saldoIniEj)+'</div><div class="sub">01/01/'+ejercicioActual+'</div></div>'+
+    '<div class="card"><div class="lbl">Saldo inicial</div><div class="val cyan">'+fmtS(saldoIniEj)+'</div><div class="sub">01/01/'+ejercicioActual+'</div></div>'+
     '<div class="card"><div class="lbl">Saldo actual</div><div class="val green">'+fmtS(acum)+'</div><div class="sub">'+movsEj.length+' movs en '+ejercicioActual+'</div></div>'+
-    '<div class="card"><div class="lbl">Con asiento</div><div class="val green">'+conAst+'</div></div>'+
-    '<div class="card"><div class="lbl">Sin asentar</div><div class="val yellow">'+sinAst+'</div></div>'+
+    '<div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pendientes+'</div><div class="sub">Sin asiento</div></div>'+
+    '<div class="card"><div class="lbl">Con Asiento</div><div class="val cyan">'+conAst+'</div><div class="sub">Por conciliar</div></div>'+
+    '<div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conciliados+'</div><div class="sub">Cerrados</div></div>'+
     '</div>'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2)">🔍 Filtros:</span>'+
@@ -1112,48 +1133,246 @@ function pgBanco(){
     '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text2)">Hasta:</span><input type="date" value="'+bancoHasta+'" onchange="bancoHasta=this.value;go(\'banco\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div style="display:flex;gap:4px;flex-wrap:wrap">'+
     '<button class="btn sm '+(bancoFiltro==='todos'?'bp':'bs')+'" onclick="bancoFiltro=\'todos\';go(\'banco\')">Todos</button>'+
+    '<button class="btn sm '+(bancoFiltro==='pendiente'?'bp':'bs')+'" onclick="bancoFiltro=\'pendiente\';go(\'banco\')">⏳ Pendientes ('+pendientes+')</button>'+
     '<button class="btn sm '+(bancoFiltro==='con_asiento'?'bp':'bs')+'" onclick="bancoFiltro=\'con_asiento\';go(\'banco\')">📋 Con Asiento ('+conAst+')</button>'+
-    '<button class="btn sm '+(bancoFiltro==='sin_asiento'?'bp':'bs')+'" onclick="bancoFiltro=\'sin_asiento\';go(\'banco\')">⚠ Sin Asentar ('+sinAst+')</button>'+
+    '<button class="btn sm '+(bancoFiltro==='conciliado'?'bp':'bs')+'" onclick="bancoFiltro=\'conciliado\';go(\'banco\')">✅ Conciliados ('+conciliados+')</button>'+
     '</div>'+
     ((bancoDesde||bancoHasta||bancoFiltro!=='todos')?'<button class="btn sm bd" onclick="bancoFiltro=\'todos\';bancoDesde=\'\';bancoHasta=\'\';go(\'banco\')">✕ Limpiar</button>':'')+
     '</div>'+
     '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3><span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span></div>'+
     (movsEj.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos en '+ejercicioActual+'. <a href="#" onclick="go(\'importar\');return false;" style="color:var(--cyan)">Importar extracto →</a></div>':
     filtrados.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-    '<table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table>')+
-    '</div>';
+    '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>'+
+    // Modal container (oculto por default)
+    '<div id="modalAsiento" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
 }
 
-function generarAsientoMov(movId){
+// ============================================================
+// MODAL: GENERAR ASIENTO DESDE MOVIMIENTO
+// ============================================================
+var modalAstMovId=null;
+var modalAstLineCount=0;
+
+function abrirModalAsiento(movId){
   var m=C.movs.find(function(x){return x.id===movId;});
-  if(!m)return;
-  // Sugerir cuenta vía reglas
+  if(!m){toast('Movimiento no encontrado','error');return;}
+  var año=getEjYear(m.fecha);
+  if(!isEjercicioEditable(año)){toast('Ejercicio '+año+' no editable','error');return;}
+
+  modalAstMovId=movId;
+  modalAstLineCount=0;
+
+  // Calcular líneas pre-cargadas
+  var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
+  var monto=parseFloat(m.monto)||0;
   var sug=sugerirCuenta(m.descripcion);
-  var cuentaCod=sug.cuenta;
-  if(!cuentaCod){
-    // Pedir manualmente
-    var ctaPorDefecto=parseFloat(m.monto)>=0?C.cuentas_sistema.ingreso_default:C.cuentas_sistema.gasto_default;
-    cuentaCod=prompt('Sin regla para "'+m.descripcion+'".\nCódigo de cuenta contrapartida:',ctaPorDefecto||'');
-    if(!cuentaCod)return;
-    if(!getCta(cuentaCod)){toast('Cuenta '+cuentaCod+' no existe','error');return;}
+
+  var cuentaContra,descSug,catSug;
+  if(sug.cuenta){
+    // Hay regla: usar regla
+    cuentaContra=sug.cuenta;
+    descSug=sug.descripcion||m.descripcion;
+    catSug=sug.categoria||'';
+  }else{
+    // No hay regla: usar defaults del sistema
+    cuentaContra=monto>=0?(C.cuentas_sistema.ingreso_default||'4.2.01'):(C.cuentas_sistema.gasto_default||'5.1.08');
+    descSug=m.descripcion;
+    catSug='';
   }
-  generarAsientoDesdeMov(m,cuentaCod,sug.descripcion||m.descripcion,sug.categoria,sug.regla_id).then(function(ok){
-    if(ok){toast('Asiento generado','success');reload('banco');}
-    else toast('Error al generar asiento','error');
+
+  // Definir las 2 líneas iniciales
+  var lineas;
+  if(monto>=0){
+    // Crédito (entró plata al banco): Banco Debe / Contrapartida Haber
+    lineas=[
+      {cuenta:cuentaBanco,det:descSug,debe:Math.abs(monto),haber:0},
+      {cuenta:cuentaContra,det:descSug,debe:0,haber:Math.abs(monto)}
+    ];
+  }else{
+    // Débito (salió plata): Contrapartida Debe / Banco Haber
+    lineas=[
+      {cuenta:cuentaContra,det:descSug,debe:Math.abs(monto),haber:0},
+      {cuenta:cuentaBanco,det:descSug,debe:0,haber:Math.abs(monto)}
+    ];
+  }
+
+  var lineasHTML='';
+  lineas.forEach(function(l){
+    modalAstLineCount++;
+    var lid='ml'+modalAstLineCount;
+    lineasHTML+='<div class="aline" id="'+lid+'">'+
+      '<select onchange="chkBalModal()"><option value="">--</option>'+ctasOpts(l.cuenta)+'</select>'+
+      '<input type="text" value="'+escapeHtml(l.det)+'" placeholder="Detalle"/>'+
+      '<input type="number" min="0" step="0.01" value="'+(l.debe||'')+'" oninput="chkBalModal()" placeholder="Debe"/>'+
+      '<input type="number" min="0" step="0.01" value="'+(l.haber||'')+'" oninput="chkBalModal()" placeholder="Haber"/>'+
+      '<button class="rlbtn" onclick="document.getElementById(\''+lid+'\').remove();chkBalModal()">✕</button>'+
+      '</div>';
   });
+
+  var origenLabel=sug.cuenta?
+    '<span class="badge bg" style="font-size:10px;margin-left:6px">⚡ Regla aplicada</span>':
+    '<span class="badge by" style="font-size:10px;margin-left:6px">Sin regla — usando defaults</span>';
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">➕ Generar Asiento desde Movimiento</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+origenLabel+'</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAsiento()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    // Info del movimiento (read-only)
+    '<div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px">'+
+    '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Fecha</div><div style="font-weight:600">'+fmtD(m.fecha)+'</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Descripción</div><div style="font-weight:600">'+escapeHtml(m.descripcion||'')+'</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Monto</div><div style="font-weight:600;color:'+(monto>=0?'var(--green)':'var(--red)')+'">'+(monto>=0?'+':'')+fmt(monto)+'</div></div>'+
+    '</div>'+
+    // Datos del asiento
+    '<div class="fg3">'+
+    '<div class="f"><label>Descripción del asiento</label><input type="text" id="maDesc" value="'+escapeHtml(descSug)+'"/></div>'+
+    '<div class="f"><label>Categoría</label><select id="maCat"><option value="">—</option>'+listOpts(C.cfg_listas.categoria_asiento||[],catSug)+'</select></div>'+
+    '<div class="f"><label>Referencia</label><input type="text" id="maRef" placeholder="Auto"/></div>'+
+    '</div>'+
+    // Líneas del asiento
+    '<div style="margin-top:16px">'+
+    '<div class="blbl"><span>Cuenta</span><span>Detalle</span><span>Debe</span><span>Haber</span><span></span></div>'+
+    '<div id="maLines">'+lineasHTML+'</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'+
+    '<button class="btn bs sm" onclick="addLineModal()">+ Línea</button>'+
+    '<span id="maBchk" class="bcheck bok">✓ Balanceado: '+fmt(Math.abs(monto))+'</span>'+
+    '</div>'+
+    // Acciones
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarAsientoModal(false)">💾 Guardar asiento</button>'+
+    '<button class="btn bv" onclick="guardarAsientoModal(true)">💾✓ Guardar y conciliar</button>'+
+    '<button class="btn bs" onclick="cerrarModalAsiento()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalAsiento');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
 }
 
-function verAsiento(astId){
-  // Saltar al libro diario con busqueda específica
-  aBusca=String(astId);
-  libroTab='diario';
-  go('libro');
+function cerrarModalAsiento(){
+  var modal=document.getElementById('modalAsiento');
+  if(modal){modal.style.display='none';modal.innerHTML='';}
+  modalAstMovId=null;
+  modalAstLineCount=0;
+}
+
+function addLineModal(){
+  modalAstLineCount++;
+  var lid='ml'+modalAstLineCount;
+  var div=document.createElement('div');
+  div.className='aline';
+  div.id=lid;
+  div.innerHTML='<select onchange="chkBalModal()"><option value="">--</option>'+ctasOpts('')+'</select>'+
+    '<input type="text" placeholder="Detalle"/>'+
+    '<input type="number" placeholder="Debe" min="0" step="0.01" oninput="chkBalModal()"/>'+
+    '<input type="number" placeholder="Haber" min="0" step="0.01" oninput="chkBalModal()"/>'+
+    '<button class="rlbtn" onclick="document.getElementById(\''+lid+'\').remove();chkBalModal()">✕</button>';
+  document.getElementById('maLines').appendChild(div);
+  chkBalModal();
+}
+
+function getLinesModal(){
+  var rows=document.querySelectorAll('#maLines .aline'),res=[];
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],ins=r.querySelectorAll('input');
+    res.push({cuenta:r.querySelector('select').value,det:ins[0].value,debe:parseFloat(ins[1].value)||0,haber:parseFloat(ins[2].value)||0});
+  }
+  return res;
+}
+
+function chkBalModal(){
+  var ls=getLinesModal(),d=0,h=0;
+  ls.forEach(function(l){d+=l.debe;h+=l.haber;});
+  var el=document.getElementById('maBchk');
+  if(!el)return;
+  if(Math.abs(d-h)<0.001&&d>0){el.className='bcheck bok';el.textContent='✓ Balanceado: '+fmt(d);}
+  else{el.className='bcheck berr';el.textContent='✗ Debe '+fmt(d)+' ≠ Haber '+fmt(h);}
+}
+
+function guardarAsientoModal(yConciliar){
+  var m=C.movs.find(function(x){return x.id===modalAstMovId;});
+  if(!m){toast('Movimiento perdido','error');return;}
+  var desc=document.getElementById('maDesc').value.trim();
+  var cat=document.getElementById('maCat').value;
+  var ref=document.getElementById('maRef').value.trim();
+  var ls=getLinesModal();
+  var d=0,h=0;
+  ls.forEach(function(l){d+=l.debe;h+=l.haber;});
+  if(!desc){toast('Falta descripción','error');return;}
+  if(ls.length<2){toast('Mínimo 2 líneas','error');return;}
+  if(Math.abs(d-h)>0.001){toast('No balanceado','error');return;}
+  for(var i=0;i<ls.length;i++){
+    if(!ls[i].cuenta){toast('Falta cuenta en línea '+(i+1),'error');return;}
+    if(ls[i].debe===0&&ls[i].haber===0){toast('Línea '+(i+1)+' sin monto','error');return;}
+  }
+  var año=getEjYear(m.fecha);
+  var numero=siguienteNumeroAsiento(año);
+  sbPost('asientos',{
+    fecha:m.fecha,descripcion:desc,
+    referencia:ref||('AST-'+año+'-'+String(numero).padStart(4,'0')),
+    origen:'banco',categoria:cat||null,
+    numero:numero,ejercicio_año:año,
+    movimiento_banco_id:m.id
+  }).then(function(astRes){
+    var ast=Array.isArray(astRes)?astRes[0]:astRes;
+    if(!ast||!ast.id){toast('Error creando asiento','error');return;}
+    sbPost('asiento_lineas',ls.map(function(l,idx){
+      return{asiento_id:ast.id,cuenta_codigo:l.cuenta,detalle:l.det,debe:l.debe,haber:l.haber,orden:idx+1};
+    })).then(function(linRes){
+      if(linRes&&linRes.code){toast('Error líneas: '+linRes.message,'error');sbDelete('asientos',ast.id);return;}
+      var updMov={asiento_id:ast.id};
+      if(yConciliar){
+        updMov.conciliado=true;
+        updMov.conciliado_at=new Date().toISOString();
+        updMov.conciliado_por=CU?CU.u:null;
+      }
+      sbPatch('movimientos_banco',m.id,updMov).then(function(){
+        toast(yConciliar?'Asiento generado y conciliado':'Asiento generado','success');
+        cerrarModalAsiento();
+        reload('banco');
+      });
+    });
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+}
+
+// ============================================================
+// ACCIONES SOBRE MOVIMIENTOS
+// ============================================================
+function conciliarMov(movId){
+  var m=C.movs.find(function(x){return x.id===movId;});
+  if(!m||!m.asiento_id){toast('Sin asiento para conciliar','error');return;}
+  if(!confirm('¿Marcar este movimiento como CONCILIADO?\nEsto indica que el asiento fue revisado y aprobado.'))return;
+  sbPatch('movimientos_banco',movId,{
+    conciliado:true,
+    conciliado_at:new Date().toISOString(),
+    conciliado_por:CU?CU.u:null
+  }).then(function(){toast('Movimiento conciliado','success');reload('banco');});
+}
+
+function desconciliarMov(movId){
+  if(!confirm('¿Des-conciliar este movimiento?\nVa a volver a estado "Con Asiento" (necesita ser revisado de nuevo).'))return;
+  sbPatch('movimientos_banco',movId,{conciliado:false,conciliado_at:null,conciliado_por:null}).then(function(){toast('Des-conciliado','info');reload('banco');});
+}
+
+function desvincularAsiento(movId){
+  var m=C.movs.find(function(x){return x.id===movId;});
+  if(!m||!m.asiento_id){toast('Nada que desvincular','error');return;}
+  if(!confirm('¿Desvincular el asiento de este movimiento?\nEl asiento sigue existiendo, pero el movimiento queda "Pendiente".\nUsalo si querés regenerar el asiento.'))return;
+  sbPatch('movimientos_banco',movId,{asiento_id:null}).then(function(){toast('Desvinculado','info');reload('banco');});
 }
 
 function delMov(id){
-  if(!confirm('¿Eliminar este movimiento?\nSi tiene asiento generado, el asiento también se elimina.'))return;
   var m=C.movs.find(function(x){return x.id===id;});
   if(!m){toast('Movimiento no encontrado','error');return;}
+  if(m.conciliado){toast('No se puede eliminar: movimiento conciliado. Des-conciliá primero.','error');return;}
+  if(!confirm('¿Eliminar este movimiento?'+(m.asiento_id?'\nEl asiento generado también se elimina.':'')))return;
   var año=getEjYear(m.fecha);
   if(!isEjercicioEditable(año)){toast('Ejercicio '+año+' cerrado, no se puede eliminar','error');return;}
   var deletePromise=Promise.resolve();
@@ -1167,6 +1386,11 @@ function delMov(id){
     });
   });
 }
+
+// La función generarAsientoMov() vieja queda obsoleta — ahora se usa abrirModalAsiento().
+// La dejamos como alias por compatibilidad (por si la llama algún botón viejo):
+function generarAsientoMov(movId){abrirModalAsiento(movId);}
+
 
 // ============================================================
 // PÁGINA: GASTOS (wizard que genera asiento)
