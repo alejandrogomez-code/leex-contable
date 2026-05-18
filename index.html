@@ -339,11 +339,14 @@ function loadAll(){
     sbGet('proy_gastos','select=*&order=id').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
-    C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD'};
+    C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
     if(Array.isArray(res[0]))res[0].forEach(function(r){
       if(r.clave==='banco_nombre')C.config.banco_nombre=r.valor;
       if(r.clave==='banco_cuenta')C.config.banco_cuenta=r.valor;
       if(r.clave==='moneda')C.config.moneda=r.valor;
+      if(r.clave==='saldo_banco_manual')C.config.saldo_banco_manual=parseFloat(r.valor);
+      if(r.clave==='saldo_banco_manual_fecha')C.config.saldo_banco_manual_fecha=r.valor;
+      if(r.clave==='saldo_banco_manual_actualizado_at')C.config.saldo_banco_manual_actualizado_at=r.valor;
     });
     C.cuentas=Array.isArray(res[1])?res[1]:[];
     // Cuentas sistema → map
@@ -1124,12 +1127,37 @@ function pgBanco(){
   var ej=getEjercicio(ejercicioActual);
   var cerrado=ej&&ej.estado==='cerrado';
 
+  // === Cálculos de saldo conciliado y diferencia ===
+  var saldoManualMonto = C.config.saldo_banco_manual !== null ? parseFloat(C.config.saldo_banco_manual) : null;
+  var fechaRefSaldo = C.config.saldo_banco_manual_fecha || hoy();
+  var saldoConciliadoGlobal = 0;
+  C.movs.forEach(function(m){
+    if(m.fecha > fechaRefSaldo) return;
+    if(m.conciliado) saldoConciliadoGlobal += parseFloat(m.monto)||0;
+  });
+  var diferenciaSaldo = saldoManualMonto !== null ? (saldoManualMonto - saldoConciliadoGlobal) : null;
+  var difColor = diferenciaSaldo === null ? 'cyan' : (Math.abs(diferenciaSaldo) < 0.01 ? 'green' : (diferenciaSaldo > 0 ? 'yellow' : 'red'));
+  var difLabel = diferenciaSaldo === null ? 'Sin saldo manual' : (Math.abs(diferenciaSaldo) < 0.01 ? '✓ Conciliado OK' : diferenciaSaldo > 0 ? '⚠ Pendientes' : '⚠ Anomalía');
+
   return ejGlobalBar()+
     '<div class="pageTitle">🏦 Movimientos Bancarios</div>'+
     (cerrado?'<div class="lockBanner">🔒 Ejercicio '+ejercicioActual+' cerrado — solo lectura</div>':'')+
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Saldo Banco Real</div>'+
+      '<div class="val cyan">'+(C.config.saldo_banco_manual!==null?fmtS(C.config.saldo_banco_manual):'<span style="color:var(--text2);font-size:14px">Sin definir</span>')+'</div>'+
+      '<div class="sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+        (C.config.saldo_banco_manual_fecha?'Al '+fmtD(C.config.saldo_banco_manual_fecha):'(ingresá un valor)')+
+        (!ro?' <button class="miniBtn" onclick="abrirModalSaldoManual()" style="color:var(--cyan)">✏ Editar</button>':'')+
+      '</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Conciliado</div><div class="val green">'+fmtS(saldoConciliadoGlobal)+'</div><div class="sub">Hasta '+fmtD(fechaRefSaldo)+'</div></div>'+
+    '<div class="card" style="border-color:var(--'+difColor+')"><div class="lbl">Diferencia</div>'+
+      '<div class="val '+difColor+'">'+(diferenciaSaldo!==null?fmtS(diferenciaSaldo):'—')+'</div>'+
+      '<div class="sub">'+difLabel+'</div></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:14px"><span style="color:var(--cyan)">ℹ</span> El saldo conciliado se calcula sumando todos los movs <strong>conciliados</strong> hasta la fecha de referencia. La diferencia debería tender a cero a medida que conciliás más movimientos.</div>'+
     '<div class="cards">'+
     '<div class="card"><div class="lbl">Saldo inicial</div><div class="val cyan">'+fmtS(saldoIniEj)+'</div><div class="sub">01/01/'+ejercicioActual+'</div></div>'+
-    '<div class="card"><div class="lbl">Saldo actual</div><div class="val green">'+fmtS(acum)+'</div><div class="sub">'+movsEj.length+' movs en '+ejercicioActual+'</div></div>'+
+    '<div class="card"><div class="lbl">Saldo según Extracto ('+ejercicioActual+')</div><div class="val green">'+fmtS(acum)+'</div><div class="sub">'+movsEj.length+' movs en '+ejercicioActual+'</div></div>'+
     '<div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pendientes+'</div><div class="sub">Sin asiento</div></div>'+
     '<div class="card"><div class="lbl">Con Asiento</div><div class="val cyan">'+conAst+'</div><div class="sub">Por conciliar</div></div>'+
     '<div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conciliados+'</div><div class="sub">Cerrados</div></div>'+
@@ -1596,6 +1624,87 @@ function delMov(id){
 }
 
 function generarAsientoMov(movId){abrirModalAsiento(movId);}
+
+// ============================================================
+// MODAL: EDITAR SALDO BANCO REAL (manual)
+// ============================================================
+function abrirModalSaldoManual(){
+  var actual = C.config.saldo_banco_manual !== null ? C.config.saldo_banco_manual : '';
+  var fechaActual = C.config.saldo_banco_manual_fecha || hoy();
+  var ultEdit = C.config.saldo_banco_manual_actualizado_at;
+
+  var modalContent =
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:520px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<h3 style="font-size:15px;font-weight:600">✏ Saldo de Banco Real</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalSaldoManual()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Ingresá el saldo que figura en tu extracto bancario real, junto con la fecha a la que corresponde. El sistema lo compara con los movimientos conciliados.</div>'+
+    '<div class="fg2">'+
+    '<div class="f"><label>Saldo USD</label><input type="number" id="smMonto" step="0.01" value="'+actual+'" placeholder="10000.00"/></div>'+
+    '<div class="f"><label>Fecha del saldo</label><input type="date" id="smFecha" value="'+fechaActual+'"/></div>'+
+    '</div>'+
+    (ultEdit?'<div style="font-size:11px;color:var(--text2);margin-top:10px">Última actualización: '+new Date(ultEdit).toLocaleString('es-AR')+'</div>':'')+
+    '<div class="factions" style="margin-top:18px">'+
+    '<button class="btn bp" onclick="guardarSaldoManual()">💾 Guardar</button>'+
+    (actual?'<button class="btn bd" onclick="borrarSaldoManual()">🗑 Borrar valor</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalSaldoManual()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  // Reutilizo modalAsiento como contenedor genérico
+  var modal = document.getElementById('modalAsiento');
+  modal.innerHTML = modalContent;
+  modal.style.display = 'flex';
+}
+
+function cerrarModalSaldoManual(){
+  var modal = document.getElementById('modalAsiento');
+  if(modal){modal.style.display='none';modal.innerHTML='';}
+}
+
+function guardarSaldoManual(){
+  var monto = parseFloat(document.getElementById('smMonto').value);
+  var fecha = document.getElementById('smFecha').value;
+  if(isNaN(monto)){toast('Ingresá un monto válido','error');return;}
+  if(!fecha){toast('Ingresá una fecha','error');return;}
+  var now = new Date().toISOString();
+
+  // Upsert en configuracion: si la clave existe → PATCH, si no → POST
+  function upsertCfg(clave, valor){
+    return sbGet('configuracion','select=clave&clave=eq.'+clave).then(function(r){
+      if(Array.isArray(r) && r.length > 0){
+        return sbPatchWhere('configuracion','clave',clave,{valor:String(valor)});
+      }else{
+        return sbPost('configuracion',{clave:clave,valor:String(valor)});
+      }
+    });
+  }
+
+  Promise.all([
+    upsertCfg('saldo_banco_manual', monto),
+    upsertCfg('saldo_banco_manual_fecha', fecha),
+    upsertCfg('saldo_banco_manual_actualizado_at', now)
+  ]).then(function(){
+    toast('Saldo guardado','success');
+    cerrarModalSaldoManual();
+    reload('banco');
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+}
+
+function borrarSaldoManual(){
+  if(!confirm('¿Borrar el saldo manual?\nVas a poder volver a ingresarlo cuando quieras.'))return;
+  Promise.all([
+    sbDeleteWhere('configuracion','clave','saldo_banco_manual'),
+    sbDeleteWhere('configuracion','clave','saldo_banco_manual_fecha'),
+    sbDeleteWhere('configuracion','clave','saldo_banco_manual_actualizado_at')
+  ]).then(function(){
+    toast('Saldo borrado','info');
+    cerrarModalSaldoManual();
+    reload('banco');
+  });
+}
 
 
 // ============================================================
