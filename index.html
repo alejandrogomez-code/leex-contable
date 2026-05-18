@@ -1214,6 +1214,26 @@ function pgBanco(){
   var difColor = diferenciaSaldo === null ? 'cyan' : (Math.abs(diferenciaSaldo) < 0.01 ? 'green' : (diferenciaSaldo > 0 ? 'yellow' : 'red'));
   var difLabel = diferenciaSaldo === null ? 'Sin saldo manual' : (Math.abs(diferenciaSaldo) < 0.01 ? '✓ Conciliado OK' : diferenciaSaldo > 0 ? '⚠ Pendientes' : '⚠ Anomalía');
 
+  // === Cálculo Contable vs Extracto ===
+  // Saldo contable = saldo del Mayor de la cuenta banco al 31/12 del ejercicio
+  var cuentaBancoCod = C.cuentas_sistema.banco_default || '1.1.01';
+  var saldoContableEj = saldoCuenta(cuentaBancoCod, ejercicioActual + '-12-31');
+  // Saldo extracto = suma de TODOS los movs del ejercicio (= acum, ya calculado arriba)
+  var saldoExtractoEj = acum;
+  var difContable = saldoContableEj - saldoExtractoEj;
+  var difCtbColor = Math.abs(difContable) < 0.01 ? 'green' : 'yellow';
+  var difCtbLabel = Math.abs(difContable) < 0.01 ? '✓ Sincronizado' : (difContable > 0 ? 'Asientos sin mov' : 'Movs sin asentar');
+  // Contar asientos del banco SIN movimiento_banco_id en este ejercicio
+  var asientosBancoSinMov = 0;
+  C.asientos.forEach(function(a){
+    if(a.ejercicio_año !== ejercicioActual) return;
+    if(a.movimiento_banco_id) return;  // ya está vinculado a un mov
+    if(a.es_apertura || a.es_cierre) return;  // ignorar cierres/aperturas
+    var ls = lineasDeAsiento(a.id);
+    var tocaBanco = ls.some(function(l){ return l.cuenta_codigo === cuentaBancoCod; });
+    if(tocaBanco) asientosBancoSinMov++;
+  });
+
   return ejGlobalBar()+
     '<div class="pageTitle">🏦 Movimientos Bancarios</div>'+
     (cerrado?'<div class="lockBanner">🔒 Ejercicio '+ejercicioActual+' cerrado — solo lectura</div>':'')+
@@ -1230,9 +1250,20 @@ function pgBanco(){
       '<div class="sub">'+difLabel+'</div></div>'+
     '</div>'+
     '<div style="font-size:11px;color:var(--text2);margin-bottom:14px"><span style="color:var(--cyan)">ℹ</span> El saldo conciliado se calcula sumando todos los movs <strong>conciliados</strong> hasta la fecha de referencia. La diferencia debería tender a cero a medida que conciliás más movimientos.</div>'+
+    // === Fila NUEVA: Contable vs Extracto ===
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Saldo Contable</div><div class="val cyan">'+fmtS(saldoContableEj)+'</div><div class="sub">Mayor 1.1.01 al 31/12/'+ejercicioActual+'</div></div>'+
+    '<div class="card"><div class="lbl">Saldo según Extracto</div><div class="val green">'+fmtS(saldoExtractoEj)+'</div><div class="sub">Suma movs bancarios '+ejercicioActual+'</div></div>'+
+    '<div class="card" style="border-color:var(--'+difCtbColor+')"><div class="lbl">Diferencia</div>'+
+      '<div class="val '+difCtbColor+'">'+fmtS(difContable)+'</div>'+
+      '<div class="sub" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+difCtbLabel+
+      (asientosBancoSinMov>0?' <button class="miniBtn" onclick="verAsientosSinMov()" style="color:var(--cyan)">🔍 Ver '+asientosBancoSinMov+'</button>':'')+
+      '</div></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:14px"><span style="color:var(--cyan)">ℹ</span> <strong>Contable</strong> = saldo del Mayor de la cuenta banco (incluye asientos manuales). <strong>Extracto</strong> = suma de movimientos importados del banco. Si difieren, hay asientos contables sin movimiento bancario (ajustes manuales) o viceversa.</div>'+
     '<div class="cards">'+
     '<div class="card"><div class="lbl">Saldo inicial</div><div class="val cyan">'+fmtS(saldoIniEj)+'</div><div class="sub">01/01/'+ejercicioActual+'</div></div>'+
-    '<div class="card"><div class="lbl">Saldo según Extracto ('+ejercicioActual+')</div><div class="val green">'+fmtS(acum)+'</div><div class="sub">'+movsEj.length+' movs en '+ejercicioActual+'</div></div>'+
+    '<div class="card"><div class="lbl">Movs '+ejercicioActual+'</div><div class="val green">'+fmtS(acum)+'</div><div class="sub">'+movsEj.length+' movs · suma extracto</div></div>'+
     '<div class="card"><div class="lbl">Pendientes</div><div class="val yellow">'+pendientes+'</div><div class="sub">Sin asiento</div></div>'+
     '<div class="card"><div class="lbl">Con Asiento</div><div class="val cyan">'+conAst+'</div><div class="sub">Por conciliar</div></div>'+
     '<div class="card"><div class="lbl">Conciliados</div><div class="val green">'+conciliados+'</div><div class="sub">Cerrados</div></div>'+
@@ -1779,6 +1810,76 @@ function borrarSaldoManual(){
     cerrarModalSaldoManual();
     reload('banco');
   });
+}
+
+// ============================================================
+// MODAL: ASIENTOS QUE TOCAN BANCO PERO NO TIENEN MOVIMIENTO BANCARIO
+// ============================================================
+function verAsientosSinMov(){
+  var cuentaBancoCod = C.cuentas_sistema.banco_default || '1.1.01';
+  var lista = [];
+  C.asientos.forEach(function(a){
+    if(a.ejercicio_año !== ejercicioActual) return;
+    if(a.movimiento_banco_id) return;
+    if(a.es_apertura || a.es_cierre) return;
+    var ls = lineasDeAsiento(a.id);
+    var lineaBanco = ls.find(function(l){ return l.cuenta_codigo === cuentaBancoCod; });
+    if(!lineaBanco) return;
+    var monto = parseFloat(lineaBanco.debe) - parseFloat(lineaBanco.haber);  // signo según efecto en banco
+    lista.push({asiento:a, monto:monto, detalle:lineaBanco.detalle});
+  });
+  lista.sort(function(a,b){ return a.asiento.fecha.localeCompare(b.asiento.fecha); });
+
+  var rows = '';
+  var totalDebe = 0, totalHaber = 0;
+  lista.forEach(function(x){
+    if(x.monto >= 0) totalDebe += x.monto; else totalHaber += Math.abs(x.monto);
+    rows += '<tr>'+
+      '<td>'+fmtD(x.asiento.fecha)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+refAsiento(x.asiento)+'</td>'+
+      '<td>'+escapeHtml(x.asiento.descripcion||'')+
+        (x.asiento.categoria?' <span class="badge by" style="font-size:9px">'+escapeHtml(x.asiento.categoria)+'</span>':'')+
+        '</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+escapeHtml(x.detalle||'')+'</td>'+
+      '<td class="'+(x.monto>=0?'green':'red')+'" style="font-variant-numeric:tabular-nums">'+(x.monto>=0?'+':'')+fmt(x.monto)+'</td>'+
+      '<td>'+
+        '<button class="btn sm bs" onclick="verAsiento('+x.asiento.id+');cerrarModalSinMov()" title="Ver en libro diario">👁</button>'+
+      '</td>'+
+      '</tr>';
+  });
+  var efectoNeto = totalDebe - totalHaber;
+
+  var content =
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:1000px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">🔍 Asientos sobre Banco sin Movimiento Bancario</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">Ejercicio '+ejercicioActual+' · '+lista.length+' asientos · Efecto neto en banco: <strong class="'+(efectoNeto>=0?'green':'red')+'">'+(efectoNeto>=0?'+':'')+fmt(efectoNeto)+'</strong></div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalSinMov()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Estos asientos modifican el saldo contable de la cuenta '+cuentaBancoCod+' pero <strong>NO están vinculados</strong> a un movimiento bancario del extracto. Son ajustes manuales, asientos de inicialización, transferencias internas, etc. Su existencia explica la diferencia entre saldo contable y saldo extracto.</div>'+
+    '<div class="twrap" style="margin-bottom:0">'+
+    '<table><thead><tr><th>Fecha</th><th>Ref.</th><th>Descripción</th><th>Detalle línea</th><th style="text-align:right">Monto Banco</th><th></th></tr></thead>'+
+    '<tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:18px">No hay asientos sin movimiento vinculado.</td></tr>')+'</tbody></table>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px"><button class="btn bs" onclick="cerrarModalSinMov()">Cerrar</button></div>'+
+    '</div></div>';
+
+  // Reutilizo el contenedor modalAsiento
+  var modal = document.getElementById('modalAsiento');
+  if(!modal){
+    modal = document.createElement('div');
+    modal.id = 'modalAsiento';
+    modal.style.cssText = 'display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = content;
+  modal.style.display = 'flex';
+}
+
+function cerrarModalSinMov(){
+  var modal = document.getElementById('modalAsiento');
+  if(modal){ modal.style.display = 'none'; modal.innerHTML = ''; }
 }
 
 
