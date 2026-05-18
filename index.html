@@ -1043,7 +1043,7 @@ function generarAsientoDesdeMov(mov,cuentaContrapartida,descripcion,categoria,re
 }
 
 // ============================================================
-// PÁGINA: MOVIMIENTOS BANCO  (REEMPLAZA la versión anterior)
+// PÁGINA: MOVIMIENTOS BANCO  (con sistema de adjuntos)
 // ============================================================
 function pgBanco(){
   var ro=!isAdmin();
@@ -1080,11 +1080,17 @@ function pgBanco(){
     var ast=m.asiento_id?C.asientos.find(function(a){return a.id===m.asiento_id;}):null;
     var astLabel=ast?refAsiento(ast):'';
 
-    // Estado: Pendiente / Con Asiento / Conciliado
+    // Estado
     var estadoBadge;
     if(m.conciliado)estadoBadge='<span class="badge bg" title="Revisado y aprobado">✅ Conciliado</span>';
     else if(m.asiento_id)estadoBadge='<span class="badge bb" title="'+astLabel+'">📋 '+astLabel+'</span>';
     else estadoBadge='<span class="badge by">⏳ Pendiente</span>';
+
+    // Adjuntos: cuántos tiene
+    var nAdj=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===m.id;}).length;
+    var adjBadge=nAdj>0?
+      '<button class="btn sm bs" onclick="verAdjuntos('+m.id+')" title="Ver adjuntos"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      (!ro?'<button class="btn sm bs" onclick="verAdjuntos('+m.id+')" title="Subir adjunto" style="color:var(--text2)">📎</button>':'-');
 
     // Botones según estado
     var btns='';
@@ -1110,6 +1116,7 @@ function pgBanco(){
       '<td class="'+(monto>0?'green':'red')+'" style="font-variant-numeric:tabular-nums">'+(monto>0?'+':'')+fmt(monto)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+fmtS(saldos[m.id]||0)+'</td>'+
       '<td>'+estadoBadge+'</td>'+
+      '<td>'+adjBadge+'</td>'+
       (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
       '</tr>';
   });
@@ -1142,10 +1149,11 @@ function pgBanco(){
     '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3><span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span></div>'+
     (movsEj.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos en '+ejercicioActual+'. <a href="#" onclick="go(\'importar\');return false;" style="color:var(--cyan)">Importar extracto →</a></div>':
     filtrados.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-    '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th><th>📎</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>'+
-    // Modal container (oculto por default)
-    '<div id="modalAsiento" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
+    // Modal containers (ocultos por default)
+    '<div id="modalAsiento" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>'+
+    '<div id="modalAdjuntos" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
 }
 
 // ============================================================
@@ -1163,34 +1171,28 @@ function abrirModalAsiento(movId){
   modalAstMovId=movId;
   modalAstLineCount=0;
 
-  // Calcular líneas pre-cargadas
   var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
   var monto=parseFloat(m.monto)||0;
   var sug=sugerirCuenta(m.descripcion);
 
   var cuentaContra,descSug,catSug;
   if(sug.cuenta){
-    // Hay regla: usar regla
     cuentaContra=sug.cuenta;
     descSug=sug.descripcion||m.descripcion;
     catSug=sug.categoria||'';
   }else{
-    // No hay regla: usar defaults del sistema
     cuentaContra=monto>=0?(C.cuentas_sistema.ingreso_default||'4.2.01'):(C.cuentas_sistema.gasto_default||'5.1.08');
     descSug=m.descripcion;
     catSug='';
   }
 
-  // Definir las 2 líneas iniciales
   var lineas;
   if(monto>=0){
-    // Crédito (entró plata al banco): Banco Debe / Contrapartida Haber
     lineas=[
       {cuenta:cuentaBanco,det:descSug,debe:Math.abs(monto),haber:0},
       {cuenta:cuentaContra,det:descSug,debe:0,haber:Math.abs(monto)}
     ];
   }else{
-    // Débito (salió plata): Contrapartida Debe / Banco Haber
     lineas=[
       {cuenta:cuentaContra,det:descSug,debe:Math.abs(monto),haber:0},
       {cuenta:cuentaBanco,det:descSug,debe:0,haber:Math.abs(monto)}
@@ -1222,19 +1224,16 @@ function abrirModalAsiento(movId){
     '<button class="rlbtn" onclick="cerrarModalAsiento()" style="font-size:20px">✕</button>'+
     '</div>'+
     '<div style="padding:20px">'+
-    // Info del movimiento (read-only)
     '<div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px">'+
     '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Fecha</div><div style="font-weight:600">'+fmtD(m.fecha)+'</div></div>'+
     '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Descripción</div><div style="font-weight:600">'+escapeHtml(m.descripcion||'')+'</div></div>'+
     '<div><div style="font-size:10px;color:var(--text2);text-transform:uppercase">Monto</div><div style="font-weight:600;color:'+(monto>=0?'var(--green)':'var(--red)')+'">'+(monto>=0?'+':'')+fmt(monto)+'</div></div>'+
     '</div>'+
-    // Datos del asiento
     '<div class="fg3">'+
     '<div class="f"><label>Descripción del asiento</label><input type="text" id="maDesc" value="'+escapeHtml(descSug)+'"/></div>'+
     '<div class="f"><label>Categoría</label><select id="maCat"><option value="">—</option>'+listOpts(C.cfg_listas.categoria_asiento||[],catSug)+'</select></div>'+
     '<div class="f"><label>Referencia</label><input type="text" id="maRef" placeholder="Auto"/></div>'+
     '</div>'+
-    // Líneas del asiento
     '<div style="margin-top:16px">'+
     '<div class="blbl"><span>Cuenta</span><span>Detalle</span><span>Debe</span><span>Haber</span><span></span></div>'+
     '<div id="maLines">'+lineasHTML+'</div>'+
@@ -1243,7 +1242,6 @@ function abrirModalAsiento(movId){
     '<button class="btn bs sm" onclick="addLineModal()">+ Línea</button>'+
     '<span id="maBchk" class="bcheck bok">✓ Balanceado: '+fmt(Math.abs(monto))+'</span>'+
     '</div>'+
-    // Acciones
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarAsientoModal(false)">💾 Guardar asiento</button>'+
     '<button class="btn bv" onclick="guardarAsientoModal(true)">💾✓ Guardar y conciliar</button>'+
@@ -1343,6 +1341,201 @@ function guardarAsientoModal(yConciliar){
 }
 
 // ============================================================
+// MODAL: ADJUNTOS DE UN MOVIMIENTO
+// ============================================================
+var modalAdjMovId=null;
+var ADJ_BUCKET='leex-adjuntos';
+var ADJ_MAX_SIZE=10*1024*1024; // 10MB
+var ADJ_MIME_OK=['application/pdf','image/jpeg','image/jpg','image/png',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel'];
+
+function verAdjuntos(movId){
+  modalAdjMovId=movId;
+  renderModalAdjuntos();
+  document.getElementById('modalAdjuntos').style.display='flex';
+}
+
+function cerrarModalAdjuntos(){
+  document.getElementById('modalAdjuntos').style.display='none';
+  document.getElementById('modalAdjuntos').innerHTML='';
+  modalAdjMovId=null;
+}
+
+function renderModalAdjuntos(){
+  var m=C.movs.find(function(x){return x.id===modalAdjMovId;});
+  if(!m)return;
+  var ro=!isAdmin();
+  var adjs=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===modalAdjMovId;});
+
+  var listaHTML='';
+  if(adjs.length===0){
+    listaHTML='<div style="text-align:center;color:var(--text2);padding:30px;font-size:13px">📂 Sin adjuntos todavía</div>';
+  }else{
+    adjs.forEach(function(a){
+      var iconoTipo='📄';
+      if(a.tipo_mime&&a.tipo_mime.indexOf('image/')===0)iconoTipo='🖼️';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('pdf')>-1)iconoTipo='📕';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('sheet')>-1)iconoTipo='📊';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('excel')>-1)iconoTipo='📊';
+      var tamañoKB=a.tamaño_bytes?(a.tamaño_bytes/1024).toFixed(0)+' KB':'-';
+      listaHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">'+
+        '<div style="font-size:24px">'+iconoTipo+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.nombre_archivo)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+tamañoKB+' · '+new Date(a.uploaded_at).toLocaleString('es-AR')+(a.uploaded_by?' · '+a.uploaded_by:'')+'</div></div>'+
+        '<a href="'+a.storage_url+'" target="_blank" class="btn sm bs" title="Abrir">👁 Ver</a> '+
+        '<a href="'+a.storage_url+'" download="'+escapeHtml(a.nombre_archivo)+'" class="btn sm bs" title="Descargar">📥</a> '+
+        (!ro?'<button class="btn sm bd" onclick="eliminarAdjunto('+a.id+')" title="Eliminar">🗑</button>':'')+
+        '</div>';
+    });
+  }
+
+  var uploader=ro?'':
+    '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:20px;text-align:center;transition:all .15s" '+
+    'onmouseover="this.style.background=\'var(--cyan-soft)\'" onmouseout="this.style.background=\'var(--bg3)\'">'+
+    '<input type="file" id="adjFileInp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="subirAdjuntos(event)"/>'+
+    '<div style="font-size:32px;margin-bottom:6px">📎</div>'+
+    '<div style="font-size:13px;font-weight:600;color:var(--cyan)">Click para seleccionar archivos</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:4px">PDF · JPG · PNG · XLSX · XLS (máx. 10MB c/u)</div>'+
+    '</label>'+
+    '<div id="adjUploadProgress"></div>'+
+    '</div>';
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">📎 Adjuntos del Movimiento</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+fmtD(m.fecha)+' · '+escapeHtml(m.descripcion||'')+' · <strong>'+fmt(m.monto)+'</strong></div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjuntos()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">'+adjs.length+' archivo'+(adjs.length===1?'':'s')+'</div>'+
+    listaHTML+
+    uploader+
+    '</div></div>';
+
+  document.getElementById('modalAdjuntos').innerHTML=modalContent;
+}
+
+function subirAdjuntos(ev){
+  var files=ev.target.files;
+  if(!files||files.length===0)return;
+  var movId=modalAdjMovId;
+  if(!movId){toast('Movimiento perdido','error');return;}
+
+  // Validar todos los archivos primero
+  var validos=[];
+  var errores=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>ADJ_MAX_SIZE){errores.push(f.name+' (>10MB)');continue;}
+    if(ADJ_MIME_OK.indexOf(f.type)===-1){
+      // Algunos navegadores no setean type para .xls — chequear por extensión
+      var ext=f.name.toLowerCase().split('.').pop();
+      if(['pdf','jpg','jpeg','png','xlsx','xls'].indexOf(ext)===-1){
+        errores.push(f.name+' (tipo no permitido)');continue;
+      }
+    }
+    validos.push(f);
+  }
+  if(errores.length>0)toast('Saltados: '+errores.join(', '),'error');
+  if(validos.length===0){ev.target.value='';return;}
+
+  var prog=document.getElementById('adjUploadProgress');
+  prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subiendo '+validos.length+' archivo'+(validos.length===1?'':'s')+'...</div>';
+
+  // Subir en serie
+  var chain=Promise.resolve();
+  var subidos=0,fallos=0;
+  validos.forEach(function(f){
+    chain=chain.then(function(){return subirUnArchivo(movId,f);}).then(function(ok){
+      if(ok)subidos++;else fallos++;
+      prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subidos '+subidos+'/'+validos.length+(fallos>0?' · '+fallos+' fallos':'')+'</div>';
+    });
+  });
+
+  chain.then(function(){
+    ev.target.value='';
+    if(fallos>0)toast(subidos+' subidos, '+fallos+' fallaron','error');
+    else toast(subidos+' archivo'+(subidos===1?'':'s')+' subido'+(subidos===1?'':'s'),'success');
+    // Refrescar lista de adjuntos sin cerrar el modal
+    sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+      C.adjuntos=Array.isArray(r)?r:[];
+      renderModalAdjuntos();
+    });
+  });
+}
+
+function subirUnArchivo(movId,file){
+  var año=getEjYear(C.movs.find(function(m){return m.id===movId;}).fecha);
+  // Path único: año/uuid-nombre
+  var uuid='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+  // Sanitizar nombre (sin espacios ni caracteres raros)
+  var safeName=file.name.replace(/[^\w.\-]/g,'_');
+  var path=año+'/'+uuid+'-'+safeName;
+
+  // Subir a Supabase Storage vía REST API
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{
+    method:'POST',
+    headers:{
+      'apikey':SB_KEY,
+      'Authorization':'Bearer '+SB_KEY,
+      'Content-Type':file.type||'application/octet-stream',
+      'x-upsert':'false'
+    },
+    body:file
+  }).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(err){
+        console.error('Upload error:',err);
+        throw new Error(err.message||'Error subiendo');
+      });
+    }
+    return r.json();
+  }).then(function(){
+    // URL pública del archivo
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    // Registrar en la tabla
+    return sbPost('movimiento_adjuntos',{
+      movimiento_id:movId,
+      nombre_archivo:file.name,
+      tipo_mime:file.type||null,
+      tamaño_bytes:file.size,
+      storage_path:path,
+      storage_url:publicUrl,
+      uploaded_by:CU?CU.u:null
+    });
+  }).then(function(){return true;}).catch(function(e){
+    console.error('Error subiendo '+file.name+':',e);
+    return false;
+  });
+}
+
+function eliminarAdjunto(adjId){
+  var adj=(C.adjuntos||[]).find(function(a){return a.id===adjId;});
+  if(!adj){toast('Adjunto no encontrado','error');return;}
+  if(!confirm('¿Eliminar el archivo "'+adj.nombre_archivo+'"?\nEsto borra el archivo de Supabase Storage de forma definitiva.'))return;
+
+  // Borrar archivo del Storage
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+adj.storage_path,{
+    method:'DELETE',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(r){
+    // Borrar registro de la tabla aunque falle el storage (puede haber quedado huérfano)
+    sbDelete('movimiento_adjuntos',adjId).then(function(){
+      toast('Adjunto eliminado','success');
+      sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+        C.adjuntos=Array.isArray(r)?r:[];
+        renderModalAdjuntos();
+      });
+    });
+  });
+}
+
+// ============================================================
 // ACCIONES SOBRE MOVIMIENTOS
 // ============================================================
 function conciliarMov(movId){
@@ -1372,23 +1565,36 @@ function delMov(id){
   var m=C.movs.find(function(x){return x.id===id;});
   if(!m){toast('Movimiento no encontrado','error');return;}
   if(m.conciliado){toast('No se puede eliminar: movimiento conciliado. Des-conciliá primero.','error');return;}
-  if(!confirm('¿Eliminar este movimiento?'+(m.asiento_id?'\nEl asiento generado también se elimina.':'')))return;
+  var nAdj=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===id;}).length;
+  var msg='¿Eliminar este movimiento?';
+  if(m.asiento_id)msg+='\nEl asiento generado también se elimina.';
+  if(nAdj>0)msg+='\n'+nAdj+' archivo'+(nAdj===1?' adjunto será':'s adjuntos serán')+' borrado'+(nAdj===1?'':'s')+' de Supabase Storage.';
+  if(!confirm(msg))return;
   var año=getEjYear(m.fecha);
   if(!isEjercicioEditable(año)){toast('Ejercicio '+año+' cerrado, no se puede eliminar','error');return;}
-  var deletePromise=Promise.resolve();
-  if(m.asiento_id){
-    deletePromise=sbDeleteWhere('asiento_lineas','asiento_id',m.asiento_id).then(function(){return sbDelete('asientos',m.asiento_id);});
-  }
-  deletePromise.then(function(){
-    sbDelete('movimientos_banco',id).then(function(){
-      toast('Movimiento eliminado','success');
-      reload('banco');
+
+  // Borrar adjuntos del storage
+  var adjsDelMov=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===id;});
+  var pAdj=Promise.all(adjsDelMov.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+
+  pAdj.then(function(){
+    var deletePromise=Promise.resolve();
+    if(m.asiento_id){
+      deletePromise=sbDeleteWhere('asiento_lineas','asiento_id',m.asiento_id).then(function(){return sbDelete('asientos',m.asiento_id);});
+    }
+    deletePromise.then(function(){
+      sbDelete('movimientos_banco',id).then(function(){
+        toast('Movimiento eliminado','success');
+        reload('banco');
+      });
     });
   });
 }
 
-// La función generarAsientoMov() vieja queda obsoleta — ahora se usa abrirModalAsiento().
-// La dejamos como alias por compatibilidad (por si la llama algún botón viejo):
 function generarAsientoMov(movId){abrirModalAsiento(movId);}
 
 
