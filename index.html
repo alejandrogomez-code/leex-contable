@@ -905,7 +905,7 @@ function parsePDFPage(page){
     var items=content.items.map(function(item){
       return{text:item.str.trim(),x:Math.round(item.transform[4]),y:Math.round(item.transform[5])};
     }).filter(function(item){return item.text.length>0;});
-    // Agrupar por línea Y
+    // Agrupar por línea Y (tolerancia 5px)
     var lines={};
     items.forEach(function(item){
       var found=false;
@@ -914,32 +914,107 @@ function parsePDFPage(page){
       });
       if(!found)lines[item.y]=[item];
     });
-    var rows=[];
+
+    // Procesar cada línea
+    var rawRows=[];
     Object.keys(lines).forEach(function(yKey){
       var lineItems=lines[yKey].sort(function(a,b){return a.x-b.x;});
       var dateText=lineItems.find(function(item){return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(item.text);});
       if(!dateText)return;
-      var desc='',debito=null,credito=null;
+
+      // Recolectar TODOS los montos con su posición X
+      var montos=[]; // {valor, esNegativo, x}
+      var descParts=[];
       lineItems.forEach(function(item){
-        if(item.x>dateText.x+50){
-          var montoMatch=item.text.match(/-?\$?[\d,]+\.\d{2}/);
-          if(montoMatch){
-            var val=parseFloat(montoMatch[0].replace(/[$,]/g,''));
-            if(item.text.indexOf('-')>-1)debito=Math.abs(val);
-            else credito=val;
-          }else{
-            desc+=(desc?' ':'')+item.text;
+        if(item.x<=dateText.x+50)return; // saltar la fecha y lo que está antes
+        var montoMatch=item.text.match(/^-?\$?[\d,]+\.\d{2}$/);
+        if(montoMatch){
+          var raw=montoMatch[0];
+          var esNeg=raw.indexOf('-')>-1;
+          var val=parseFloat(raw.replace(/[-$,]/g,''));
+          if(!isNaN(val)&&val>0){
+            montos.push({valor:val,esNegativo:esNeg,x:item.x});
           }
+        }else{
+          // No es monto = parte de la descripción
+          descParts.push({text:item.text,x:item.x});
         }
       });
-      if(desc&&(debito||credito)){
-        var p=dateText.text.split('/');
-        var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
-        var monto=credito?credito:(debito?-debito:0);
-        rows.push({fecha:fechaNorm,desc:desc.trim(),monto:Math.round(monto*100)/100});
-      }
+
+      // Ordenar montos por X (de izquierda a derecha)
+      montos.sort(function(a,b){return a.x-b.x;});
+
+      if(montos.length===0)return; // fila sin montos = encabezado o texto suelto
+
+      // En este formato: DÉBITOS | CRÉDITOS | SALDO
+      // El ÚLTIMO monto siempre es el SALDO → descartarlo
+      // De los restantes: si tiene "-" es débito, sino crédito
+      var saldoX=montos[montos.length-1].x;
+      var saldoRow=montos[montos.length-1].valor;
+      var movMontos=montos.slice(0,-1);
+
+      // Reconstruir descripción: solo los items a la izquierda del primer monto (no saldo)
+      var primerMontoX=movMontos.length>0?movMontos[0].x:saldoX;
+      var desc=descParts.filter(function(d){return d.x<primerMontoX;}).map(function(d){return d.text;}).join(' ').trim();
+
+      if(!desc||movMontos.length===0)return;
+
+      // Sumar todos los montos del movimiento (puede haber solo uno: débito O crédito)
+      var monto=0;
+      movMontos.forEach(function(m){
+        monto+=m.esNegativo?-m.valor:m.valor;
+      });
+
+      // Normalizar fecha
+      var p=dateText.text.split('/');
+      var fechaNorm=p[2]+'-'+p[0].padStart(2,'0')+'-'+p[1].padStart(2,'0');
+
+      rawRows.push({
+        fecha:fechaNorm,
+        desc:desc,
+        monto:Math.round(monto*100)/100,
+        saldoRow:saldoRow,
+        y:parseInt(yKey)
+      });
     });
-    return rows;
+
+    // === VALIDACIÓN: verificar que los saldos cuadren ===
+    // Ordenar por Y descendente (en PDF, Y mayor = arriba; este PDF arranca con la fila más reciente)
+    // Pero el orden cronológico real es por FECHA ascendente.
+    // Para validar, ordenamos por fecha asc y verificamos saldo[i-1] + monto[i] ≈ saldo[i]
+    var sortedByDate=rawRows.slice().sort(function(a,b){
+      if(a.fecha!==b.fecha)return a.fecha.localeCompare(b.fecha);
+      return a.y-b.y; // dentro del mismo día, mantener orden visual (Y desc = orden del PDF)
+    });
+
+    var validatedRows=[];
+    var saldoPrev=null;
+    var inconsistencias=0;
+    sortedByDate.forEach(function(r){
+      var ok=true;
+      if(saldoPrev!==null){
+        var esperado=saldoPrev+r.monto;
+        if(Math.abs(esperado-r.saldoRow)>0.05){
+          ok=false;
+          inconsistencias++;
+          console.warn('Saldo no cuadra en fila '+r.fecha+' '+r.desc+': esperado '+esperado.toFixed(2)+' vs saldo PDF '+r.saldoRow.toFixed(2));
+        }
+      }
+      saldoPrev=r.saldoRow;
+      // Incluir TODAS las filas, aunque no cuadren el saldo
+      // (el usuario decide si descartarlas)
+      validatedRows.push({
+        fecha:r.fecha,
+        desc:r.desc,
+        monto:r.monto
+      });
+    });
+
+    if(inconsistencias>0){
+      console.warn('PDF parser: '+inconsistencias+' filas con saldo inconsistente. Revisar.');
+    }
+
+    return validatedRows;
   });
 }
 
