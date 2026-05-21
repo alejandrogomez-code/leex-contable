@@ -3093,7 +3093,7 @@ function pgCompras(){
   });
   var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
   var proveedores=C.cfg_listas.proveedor_compra||[];
-  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
   function selOpts(arr,sel){
     var h='<option value="">— Todos —</option>';
     arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
@@ -3194,7 +3194,7 @@ function abrirModalCompra(id){
   var c=id===0?{fecha_compra:hoy(),tipo_operacion:'',pedido:'',lote:'',proveedor:'',pi_ci:'',codigo_pago:'',swift_cuit_despachante:'',usd_fob:'',tipo_cambio:'',importe_total:0,vencimiento_prov:'',fecha_pago:'',estado_pago:'No Pagar',documento_url:'',notas:''}:(C.compras.find(function(x){return x.id===id;})||{});
   var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
   var proveedores=C.cfg_listas.proveedor_compra||[];
-  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
   function opts(arr,sel){
     var h='<option value="">— elegir —</option>';
     arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
@@ -4778,7 +4778,7 @@ function renderCajaLeex(){
     arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
     return h;
   }
-  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
 
   var hayFiltros=F.busqueda||F.fecha||F.proveedor||F.estado_pago;
   var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
