@@ -188,34 +188,35 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </svg>
     </div>
 
-    <div class="sbSection">Operación</div>
-    <div class="ni" data-page="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
-    <div class="ni" data-page="importar" onclick="go('importar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar Extracto</div>
-    <div class="ni" data-page="banco" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Movimientos Banco</div>
-    <div class="ni" data-page="gastos" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar Gasto</div>
+    <div class="sbSection" data-sec="contabilidad">Operación</div>
+    <div class="ni" data-sec="contabilidad" data-page="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+    <div class="ni" data-sec="contabilidad" data-page="importar" onclick="go('importar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar Extracto</div>
+    <div class="ni" data-sec="contabilidad" data-page="banco" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Movimientos Banco</div>
+    <div class="ni" data-sec="contabilidad" data-page="gastos" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar Gasto</div>
 
-    <div class="divider"></div>
-    <div class="sbSection">Contabilidad</div>
-    <div class="ni" data-page="libro" onclick="go('libro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Libro Diario</div>
-    <div class="ni" data-page="mayor" onclick="go('mayor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Libro Mayor</div>
-    <div class="ni" data-page="nuevoAst" onclick="go('nuevoAst')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Asiento</div>
-    <div class="ni" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance</div>
-    <div class="ni" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
+    <div class="divider" data-sec="contabilidad"></div>
+    <div class="sbSection" data-sec="contabilidad">Contabilidad</div>
+    <div class="ni" data-sec="contabilidad" data-page="libro" onclick="go('libro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Libro Diario</div>
+    <div class="ni" data-sec="contabilidad" data-page="mayor" onclick="go('mayor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Libro Mayor</div>
+    <div class="ni" data-sec="contabilidad" data-page="nuevoAst" onclick="go('nuevoAst')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Asiento</div>
+    <div class="ni" data-sec="contabilidad" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance</div>
+    <div class="ni" data-sec="contabilidad" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
 
-    <div class="divider"></div>
-    <div class="sbSection">Administración</div>
-    <div class="ni" data-page="ejercicios" onclick="go('ejercicios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Ejercicios</div>
-    <div class="ni" data-page="cuentas" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
-    <div class="ni" data-page="reglas" onclick="go('reglas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Reglas Automáticas</div>
+    <div class="divider" data-sec="admin"></div>
+    <div class="sbSection" data-sec="admin">Administración</div>
+    <div class="ni" data-sec="admin" data-page="ejercicios" onclick="go('ejercicios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Ejercicios</div>
+    <div class="ni" data-sec="admin" data-page="cuentas" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
+    <div class="ni" data-sec="admin" data-page="reglas" onclick="go('reglas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Reglas Automáticas</div>
 
-    <div class="divider"></div>
-    <div class="sbSection">Compras - Logística</div>
-    <div class="ni" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
+    <div class="divider" data-sec="logistica"></div>
+    <div class="sbSection" data-sec="logistica">Compras - Logística</div>
+    <div class="ni" data-sec="logistica" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
+    <div class="ni" data-sec="logistica" data-page="stock" onclick="go('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Stock</div>
 
-    <div class="divider"></div>
-    <div class="sbSection">Sistema</div>
-    <div class="ni" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
-    <div class="ni" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
+    <div class="divider" data-sec="sistema"></div>
+    <div class="sbSection" data-sec="sistema">Sistema</div>
+    <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
+    <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
 
     <div class="sbFoot">
       <div class="ubadge">
@@ -250,7 +251,8 @@ function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq
 var USERS=[
   {id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},
   {id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},
-  {id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'}
+  {id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'},
+  {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'}
 ];
 var CU=null;
 
@@ -274,7 +276,11 @@ var C={
   // Compras / Logística
   compras:[],
   compra_adjuntos:[],
-  adjuntos:[]
+  adjuntos:[],
+  // Stock
+  stock_items:[],
+  stock_bajas:[],
+  stock_adjuntos:[]
 };
 
 // === ESTADO UI ===
@@ -313,12 +319,21 @@ function login(){
   document.getElementById('uname').textContent=user.name;
   document.getElementById('urole').textContent=user.role==='admin'?'Administrador':'Solo Lectura';
   if(user.role!=='admin')document.getElementById('niAdmin').style.display='none';
+  // Si es logística, ocultar todo lo que no sea Compras-Logística
+  if(user.role==='logistica'){
+    document.querySelectorAll('[data-sec]').forEach(function(el){
+      if(el.getAttribute('data-sec')!=='logistica')el.style.display='none';
+    });
+    // Mostrar urole en color especial
+    document.getElementById('urole').textContent='Logística';
+    document.getElementById('urole').style.color='var(--lime)';
+  }
   loadAll().then(function(){
     // Setear ejercicio actual = año en curso, si existe
     var thisYear=new Date().getFullYear();
     if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
     else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
-    go('dashboard');
+    go(CU&&CU.role==='logistica'?'compras':'dashboard');
   });
 }
 function logout(){CU=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none';}
@@ -346,7 +361,10 @@ function loadAll(){
     sbGet('proy_gastos','select=*&order=id').catch(function(){return[];}),
     sbGet('compras','select=*&order=fecha_compra.desc,id.desc').catch(function(){return[];}),
     sbGet('compra_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
-    sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
+    sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('stock_items','select=*&order=fecha_alta.desc,id.desc').catch(function(){return[];}),
+    sbGet('stock_bajas','select=*&order=fecha_baja.desc,id.desc').catch(function(){return[];}),
+    sbGet('stock_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -383,6 +401,9 @@ function loadAll(){
     C.compras=Array.isArray(res[14])?res[14]:[];
     C.compra_adjuntos=Array.isArray(res[15])?res[15]:[];
     C.adjuntos=Array.isArray(res[16])?res[16]:[];
+    C.stock_items=Array.isArray(res[17])?res[17]:[];
+    C.stock_bajas=Array.isArray(res[18])?res[18]:[];
+    C.stock_adjuntos=Array.isArray(res[19])?res[19]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -394,6 +415,10 @@ function loadAll(){
 // ============================================================
 function go(page){
   try{
+    // Bloqueo: logistica solo accede a compras y stock
+    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'){
+      page='compras';
+    }
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
     var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
     if(activeItem)activeItem.classList.add('active');
@@ -412,6 +437,7 @@ function go(page){
       reglas:pgReglas,
       proyectos:pgProyectos,
       compras:pgCompras,
+      stock:pgStock,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -3397,6 +3423,840 @@ function eliminarAdjCompra(adjId){
     });
   });
 }
+
+</script>
+<script>
+// ============================================================
+// PÁGINA: STOCK (Compras - Logística)
+// Tabs: General · Alta · Baja
+// ============================================================
+var stockTab='general';
+var stockFiltros={estado:'',fechaAltaDesde:'',fechaAltaHasta:'',fechaBajaDesde:'',fechaBajaHasta:'',sku:'',pn:'',modelo:'',sn:'',ubicacion:'',tipo:'',verificacion:'',motivoBaja:'',responsable:''};
+var bajaFiltros={fechaDesde:'',fechaHasta:'',motivo:'',sku:'',modelo:'',cliente:'',responsable:''};
+var altaFiltros={fechaDesde:'',fechaHasta:'',sku:'',pn:'',modelo:'',ubicacion:'',tipo:'',verificacion:'',responsable:''};
+var editStockId=null;
+var bajaSelectedIds=[];  // ids seleccionados para dar de baja
+
+function pgStock(){
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(stockTab==='general'?' active':'')+'" onclick="stockTab=\'general\';go(\'stock\')">📊 Stock General</div>'+
+    '<div class="tab'+(stockTab==='alta'?' active':'')+'" onclick="stockTab=\'alta\';go(\'stock\')">➕ Alta</div>'+
+    '<div class="tab'+(stockTab==='baja'?' active':'')+'" onclick="stockTab=\'baja\';bajaSelectedIds=[];go(\'stock\')">➖ Baja</div>'+
+    '</div>';
+  var contenido='';
+  if(stockTab==='general')contenido=renderStockGeneral();
+  else if(stockTab==='alta')contenido=renderStockAlta();
+  else if(stockTab==='baja')contenido=renderStockBaja();
+  return ejGlobalBar()+
+    '<div class="pageTitle">📦 Stock — Compras / Logística</div>'+
+    '<div class="alert awarn">📊 <strong>Vista de Gestión Operativa</strong> · No impacta contabilidad. Trazabilidad y control de productos.</div>'+
+    tabs+contenido+
+    '<div id="modalStockItem" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalStockBaja" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalStockAdj" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
+}
+
+// ============================================================
+// TAB: STOCK GENERAL
+// ============================================================
+function renderStockGeneral(){
+  var ro=!isAdminOrLog();
+  var F=stockFiltros;
+  var ubicaciones=C.cfg_listas.ubicacion_stock||[];
+  var tipos=C.cfg_listas.tipo_producto_stock||[];
+  var motivos=C.cfg_listas.motivo_baja_stock||[];
+  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Baja'];
+  var VERIFS=['Sí','No','Pendiente'];
+
+  var fil=C.stock_items.filter(function(it){
+    if(F.estado&&it.estado!==F.estado)return false;
+    if(F.fechaAltaDesde&&(!it.fecha_alta||it.fecha_alta<F.fechaAltaDesde))return false;
+    if(F.fechaAltaHasta&&(!it.fecha_alta||it.fecha_alta>F.fechaAltaHasta))return false;
+    if(F.fechaBajaDesde&&(!it.fecha_baja||it.fecha_baja<F.fechaBajaDesde))return false;
+    if(F.fechaBajaHasta&&(!it.fecha_baja||it.fecha_baja>F.fechaBajaHasta))return false;
+    if(F.sku&&(it.sku_leex||'').toLowerCase().indexOf(F.sku.toLowerCase())===-1)return false;
+    if(F.pn&&(it.pn_fabrica||'').toLowerCase().indexOf(F.pn.toLowerCase())===-1)return false;
+    if(F.modelo&&(it.modelo||'').toLowerCase().indexOf(F.modelo.toLowerCase())===-1)return false;
+    if(F.sn&&(it.sn||'').toLowerCase().indexOf(F.sn.toLowerCase())===-1)return false;
+    if(F.ubicacion&&it.ubicacion!==F.ubicacion)return false;
+    if(F.tipo&&it.tipo_producto!==F.tipo)return false;
+    if(F.verificacion&&it.verificacion!==F.verificacion)return false;
+    if(F.motivoBaja&&it.motivo_baja!==F.motivoBaja)return false;
+    if(F.responsable&&(it.responsable_alta||'').toLowerCase().indexOf(F.responsable.toLowerCase())===-1)return false;
+    return true;
+  });
+
+  // Métricas por estado
+  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Baja':0};
+  fil.forEach(function(it){if(counts[it.estado]!==undefined)counts[it.estado]++;});
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var hayFiltros=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosStock()">✕ Limpiar</button>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    fInput('Estado','select',selOpts(ESTADOS,F.estado),'stockFiltros.estado=this.value;go(\'stock\')')+
+    fInput('Fecha Alta Desde','date',F.fechaAltaDesde,'stockFiltros.fechaAltaDesde=this.value;go(\'stock\')')+
+    fInput('Fecha Alta Hasta','date',F.fechaAltaHasta,'stockFiltros.fechaAltaHasta=this.value;go(\'stock\')')+
+    fInput('Fecha Baja Desde','date',F.fechaBajaDesde,'stockFiltros.fechaBajaDesde=this.value;go(\'stock\')')+
+    fInput('Fecha Baja Hasta','date',F.fechaBajaHasta,'stockFiltros.fechaBajaHasta=this.value;go(\'stock\')')+
+    fInput('SKU Leex','text',F.sku,'stockFiltros.sku=this.value;clearTimeout(window._fs1);window._fs1=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('PN Fábrica','text',F.pn,'stockFiltros.pn=this.value;clearTimeout(window._fs2);window._fs2=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Modelo','text',F.modelo,'stockFiltros.modelo=this.value;clearTimeout(window._fs3);window._fs3=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('SN','text',F.sn,'stockFiltros.sn=this.value;clearTimeout(window._fs4);window._fs4=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Ubicación','select',selOpts(ubicaciones,F.ubicacion),'stockFiltros.ubicacion=this.value;go(\'stock\')')+
+    fInput('Tipo Producto','select',selOpts(tipos,F.tipo),'stockFiltros.tipo=this.value;go(\'stock\')')+
+    fInput('Verificación','select',selOpts(VERIFS,F.verificacion),'stockFiltros.verificacion=this.value;go(\'stock\')')+
+    fInput('Motivo Baja','select',selOpts(motivos,F.motivoBaja),'stockFiltros.motivoBaja=this.value;go(\'stock\')')+
+    fInput('Responsable','text',F.responsable,'stockFiltros.responsable=this.value;clearTimeout(window._fs5);window._fs5=setTimeout(function(){go(\'stock\')},400)')+
+    '</div></div>';
+
+  // Tabla
+  var rows='';
+  fil.forEach(function(it){
+    var estBadge=estadoStockBadge(it.estado);
+    var nAdj=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===it.id;}).length;
+    var adjCell=nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosStock('+it.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      (!ro?'<button class="btn sm bs" onclick="verAdjuntosStock('+it.id+')" style="color:var(--text2)">📎</button>':'<span style="color:var(--text2)">—</span>');
+    var btns=ro?'':'<button class="miniBtn" onclick="editStockItem('+it.id+')" title="Editar">✏</button>';
+    if(!ro&&it.estado!=='Baja')btns+=' <button class="miniBtn" style="color:var(--red)" onclick="deleteStockItem('+it.id+')" title="Eliminar">🗑</button>';
+    var motBaja=it.estado==='Baja'&&it.motivo_baja?' <span class="badge by" style="font-size:9px">'+escapeHtml(it.motivo_baja)+'</span>':'';
+    rows+='<tr>'+
+      '<td>'+estBadge+motBaja+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sku_leex||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.pn_fabrica||'—')+'</td>'+
+      '<td>'+escapeHtml(it.modelo||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sn||'—')+'</td>'+
+      '<td>'+escapeHtml(it.ubicacion||'—')+'</td>'+
+      '<td>'+(it.tipo_producto?'<span class="badge bb">'+escapeHtml(it.tipo_producto)+'</span>':'—')+'</td>'+
+      '<td>'+verifBadge(it.verificacion)+'</td>'+
+      '<td>'+fmtD(it.fecha_alta)+'</td>'+
+      '<td>'+fmtD(it.fecha_baja)+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(it.pedido_compra||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(it.responsable_alta||'—')+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
+      '</tr>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Total filtrado</div><div class="val">'+fil.length+'</div><div class="sub">unidades</div></div>'+
+    '<div class="card"><div class="lbl">Disponible</div><div class="val green">'+counts['Disponible']+'</div></div>'+
+    '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
+    '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
+    '<div class="card"><div class="lbl">No conforme</div><div class="val red">'+counts['No conforme']+'</div></div>'+
+    '<div class="card"><div class="lbl">Baja</div><div class="val">'+counts['Baja']+'</div></div>'+
+    '</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Stock General</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' de '+C.stock_items.length+' items</span></div>'+
+    (C.stock_items.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">📦 Sin items en stock. '+(!ro?'<a href="#" onclick="stockTab=\'alta\';go(\'stock\');return false;" style="color:var(--cyan)">Dar de alta el primero →</a>':'')+'</div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+        '<th>Estado</th><th>SKU</th><th>PN Fábrica</th><th>Modelo</th><th>SN</th>'+
+        '<th>Ubicación</th><th>Tipo</th><th>Verif.</th><th>F.Alta</th><th>F.Baja</th>'+
+        '<th>Pedido</th><th>Resp.</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosStock(){
+  stockFiltros={estado:'',fechaAltaDesde:'',fechaAltaHasta:'',fechaBajaDesde:'',fechaBajaHasta:'',sku:'',pn:'',modelo:'',sn:'',ubicacion:'',tipo:'',verificacion:'',motivoBaja:'',responsable:''};
+  go('stock');
+}
+
+function estadoStockBadge(e){
+  if(e==='Disponible')return '<span class="badge bg">'+e+'</span>';
+  if(e==='Reservado')return '<span class="badge bb">'+e+'</span>';
+  if(e==='En demo')return '<span class="badge by">'+e+'</span>';
+  if(e==='No conforme')return '<span class="badge br">'+e+'</span>';
+  if(e==='Baja')return '<span class="badge bgr">'+e+'</span>';
+  return '<span class="badge bgr">—</span>';
+}
+function verifBadge(v){
+  if(v==='Sí')return '<span class="badge bg">✓ Sí</span>';
+  if(v==='No')return '<span class="badge br">✗ No</span>';
+  return '<span class="badge by">⏳ Pendiente</span>';
+}
+
+// Helper para inputs de filtros
+function fInput(label,type,valueOrOptions,onchange){
+  var attr=type==='date'?'onchange':type==='select'?'onchange':'oninput';
+  if(type==='select'){
+    return '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">'+label+'</div><select '+attr+'="'+onchange+'" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+valueOrOptions+'</select></div>';
+  }
+  return '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">'+label+'</div><input type="'+type+'" value="'+escapeHtml(valueOrOptions)+'" '+attr+'="'+onchange+'" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>';
+}
+
+// ============================================================
+// TAB: ALTA DE STOCK
+// ============================================================
+function renderStockAlta(){
+  var ro=!isAdminOrLog();
+  var F=altaFiltros;
+  var ubicaciones=C.cfg_listas.ubicacion_stock||[];
+  var tipos=C.cfg_listas.tipo_producto_stock||[];
+  var VERIFS=['Sí','No','Pendiente'];
+
+  // Solo items con fecha_alta (que es todos), sin filtrar por estado
+  var fil=C.stock_items.filter(function(it){
+    if(F.fechaDesde&&(!it.fecha_alta||it.fecha_alta<F.fechaDesde))return false;
+    if(F.fechaHasta&&(!it.fecha_alta||it.fecha_alta>F.fechaHasta))return false;
+    if(F.sku&&(it.sku_leex||'').toLowerCase().indexOf(F.sku.toLowerCase())===-1)return false;
+    if(F.pn&&(it.pn_fabrica||'').toLowerCase().indexOf(F.pn.toLowerCase())===-1)return false;
+    if(F.modelo&&(it.modelo||'').toLowerCase().indexOf(F.modelo.toLowerCase())===-1)return false;
+    if(F.ubicacion&&it.ubicacion!==F.ubicacion)return false;
+    if(F.tipo&&it.tipo_producto!==F.tipo)return false;
+    if(F.verificacion&&it.verificacion!==F.verificacion)return false;
+    if(F.responsable&&(it.responsable_alta||'').toLowerCase().indexOf(F.responsable.toLowerCase())===-1)return false;
+    return true;
+  });
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var hayFiltros=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros (todas las altas)</span>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosAlta()">✕ Limpiar</button>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    fInput('Fecha Desde','date',F.fechaDesde,'altaFiltros.fechaDesde=this.value;go(\'stock\')')+
+    fInput('Fecha Hasta','date',F.fechaHasta,'altaFiltros.fechaHasta=this.value;go(\'stock\')')+
+    fInput('SKU Leex','text',F.sku,'altaFiltros.sku=this.value;clearTimeout(window._fa1);window._fa1=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('PN Fábrica','text',F.pn,'altaFiltros.pn=this.value;clearTimeout(window._fa2);window._fa2=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Modelo','text',F.modelo,'altaFiltros.modelo=this.value;clearTimeout(window._fa3);window._fa3=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Ubicación','select',selOpts(ubicaciones,F.ubicacion),'altaFiltros.ubicacion=this.value;go(\'stock\')')+
+    fInput('Tipo Producto','select',selOpts(tipos,F.tipo),'altaFiltros.tipo=this.value;go(\'stock\')')+
+    fInput('Verificación','select',selOpts(VERIFS,F.verificacion),'altaFiltros.verificacion=this.value;go(\'stock\')')+
+    fInput('Responsable','text',F.responsable,'altaFiltros.responsable=this.value;clearTimeout(window._fa4);window._fa4=setTimeout(function(){go(\'stock\')},400)')+
+    '</div></div>';
+
+  var rows='';
+  fil.forEach(function(it){
+    var nAdj=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===it.id;}).length;
+    var adjCell=nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosStock('+it.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      (!ro?'<button class="btn sm bs" onclick="verAdjuntosStock('+it.id+')" style="color:var(--text2)">📎</button>':'<span style="color:var(--text2)">—</span>');
+    rows+='<tr>'+
+      '<td>'+fmtD(it.fecha_alta)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sku_leex||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.pn_fabrica||'—')+'</td>'+
+      '<td>'+escapeHtml(it.modelo||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sn||'—')+'</td>'+
+      '<td>'+escapeHtml(it.ubicacion||'—')+'</td>'+
+      '<td>'+(it.tipo_producto?'<span class="badge bb">'+escapeHtml(it.tipo_producto)+'</span>':'—')+'</td>'+
+      '<td>'+verifBadge(it.verificacion)+'</td>'+
+      '<td>'+estadoStockBadge(it.estado)+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(it.pedido_compra||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(it.responsable_alta||'—')+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      (ro?'':'<td><button class="miniBtn" onclick="editStockItem('+it.id+')" title="Editar">✏</button></td>')+
+      '</tr>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Total Altas</div><div class="val">'+fil.length+'</div><div class="sub">filtradas</div></div>'+
+    '<div class="card"><div class="lbl">Vigentes</div><div class="val green">'+fil.filter(function(x){return x.estado!=='Baja';}).length+'</div></div>'+
+    '<div class="card"><div class="lbl">De Baja</div><div class="val">'+fil.filter(function(x){return x.estado==='Baja';}).length+'</div></div>'+
+    '</div>'+
+    (!ro?'<div style="margin-bottom:14px"><button class="btn bp" onclick="abrirModalStockItem(0)">+ Nueva Alta de Stock</button></div>':'')+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Historial de Altas</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    (C.stock_items.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">📦 Sin altas registradas. '+(!ro?'<a href="#" onclick="abrirModalStockItem(0);return false;" style="color:var(--cyan)">Dar de alta →</a>':'')+'</div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1400px"><thead><tr>'+
+        '<th>F.Alta</th><th>SKU</th><th>PN</th><th>Modelo</th><th>SN</th>'+
+        '<th>Ubicación</th><th>Tipo</th><th>Verif.</th><th>Estado</th><th>Pedido</th><th>Resp.</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosAlta(){
+  altaFiltros={fechaDesde:'',fechaHasta:'',sku:'',pn:'',modelo:'',ubicacion:'',tipo:'',verificacion:'',responsable:''};
+  go('stock');
+}
+
+// ============================================================
+// MODAL: NUEVA / EDITAR ITEM DE STOCK
+// ============================================================
+function editStockItem(id){abrirModalStockItem(id);}
+
+function abrirModalStockItem(id){
+  editStockId=id;
+  var it=id===0?{
+    pn_fabrica:'',sku_leex:'',ubicacion:'',modelo:'',sn:'',pedido_compra:'',
+    tipo_producto:'',estado:'Disponible',fecha_alta:hoy(),responsable_alta:CU?CU.name:'',
+    verificacion:'Pendiente',observaciones:''
+  }:(C.stock_items.find(function(x){return x.id===id;})||{});
+
+  var ubicaciones=C.cfg_listas.ubicacion_stock||[];
+  var tipos=C.cfg_listas.tipo_producto_stock||[];
+  var ESTADOS_VIGENTES=['Disponible','Reservado','En demo','No conforme'];
+  var VERIFS=['Sí','No','Pendiente'];
+
+  // Pedidos de compra disponibles (dropdown)
+  var pedidos=[];
+  C.compras.forEach(function(c){if(c.pedido&&pedidos.indexOf(c.pedido)===-1)pedidos.push(c.pedido);});
+  pedidos.sort();
+
+  function opts(arr,sel,placeholder){
+    var h='<option value="">'+(placeholder||'— elegir —')+'</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  // Si el item está en estado Baja, no permitimos editar el estado (se cambia desde la baja)
+  var enBaja=it.estado==='Baja';
+  var estadoSelector=enBaja?
+    '<input type="text" value="Baja (gestionar desde Baja de Stock)" readonly style="color:var(--text2)"/>':
+    '<select id="siEstado">'+opts(ESTADOS_VIGENTES,it.estado||'Disponible','')+'</select>';
+
+  var titulo=id===0?'➕ Nueva Alta de Stock':'✏ Editar Item #'+id;
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalStockItem()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📋 Identificación del producto</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>PN Fábrica</label><input type="text" id="siPn" value="'+escapeHtml(it.pn_fabrica||'')+'" placeholder="83.61.361532"/></div>'+
+    '<div class="f"><label>SKU Leex LLC</label><input type="text" id="siSku" value="'+escapeHtml(it.sku_leex||'')+'" placeholder="950654"/></div>'+
+    '<div class="f"><label>SN / Número de serie</label><input type="text" id="siSn" value="'+escapeHtml(it.sn||'')+'" placeholder="361532-M26115250001"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Modelo</label><input type="text" id="siModelo" value="'+escapeHtml(it.modelo||'')+'" placeholder="ECG Leex SE300B"/></div>'+
+    '<div class="f"><label>Tipo de producto</label><select id="siTipo">'+opts(tipos,it.tipo_producto,'')+'</select></div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📍 Ubicación y origen</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Ubicación</label><select id="siUbic">'+opts(ubicaciones,it.ubicacion,'')+'</select></div>'+
+    '<div class="f"><label>Pedido de Compra <span style="font-size:9px;color:var(--text2)">(de Compras)</span></label>'+
+      '<select id="siPedido">'+opts(pedidos,it.pedido_compra,'— sin pedido —')+'</select>'+
+      '</div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🗂️ Datos de alta</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha de alta</label><input type="date" id="siFecha" value="'+(it.fecha_alta||hoy())+'"/></div>'+
+    '<div class="f"><label>Responsable</label><input type="text" id="siResp" value="'+escapeHtml(it.responsable_alta||'')+'"/></div>'+
+    '<div class="f"><label>Estado inicial</label>'+estadoSelector+'</div>'+
+    '<div class="f"><label>Verificación</label><select id="siVerif">'+
+      VERIFS.map(function(v){return '<option value="'+v+'"'+(v===(it.verificacion||'Pendiente')?' selected':'')+'>'+v+'</option>';}).join('')+
+    '</select></div>'+
+    '</div>'+
+
+    '<div class="f" style="margin-bottom:14px"><label>Observaciones</label><textarea id="siObs" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none;font-family:inherit;resize:vertical">'+escapeHtml(it.observaciones||'')+'</textarea></div>'+
+
+    (id>0?
+      '<div class="alert ainfo">💡 Los adjuntos (remito, factura, certificado, foto) se gestionan desde el botón 📎 de la fila.</div>':
+      '<div class="alert ainfo">💡 Una vez creada el alta, vas a poder subir adjuntos (remito, factura, certificado, foto) desde la columna 📎 de la tabla.</div>')+
+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarStockItem()">💾 '+(id===0?'Dar de alta':'Guardar cambios')+'</button>'+
+    (id>0?'<button class="btn bs" onclick="verAdjuntosStock('+id+');cerrarModalStockItem()">📎 Adjuntos</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalStockItem()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalStockItem');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalStockItem(){
+  var m=document.getElementById('modalStockItem');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editStockId=null;
+}
+
+function guardarStockItem(){
+  var enBaja=editStockId>0&&(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado==='Baja';
+  var payload={
+    pn_fabrica:document.getElementById('siPn').value.trim()||null,
+    sku_leex:document.getElementById('siSku').value.trim()||null,
+    sn:document.getElementById('siSn').value.trim()||null,
+    modelo:document.getElementById('siModelo').value.trim()||null,
+    tipo_producto:document.getElementById('siTipo').value||null,
+    ubicacion:document.getElementById('siUbic').value||null,
+    pedido_compra:document.getElementById('siPedido').value||null,
+    fecha_alta:document.getElementById('siFecha').value||null,
+    responsable_alta:document.getElementById('siResp').value.trim()||null,
+    verificacion:document.getElementById('siVerif').value||'Pendiente',
+    observaciones:document.getElementById('siObs').value.trim()||null
+  };
+  // Solo seteamos el estado si NO está en baja
+  if(!enBaja){
+    var estadoEl=document.getElementById('siEstado');
+    if(estadoEl)payload.estado=estadoEl.value||'Disponible';
+  }
+  if(!payload.sku_leex&&!payload.pn_fabrica&&!payload.sn){
+    toast('Cargá al menos SKU, PN o SN','error');return;
+  }
+  if(editStockId===0){
+    sbPost('stock_items',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Item dado de alta','success');
+      cerrarModalStockItem();
+      reload('stock');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }else{
+    sbPatch('stock_items',editStockId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Item actualizado','success');
+      cerrarModalStockItem();
+      reload('stock');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }
+}
+
+function deleteStockItem(id){
+  var it=C.stock_items.find(function(x){return x.id===id;});
+  if(!it)return;
+  var nAdj=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===id;}).length;
+  var msg='¿Eliminar este item de stock?\nSKU: '+(it.sku_leex||'—')+' · SN: '+(it.sn||'—');
+  if(nAdj>0)msg+='\n'+nAdj+' adjunto'+(nAdj===1?'':'s')+' se borrará'+(nAdj===1?'':'n')+'.';
+  if(!confirm(msg))return;
+  var adjs=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    sbDeleteWhere('stock_adjuntos','stock_item_id',id).then(function(){
+      sbDelete('stock_items',id).then(function(){
+        toast('Item eliminado','success');
+        reload('stock');
+      });
+    });
+  });
+}
+
+// ============================================================
+// TAB: BAJA DE STOCK
+// ============================================================
+function renderStockBaja(){
+  var ro=!isAdminOrLog();
+  // Mostrar SOLO los items vigentes (estado !== 'Baja') con checkboxes
+  var vigentes=C.stock_items.filter(function(it){return it.estado!=='Baja';});
+  var rows='';
+  vigentes.forEach(function(it){
+    var checked=bajaSelectedIds.indexOf(it.id)>-1;
+    rows+='<tr>'+
+      '<td><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleBajaSel('+it.id+',this.checked)"/></td>'+
+      '<td>'+estadoStockBadge(it.estado)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sku_leex||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.pn_fabrica||'—')+'</td>'+
+      '<td>'+escapeHtml(it.modelo||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sn||'—')+'</td>'+
+      '<td>'+escapeHtml(it.ubicacion||'—')+'</td>'+
+      '<td>'+fmtD(it.fecha_alta)+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(it.pedido_compra||'—')+'</td>'+
+      '</tr>';
+  });
+
+  // Historial de bajas (resumen)
+  var F=bajaFiltros;
+  var motivos=C.cfg_listas.motivo_baja_stock||[];
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  // Items dados de baja con sus filtros
+  var bajados=C.stock_items.filter(function(it){
+    if(it.estado!=='Baja')return false;
+    if(F.fechaDesde&&(!it.fecha_baja||it.fecha_baja<F.fechaDesde))return false;
+    if(F.fechaHasta&&(!it.fecha_baja||it.fecha_baja>F.fechaHasta))return false;
+    if(F.motivo&&it.motivo_baja!==F.motivo)return false;
+    if(F.sku&&(it.sku_leex||'').toLowerCase().indexOf(F.sku.toLowerCase())===-1)return false;
+    if(F.modelo&&(it.modelo||'').toLowerCase().indexOf(F.modelo.toLowerCase())===-1)return false;
+    if(F.cliente||F.responsable){
+      var baja=it.baja_id?(C.stock_bajas||[]).find(function(b){return b.id===it.baja_id;}):null;
+      if(F.cliente&&(!baja||(baja.cliente||'').toLowerCase().indexOf(F.cliente.toLowerCase())===-1))return false;
+      if(F.responsable&&(!baja||(baja.responsable||'').toLowerCase().indexOf(F.responsable.toLowerCase())===-1))return false;
+    }
+    return true;
+  });
+  var hayFiltrosBaja=Object.keys(F).some(function(k){return F[k];});
+
+  var filtrosBajaHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros (historial de bajas)</span>'+
+    (hayFiltrosBaja?'<button class="btn sm bd" onclick="limpiarFiltrosBaja()">✕ Limpiar</button>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    fInput('Fecha Desde','date',F.fechaDesde,'bajaFiltros.fechaDesde=this.value;go(\'stock\')')+
+    fInput('Fecha Hasta','date',F.fechaHasta,'bajaFiltros.fechaHasta=this.value;go(\'stock\')')+
+    fInput('Motivo','select',selOpts(motivos,F.motivo),'bajaFiltros.motivo=this.value;go(\'stock\')')+
+    fInput('SKU','text',F.sku,'bajaFiltros.sku=this.value;clearTimeout(window._fb1);window._fb1=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Modelo','text',F.modelo,'bajaFiltros.modelo=this.value;clearTimeout(window._fb2);window._fb2=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Cliente/Destino','text',F.cliente,'bajaFiltros.cliente=this.value;clearTimeout(window._fb3);window._fb3=setTimeout(function(){go(\'stock\')},400)')+
+    fInput('Responsable','text',F.responsable,'bajaFiltros.responsable=this.value;clearTimeout(window._fb4);window._fb4=setTimeout(function(){go(\'stock\')},400)')+
+    '</div></div>';
+
+  var rowsBajados='';
+  bajados.forEach(function(it){
+    var baja=it.baja_id?(C.stock_bajas||[]).find(function(b){return b.id===it.baja_id;}):null;
+    rowsBajados+='<tr>'+
+      '<td>'+fmtD(it.fecha_baja)+'</td>'+
+      '<td><span class="badge by">'+escapeHtml(it.motivo_baja||'—')+'</span></td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sku_leex||'—')+'</td>'+
+      '<td>'+escapeHtml(it.modelo||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(it.sn||'—')+'</td>'+
+      '<td>'+(baja&&baja.cliente?escapeHtml(baja.cliente):'—')+'</td>'+
+      '<td>'+(baja?fmtD(baja.fecha_evento):'—')+'</td>'+
+      '<td style="font-size:11px">'+(baja?escapeHtml(baja.responsable||'—'):'—')+'</td>'+
+      '<td>'+(baja&&baja.documento_url?'<a href="'+escapeHtml(baja.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗 Doc</a>':'—')+'</td>'+
+      '</tr>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Items Vigentes</div><div class="val green">'+vigentes.length+'</div><div class="sub">disponibles para baja</div></div>'+
+    '<div class="card"><div class="lbl">Seleccionados</div><div class="val cyan">'+bajaSelectedIds.length+'</div></div>'+
+    '<div class="card"><div class="lbl">Bajas (filtro)</div><div class="val">'+bajados.length+'</div></div>'+
+    '</div>'+
+    (!ro?
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="font-weight:600;font-size:13px;margin-bottom:8px">Paso 1: Seleccionar productos vigentes</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px">Marcá los productos que querés dar de baja. La acción se aplica a todos los seleccionados a la vez.</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+      '<button class="btn bs sm" onclick="bajaSelectedIds=[];go(\'stock\')">✕ Deseleccionar todos</button>'+
+      '<button class="btn bp" onclick="abrirModalStockBaja()" '+(bajaSelectedIds.length===0?'disabled style="opacity:.4;cursor:not-allowed"':'')+'>➖ Dar de baja '+bajaSelectedIds.length+' producto'+(bajaSelectedIds.length===1?'':'s')+'</button>'+
+    '</div>'+
+    '</div>':'')+
+    '<div class="twrap" style="margin-bottom:24px"><div class="thead2"><h3>Productos Vigentes</h3><span style="font-size:12px;color:var(--text2)">'+vigentes.length+' items</span></div>'+
+    (vigentes.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin productos vigentes para dar de baja</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1100px"><thead><tr>'+
+        '<th></th><th>Estado</th><th>SKU</th><th>PN</th><th>Modelo</th><th>SN</th>'+
+        '<th>Ubicación</th><th>F.Alta</th><th>Pedido</th>'+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>'+
+    '<div style="font-weight:600;font-size:14px;margin:24px 0 12px">Historial de Bajas</div>'+
+    filtrosBajaHTML+
+    '<div class="twrap"><div class="thead2"><h3>Bajas Registradas</h3><span style="font-size:12px;color:var(--text2)">'+bajados.length+' items dados de baja</span></div>'+
+    (bajados.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin bajas registradas con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr>'+
+        '<th>F.Baja</th><th>Motivo</th><th>SKU</th><th>Modelo</th><th>SN</th>'+
+        '<th>Cliente/Destino</th><th>F.Evento</th><th>Resp.</th><th>Doc.</th>'+
+        '</tr></thead><tbody>'+rowsBajados+'</tbody></table></div>')+
+    '</div>';
+}
+
+function toggleBajaSel(id,checked){
+  if(checked){if(bajaSelectedIds.indexOf(id)===-1)bajaSelectedIds.push(id);}
+  else{bajaSelectedIds=bajaSelectedIds.filter(function(x){return x!==id;});}
+  // Re-render solo del card de seleccionados — re-renderizamos todo
+  go('stock');
+}
+
+function limpiarFiltrosBaja(){
+  bajaFiltros={fechaDesde:'',fechaHasta:'',motivo:'',sku:'',modelo:'',cliente:'',responsable:''};
+  go('stock');
+}
+
+// ============================================================
+// MODAL: DAR DE BAJA (varios items a la vez)
+// ============================================================
+function abrirModalStockBaja(){
+  if(bajaSelectedIds.length===0){toast('Seleccioná al menos un producto','error');return;}
+  var motivos=C.cfg_listas.motivo_baja_stock||['Venta','Demo','No Conforme','Ajuste de Stock'];
+  var seleccionados=C.stock_items.filter(function(it){return bajaSelectedIds.indexOf(it.id)>-1;});
+
+  var listaSel='';
+  seleccionados.forEach(function(it){
+    listaSel+='<div style="font-size:11px;color:var(--text2);padding:3px 0">• '+escapeHtml(it.sku_leex||'—')+' · '+escapeHtml(it.modelo||'')+' · SN '+escapeHtml(it.sn||'—')+'</div>';
+  });
+
+  function opts(arr,sel){
+    var h='';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:800px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">➖ Dar de Baja '+bajaSelectedIds.length+' producto'+(bajaSelectedIds.length===1?'':'s')+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalStockBaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px;max-height:120px;overflow-y:auto">'+
+    '<div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px">Productos a dar de baja</div>'+
+    listaSel+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📋 Datos de la baja</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha de baja</label><input type="date" id="sbFecha" value="'+hoy()+'"/></div>'+
+    '<div class="f"><label>Motivo</label><select id="sbMotivo" onchange="toggleCamposVentaDemo()">'+opts(motivos,'')+'</select></div>'+
+    '<div class="f"><label>Responsable</label><input type="text" id="sbResp" value="'+escapeHtml(CU?CU.name:'')+'"/></div>'+
+    '</div>'+
+
+    '<div id="sbCamposVentaDemo" style="display:none">'+
+    '<div class="alert ainfo" style="margin-bottom:10px"><strong>Campos obligatorios</strong> para Venta o Demo</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Cliente / Destinatario</label><input type="text" id="sbCliente" placeholder="Nombre o razón social"/></div>'+
+    '<div class="f"><label id="sbFEvLbl">Fecha de venta / demo</label><input type="date" id="sbFevento"/></div>'+
+    '</div>'+
+    '</div>'+
+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Documento asociado (URL)</label><input type="text" id="sbDoc" placeholder="https://drive.google.com/... (factura, remito, orden de demo)"/></div>'+
+    '<div class="f"><label>Observaciones</label><input type="text" id="sbObs"/></div>'+
+    '</div>'+
+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bd" onclick="confirmarBajaStock()">➖ Confirmar baja</button>'+
+    '<button class="btn bs" onclick="cerrarModalStockBaja()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalStockBaja');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalStockBaja(){
+  var m=document.getElementById('modalStockBaja');
+  if(m){m.style.display='none';m.innerHTML='';}
+}
+
+function toggleCamposVentaDemo(){
+  var motivo=document.getElementById('sbMotivo').value;
+  var div=document.getElementById('sbCamposVentaDemo');
+  var lbl=document.getElementById('sbFEvLbl');
+  if(motivo==='Venta'||motivo==='Demo'){
+    div.style.display='block';
+    if(lbl)lbl.textContent=motivo==='Venta'?'Fecha de venta':'Fecha de demo';
+  }else{
+    div.style.display='none';
+  }
+}
+
+function confirmarBajaStock(){
+  var fecha=document.getElementById('sbFecha').value;
+  var motivo=document.getElementById('sbMotivo').value;
+  var resp=document.getElementById('sbResp').value.trim();
+  var doc=document.getElementById('sbDoc').value.trim();
+  var obs=document.getElementById('sbObs').value.trim();
+  var cliente=document.getElementById('sbCliente')?document.getElementById('sbCliente').value.trim():'';
+  var fevento=document.getElementById('sbFevento')?document.getElementById('sbFevento').value:'';
+
+  if(!fecha){toast('Ingresá la fecha de baja','error');return;}
+  if(!motivo){toast('Elegí un motivo','error');return;}
+  if((motivo==='Venta'||motivo==='Demo')&&(!cliente||!fevento)){
+    toast('Para Venta/Demo: cliente y fecha del evento son obligatorios','error');return;
+  }
+
+  // 1) Crear registro de baja en stock_bajas
+  sbPost('stock_bajas',{
+    fecha_baja:fecha,
+    motivo:motivo,
+    responsable:resp||null,
+    observaciones:obs||null,
+    documento_url:doc||null,
+    cliente:cliente||null,
+    fecha_evento:fevento||null,
+    cantidad_items:bajaSelectedIds.length,
+    created_by:CU?CU.u:null
+  }).then(function(res){
+    var baja=Array.isArray(res)?res[0]:res;
+    if(!baja||!baja.id){toast('Error creando la baja','error');return;}
+    // 2) Actualizar todos los stock_items seleccionados
+    var ids=bajaSelectedIds.slice();
+    var chain=Promise.resolve();
+    var ok=0,err=0;
+    ids.forEach(function(itemId){
+      chain=chain.then(function(){
+        return sbPatch('stock_items',itemId,{
+          estado:'Baja',
+          baja_id:baja.id,
+          fecha_baja:fecha,
+          motivo_baja:motivo
+        });
+      }).then(function(r){
+        if(r&&r.code)err++;else ok++;
+      });
+    });
+    chain.then(function(){
+      if(err>0)toast(ok+' bajas OK, '+err+' errores','error');
+      else toast(ok+' producto'+(ok===1?'':'s')+' dado'+(ok===1?'':'s')+' de baja','success');
+      bajaSelectedIds=[];
+      cerrarModalStockBaja();
+      reload('stock');
+    });
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+}
+
+// ============================================================
+// MODAL: ADJUNTOS DE STOCK
+// ============================================================
+var modalAdjStockId=null;
+
+function verAdjuntosStock(stockId){
+  modalAdjStockId=stockId;
+  renderModalAdjStock();
+  document.getElementById('modalStockAdj').style.display='flex';
+}
+function cerrarModalAdjStock(){
+  var m=document.getElementById('modalStockAdj');
+  if(m){m.style.display='none';m.innerHTML='';}
+  modalAdjStockId=null;
+}
+function renderModalAdjStock(){
+  var it=C.stock_items.find(function(x){return x.id===modalAdjStockId;});
+  if(!it)return;
+  var ro=!isAdminOrLog();
+  var adjs=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===modalAdjStockId;});
+  var listaHTML='';
+  if(adjs.length===0){
+    listaHTML='<div style="text-align:center;color:var(--text2);padding:30px;font-size:13px">📂 Sin adjuntos todavía</div>';
+  }else{
+    adjs.forEach(function(a){
+      var icono='📄';
+      if(a.tipo_mime&&a.tipo_mime.indexOf('image/')===0)icono='🖼️';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('pdf')>-1)icono='📕';
+      else if(a.tipo_mime&&(a.tipo_mime.indexOf('sheet')>-1||a.tipo_mime.indexOf('excel')>-1))icono='📊';
+      var tamañoKB=a.tamaño_bytes?(a.tamaño_bytes/1024).toFixed(0)+' KB':'-';
+      listaHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">'+
+        '<div style="font-size:24px">'+icono+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.nombre_archivo)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+tamañoKB+' · '+new Date(a.uploaded_at).toLocaleString('es-AR')+(a.uploaded_by?' · '+a.uploaded_by:'')+'</div></div>'+
+        '<a href="'+a.storage_url+'" target="_blank" class="btn sm bs" title="Abrir">👁</a> '+
+        '<a href="'+a.storage_url+'" download="'+escapeHtml(a.nombre_archivo)+'" class="btn sm bs" title="Descargar">📥</a> '+
+        (!ro?'<button class="btn sm bd" onclick="eliminarAdjStock('+a.id+')" title="Eliminar">🗑</button>':'')+
+        '</div>';
+    });
+  }
+  var uploader=ro?'':
+    '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:20px;text-align:center;transition:all .15s">'+
+    '<input type="file" id="adjStockFileInp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="subirAdjuntosStock(event)"/>'+
+    '<div style="font-size:32px;margin-bottom:6px">📎</div>'+
+    '<div style="font-size:13px;font-weight:600;color:var(--cyan)">Click para seleccionar archivos</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:4px">Remito · Factura · Certificado · Foto · Doc. técnica (máx. 10MB c/u)</div>'+
+    '</label>'+
+    '<div id="adjStockProgress"></div>'+
+    '</div>';
+  var content=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">📎 Adjuntos del Item</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+escapeHtml(it.sku_leex||'—')+' · '+escapeHtml(it.modelo||'')+' · SN '+escapeHtml(it.sn||'—')+'</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjStock()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">'+adjs.length+' archivo'+(adjs.length===1?'':'s')+'</div>'+
+    listaHTML+uploader+
+    '</div></div>';
+  document.getElementById('modalStockAdj').innerHTML=content;
+}
+
+function subirAdjuntosStock(ev){
+  var files=ev.target.files;
+  if(!files||files.length===0)return;
+  var stockId=modalAdjStockId;
+  if(!stockId){toast('Item perdido','error');return;}
+  var validos=[],errores=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>ADJ_MAX_SIZE){errores.push(f.name+' (>10MB)');continue;}
+    var ext=f.name.toLowerCase().split('.').pop();
+    if(['pdf','jpg','jpeg','png','xlsx','xls'].indexOf(ext)===-1&&ADJ_MIME_OK.indexOf(f.type)===-1){
+      errores.push(f.name+' (tipo no permitido)');continue;
+    }
+    validos.push(f);
+  }
+  if(errores.length>0)toast('Saltados: '+errores.join(', '),'error');
+  if(validos.length===0){ev.target.value='';return;}
+  var prog=document.getElementById('adjStockProgress');
+  prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subiendo '+validos.length+'...</div>';
+  var chain=Promise.resolve();
+  var subidos=0,fallos=0;
+  validos.forEach(function(f){
+    chain=chain.then(function(){return subirUnArchivoStock(stockId,f);}).then(function(ok){
+      if(ok)subidos++;else fallos++;
+      prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subidos '+subidos+'/'+validos.length+(fallos>0?' · '+fallos+' fallos':'')+'</div>';
+    });
+  });
+  chain.then(function(){
+    ev.target.value='';
+    if(fallos>0)toast(subidos+' subidos, '+fallos+' fallaron','error');
+    else toast(subidos+' archivo'+(subidos===1?'':'s')+' subido'+(subidos===1?'':'s'),'success');
+    sbGet('stock_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+      C.stock_adjuntos=Array.isArray(r)?r:[];
+      renderModalAdjStock();
+    });
+  });
+}
+
+function subirUnArchivoStock(stockId,file){
+  var uuid='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+  var safeName=file.name.replace(/[^\w.\-]/g,'_');
+  var path='stock/'+stockId+'/'+uuid+'-'+safeName;
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+    body:file
+  }).then(function(r){
+    if(!r.ok){return r.json().then(function(err){throw new Error(err.message||'Error subiendo');});}
+    return r.json();
+  }).then(function(){
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    return sbPost('stock_adjuntos',{
+      stock_item_id:stockId,nombre_archivo:file.name,tipo_mime:file.type||null,
+      tamaño_bytes:file.size,storage_path:path,storage_url:publicUrl,
+      uploaded_by:CU?CU.u:null
+    });
+  }).then(function(){return true;}).catch(function(e){
+    console.error('Error subiendo '+file.name+':',e);return false;
+  });
+}
+
+function eliminarAdjStock(adjId){
+  var adj=(C.stock_adjuntos||[]).find(function(a){return a.id===adjId;});
+  if(!adj){toast('Adjunto no encontrado','error');return;}
+  if(!confirm('¿Eliminar "'+adj.nombre_archivo+'"?'))return;
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+adj.storage_path,{
+    method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(){
+    sbDelete('stock_adjuntos',adjId).then(function(){
+      toast('Adjunto eliminado','success');
+      sbGet('stock_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+        C.stock_adjuntos=Array.isArray(r)?r:[];
+        renderModalAdjStock();
+      });
+    });
+  });
+}
+
+// Helper: ¿es admin o logistica?
+function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica');}
 
 </script>
 <script>
