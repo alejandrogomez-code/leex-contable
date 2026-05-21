@@ -209,8 +209,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="ni" data-page="reglas" onclick="go('reglas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Reglas Automáticas</div>
 
     <div class="divider"></div>
-    <div class="sbSection">Gestión</div>
-    <div class="ni" data-page="proyectos" onclick="go('proyectos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Proyectos / COMEX</div>
+    <div class="sbSection">Compras - Logística</div>
+    <div class="ni" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
 
     <div class="divider"></div>
     <div class="sbSection">Sistema</div>
@@ -266,11 +266,15 @@ var C={
   reglas:[],
   importaciones:[],
   cfg_listas:{},  // tipo -> [valores]
-  // (datos de gestión, no contables)
+  // (datos de gestión, no contables) - LEGACY
   proyectos:[],
   comex:[],
   proy_ingresos:[],
-  proy_gastos:[]
+  proy_gastos:[],
+  // Compras / Logística
+  compras:[],
+  compra_adjuntos:[],
+  adjuntos:[]
 };
 
 // === ESTADO UI ===
@@ -288,6 +292,9 @@ var editReglaId=null;
 var pendingAsiento=null;
 var alineCount=0;
 var importPreview=null;  // {filas:[{...}], importacion_id, archivo}
+// Compras / Logística
+var comprasFiltros={fechaDesde:'',fechaHasta:'',tipoOp:'',proveedor:'',estadoPago:'',pedido:'',lote:''};
+var editCompraId=null;
 
 // ============================================================
 // LOGIN / LOGOUT
@@ -336,7 +343,10 @@ function loadAll(){
     sbGet('proyectos','select=*&order=id').catch(function(){return[];}),
     sbGet('comex','select=*&order=id').catch(function(){return[];}),
     sbGet('proy_ingresos','select=*&order=id').catch(function(){return[];}),
-    sbGet('proy_gastos','select=*&order=id').catch(function(){return[];})
+    sbGet('proy_gastos','select=*&order=id').catch(function(){return[];}),
+    sbGet('compras','select=*&order=fecha_compra.desc,id.desc').catch(function(){return[];}),
+    sbGet('compra_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -370,6 +380,9 @@ function loadAll(){
     C.comex=Array.isArray(res[11])?res[11]:[];
     C.proy_ingresos=Array.isArray(res[12])?res[12]:[];
     C.proy_gastos=Array.isArray(res[13])?res[13]:[];
+    C.compras=Array.isArray(res[14])?res[14]:[];
+    C.compra_adjuntos=Array.isArray(res[15])?res[15]:[];
+    C.adjuntos=Array.isArray(res[16])?res[16]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -398,6 +411,7 @@ function go(page){
       cuentas:pgCuentas,
       reglas:pgReglas,
       proyectos:pgProyectos,
+      compras:pgCompras,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -2977,6 +2991,413 @@ function pgUsuarios(){
     '<table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Contraseña</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table></div>';
 }
+</script>
+<script>
+// ============================================================
+// PÁGINA: COMPRAS / LOGÍSTICA  (gestión, no contabilidad)
+// ============================================================
+function pgCompras(){
+  var ro=!isAdmin();
+  var F=comprasFiltros;
+  var fil=C.compras.filter(function(c){
+    if(F.fechaDesde&&(!c.fecha_compra||c.fecha_compra<F.fechaDesde))return false;
+    if(F.fechaHasta&&(!c.fecha_compra||c.fecha_compra>F.fechaHasta))return false;
+    if(F.tipoOp&&c.tipo_operacion!==F.tipoOp)return false;
+    if(F.proveedor&&c.proveedor!==F.proveedor)return false;
+    if(F.estadoPago&&c.estado_pago!==F.estadoPago)return false;
+    if(F.pedido&&(c.pedido||'').toLowerCase().indexOf(F.pedido.toLowerCase())===-1)return false;
+    if(F.lote&&(c.lote||'').toLowerCase().indexOf(F.lote.toLowerCase())===-1)return false;
+    return true;
+  });
+  var totFob=0,totARS=0,cntPagado=0,cntEnviado=0,cntRevision=0,cntNoPagar=0;
+  fil.forEach(function(c){
+    totFob+=parseFloat(c.usd_fob)||0;
+    totARS+=parseFloat(c.importe_total)||0;
+    if(c.estado_pago==='Pagado')cntPagado++;
+    else if(c.estado_pago==='Enviado a Pagar')cntEnviado++;
+    else if(c.estado_pago==='En Revisión')cntRevision++;
+    else cntNoPagar++;
+  });
+  var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
+  var proveedores=C.cfg_listas.proveedor_compra||[];
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayFiltros=F.fechaDesde||F.fechaHasta||F.tipoOp||F.proveedor||F.estadoPago||F.pedido||F.lote;
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosCompras()">✕ Limpiar</button>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="comprasFiltros.fechaDesde=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="comprasFiltros.fechaHasta=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo Operación</div><select onchange="comprasFiltros.tipoOp=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tiposOp,F.tipoOp)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Proveedor</div><select onchange="comprasFiltros.proveedor=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(proveedores,F.proveedor)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Pago</div><select onchange="comprasFiltros.estadoPago=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosPago,F.estadoPago)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Pedido</div><input type="text" value="'+escapeHtml(F.pedido)+'" placeholder="ED214..." oninput="comprasFiltros.pedido=this.value;clearTimeout(window._fcp);window._fcp=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Lote</div><input type="text" value="'+escapeHtml(F.lote)+'" placeholder="..." oninput="comprasFiltros.lote=this.value;clearTimeout(window._fcl);window._fcl=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '</div></div>';
+  var rows='';
+  fil.forEach(function(c){
+    var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===c.id;}).length;
+    var estBadge='';
+    if(c.estado_pago==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
+    else if(c.estado_pago==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
+    else if(c.estado_pago==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
+    else estBadge='<span class="badge bgr">⏸ No Pagar</span>';
+    var docCell=c.documento_url?'<a href="'+escapeHtml(c.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px" title="'+escapeHtml(c.documento_url)+'">🔗 Drive</a>':'<span style="color:var(--text2);font-size:11px">—</span>';
+    var adjCell=nAdj>0?
+      '<button class="btn sm bs" onclick="verAdjuntosCompra('+c.id+')" title="Ver adjuntos"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      (!ro?'<button class="btn sm bs" onclick="verAdjuntosCompra('+c.id+')" style="color:var(--text2)" title="Subir adjunto">📎</button>':'<span style="color:var(--text2)">—</span>');
+    var btns=ro?'':
+      '<button class="miniBtn" onclick="editCompra('+c.id+')" title="Editar">✏</button> '+
+      '<button class="miniBtn" style="color:var(--red)" onclick="deleteCompra('+c.id+')" title="Eliminar">🗑</button>';
+    rows+='<tr>'+
+      '<td>'+fmtD(c.fecha_compra)+'</td>'+
+      '<td>'+(c.tipo_operacion?'<span class="badge bb">'+escapeHtml(c.tipo_operacion)+'</span>':'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'—')+'</td>'+
+      '<td>'+escapeHtml(c.lote||'—')+'</td>'+
+      '<td>'+escapeHtml(c.proveedor||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.pi_ci||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.codigo_pago||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.swift_cuit_despachante||'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.usd_fob?fmtN(c.usd_fob):'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+(c.tipo_cambio?fmtN(c.tipo_cambio):'—')+'</td>'+
+      '<td class="yellow" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.importe_total?'$'+fmtN(c.importe_total):'—')+'</td>'+
+      '<td>'+fmtD(c.vencimiento_prov)+'</td>'+
+      '<td>'+fmtD(c.fecha_pago)+'</td>'+
+      '<td>'+estBadge+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      '<td>'+docCell+'</td>'+
+      (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
+      '</tr>';
+  });
+  var banner='<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · Esta información NO impacta en el Balance Contable ni en el Estado de Resultados. Es solo seguimiento operativo de compras.</div>';
+  return ejGlobalBar()+
+    '<div class="pageTitle">🛒 Compras — Logística'+
+    (!ro?' <button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCompra(0)">+ Nueva Compra</button>':'')+
+    '</div>'+banner+
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Compras</div><div class="val">'+fil.length+'</div><div class="sub">de '+C.compras.length+' totales</div></div>'+
+    '<div class="card"><div class="lbl">U$S FOB Total</div><div class="val cyan">'+fmt(totFob)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Importe Total</div><div class="val yellow">$'+fmtN(totARS)+'</div><div class="sub">ARS</div></div>'+
+    '<div class="card"><div class="lbl">Pagado</div><div class="val green">'+cntPagado+'</div><div class="sub">'+(fil.length?Math.round(cntPagado/fil.length*100):0)+'%</div></div>'+
+    '<div class="card"><div class="lbl">Enviado a Pagar</div><div class="val cyan">'+cntEnviado+'</div></div>'+
+    '<div class="card"><div class="lbl">En Revisión</div><div class="val yellow">'+cntRevision+'</div></div>'+
+    '<div class="card"><div class="lbl">No Pagar</div><div class="val">'+cntNoPagar+'</div></div>'+
+    '</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Listado de Compras</h3>'+
+    '<span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    (C.compras.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">🛒 Sin compras cargadas. '+(!ro?'<a href="#" onclick="abrirModalCompra(0);return false;" style="color:var(--cyan)">Crear la primera →</a>':'')+'</div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1800px"><thead><tr>'+
+        '<th>Fecha</th><th>Tipo Op.</th><th>Pedido</th><th>Lote</th><th>Proveedor</th>'+
+        '<th>PI-CI</th><th>Cód.Pago</th><th>SWIFT/CUIT</th>'+
+        '<th style="text-align:right">U$S FOB</th><th style="text-align:right">T.Cambio</th><th style="text-align:right">Importe</th>'+
+        '<th>Vto.Prov</th><th>F.Pago</th><th>Estado</th><th>📎</th><th>Doc.</th>'+
+        (ro?'':'<th>Acc.</th>')+
+        '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>'+
+    '<div id="modalCompra" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalAdjCompra" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
+}
+
+function limpiarFiltrosCompras(){
+  comprasFiltros={fechaDesde:'',fechaHasta:'',tipoOp:'',proveedor:'',estadoPago:'',pedido:'',lote:''};
+  go('compras');
+}
+function editCompra(id){abrirModalCompra(id);}
+
+// MODAL: NUEVA / EDITAR COMPRA
+function abrirModalCompra(id){
+  editCompraId=id;
+  var c=id===0?{fecha_compra:hoy(),tipo_operacion:'',pedido:'',lote:'',proveedor:'',pi_ci:'',codigo_pago:'',swift_cuit_despachante:'',usd_fob:'',tipo_cambio:'',importe_total:0,vencimiento_prov:'',fecha_pago:'',estado_pago:'No Pagar',documento_url:'',notas:''}:(C.compras.find(function(x){return x.id===id;})||{});
+  var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
+  var proveedores=C.cfg_listas.proveedor_compra||[];
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+  function opts(arr,sel){
+    var h='<option value="">— elegir —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var titulo=id===0?'➕ Nueva Compra':'✏ Editar Compra #'+id;
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:980px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCompra()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📋 Identificación</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha de compra</label><input type="date" id="cmpFecha" value="'+(c.fecha_compra||'')+'"/></div>'+
+    '<div class="f"><label>Tipo de operación</label><select id="cmpTipoOp">'+opts(tiposOp,c.tipo_operacion)+'</select></div>'+
+    '<div class="f"><label>Pedido</label><input type="text" id="cmpPedido" value="'+escapeHtml(c.pedido||'')+'" placeholder="Ej: ED214"/></div>'+
+    '<div class="f"><label>Lote</label><input type="text" id="cmpLote" value="'+escapeHtml(c.lote||'')+'"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🏭 Proveedor y Documentación</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Proveedor</label><select id="cmpProv">'+opts(proveedores,c.proveedor)+'</select></div>'+
+    '<div class="f"><label>PI - CI</label><input type="text" id="cmpPiCi" value="'+escapeHtml(c.pi_ci||'')+'"/></div>'+
+    '<div class="f"><label>Código de Pago</label><input type="text" id="cmpCodPago" value="'+escapeHtml(c.codigo_pago||'')+'"/></div>'+
+    '<div class="f"><label>SWIFT o CUIT despachante</label><input type="text" id="cmpSwift" value="'+escapeHtml(c.swift_cuit_despachante||'')+'"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Montos</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>U$S FOB</label><input type="number" id="cmpFob" value="'+(c.usd_fob||'')+'" step="0.01" min="0" oninput="calcImporteCompra()" placeholder="0.00"/></div>'+
+    '<div class="f"><label>Tipo de cambio dólar</label><input type="number" id="cmpTC" value="'+(c.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteCompra()" placeholder="0.0000"/></div>'+
+    '<div class="f"><label>Importe Total a pagar <span style="color:var(--cyan);font-size:10px">(calculado)</span></label><input type="text" id="cmpTotal" value="'+(c.importe_total?'$'+fmtN(c.importe_total):'')+'" readonly style="color:var(--yellow);font-weight:600"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💳 Pago</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Vencimiento Proveedor</label><input type="date" id="cmpVto" value="'+(c.vencimiento_prov||'')+'"/></div>'+
+    '<div class="f"><label>Fecha de pago</label><input type="date" id="cmpFPago" value="'+(c.fecha_pago||'')+'"/></div>'+
+    '<div class="f"><label>Estado de pago</label><select id="cmpEstado">'+opts(estadosPago,c.estado_pago||'No Pagar')+'</select></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📎 Documentación</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Documento — link de Drive u otra URL</label><input type="text" id="cmpDocUrl" value="'+escapeHtml(c.documento_url||'')+'" placeholder="https://drive.google.com/..."/></div>'+
+    '<div class="f"><label>Notas (opcional)</label><input type="text" id="cmpNotas" value="'+escapeHtml(c.notas||'')+'"/></div>'+
+    '</div>'+
+    (id>0?
+      '<div class="alert ainfo" style="margin-top:14px">💡 Los archivos PDF/Excel se gestionan desde el botón 📎 de la fila.</div>':
+      '<div class="alert ainfo" style="margin-top:14px">💡 Una vez creada la compra vas a poder subir archivos adjuntos (PDF, Excel, imágenes) desde la columna 📎 de la tabla.</div>')+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarCompra()">💾 '+(id===0?'Crear':'Guardar cambios')+'</button>'+
+    (id>0?'<button class="btn bs" onclick="verAdjuntosCompra('+id+');cerrarModalCompra()">📎 Ver adjuntos</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalCompra()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalCompra');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalCompra(){
+  var modal=document.getElementById('modalCompra');
+  if(modal){modal.style.display='none';modal.innerHTML='';}
+  editCompraId=null;
+}
+
+function calcImporteCompra(){
+  var fob=parseFloat(document.getElementById('cmpFob').value)||0;
+  var tc=parseFloat(document.getElementById('cmpTC').value)||0;
+  var total=fob*tc;
+  document.getElementById('cmpTotal').value=total>0?'$'+fmtN(total):'';
+}
+
+function guardarCompra(){
+  var fob=parseFloat(document.getElementById('cmpFob').value)||0;
+  var tc=parseFloat(document.getElementById('cmpTC').value)||0;
+  var payload={
+    fecha_compra:document.getElementById('cmpFecha').value||null,
+    tipo_operacion:document.getElementById('cmpTipoOp').value||null,
+    pedido:document.getElementById('cmpPedido').value.trim()||null,
+    lote:document.getElementById('cmpLote').value.trim()||null,
+    proveedor:document.getElementById('cmpProv').value||null,
+    pi_ci:document.getElementById('cmpPiCi').value.trim()||null,
+    codigo_pago:document.getElementById('cmpCodPago').value.trim()||null,
+    swift_cuit_despachante:document.getElementById('cmpSwift').value.trim()||null,
+    usd_fob:fob||null,
+    tipo_cambio:tc||null,
+    importe_total:(fob*tc)||null,
+    vencimiento_prov:document.getElementById('cmpVto').value||null,
+    fecha_pago:document.getElementById('cmpFPago').value||null,
+    estado_pago:document.getElementById('cmpEstado').value||'No Pagar',
+    documento_url:document.getElementById('cmpDocUrl').value.trim()||null,
+    notas:document.getElementById('cmpNotas').value.trim()||null
+  };
+  if(!payload.fecha_compra&&!payload.proveedor&&!payload.pedido){
+    toast('Completá al menos fecha + proveedor o pedido','error');return;
+  }
+  if(editCompraId===0){
+    sbPost('compras',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Compra creada','success');
+      cerrarModalCompra();
+      reload('compras');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }else{
+    sbPatch('compras',editCompraId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Compra actualizada','success');
+      cerrarModalCompra();
+      reload('compras');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }
+}
+
+function deleteCompra(id){
+  var c=C.compras.find(function(x){return x.id===id;});
+  if(!c)return;
+  var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===id;}).length;
+  var msg='¿Eliminar la compra '+(c.pedido||'#'+id)+'?';
+  if(nAdj>0)msg+='\n'+nAdj+' archivo'+(nAdj===1?'':'s')+' adjunto'+(nAdj===1?'':'s')+' se borrará'+(nAdj===1?'':'n')+' de Supabase Storage.';
+  if(!confirm(msg))return;
+  var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    sbDeleteWhere('compra_adjuntos','compra_id',id).then(function(){
+      sbDelete('compras',id).then(function(){
+        toast('Compra eliminada','success');
+        reload('compras');
+      });
+    });
+  });
+}
+
+// MODAL: ADJUNTOS DE COMPRA
+var modalAdjCompraId=null;
+function verAdjuntosCompra(compraId){
+  modalAdjCompraId=compraId;
+  renderModalAdjCompra();
+  document.getElementById('modalAdjCompra').style.display='flex';
+}
+function cerrarModalAdjCompra(){
+  var m=document.getElementById('modalAdjCompra');
+  if(m){m.style.display='none';m.innerHTML='';}
+  modalAdjCompraId=null;
+}
+function renderModalAdjCompra(){
+  var c=C.compras.find(function(x){return x.id===modalAdjCompraId;});
+  if(!c)return;
+  var ro=!isAdmin();
+  var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===modalAdjCompraId;});
+  var listaHTML='';
+  if(adjs.length===0){
+    listaHTML='<div style="text-align:center;color:var(--text2);padding:30px;font-size:13px">📂 Sin adjuntos todavía</div>';
+  }else{
+    adjs.forEach(function(a){
+      var icono='📄';
+      if(a.tipo_mime&&a.tipo_mime.indexOf('image/')===0)icono='🖼️';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('pdf')>-1)icono='📕';
+      else if(a.tipo_mime&&(a.tipo_mime.indexOf('sheet')>-1||a.tipo_mime.indexOf('excel')>-1))icono='📊';
+      var tamañoKB=a.tamaño_bytes?(a.tamaño_bytes/1024).toFixed(0)+' KB':'-';
+      listaHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">'+
+        '<div style="font-size:24px">'+icono+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.nombre_archivo)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+tamañoKB+' · '+new Date(a.uploaded_at).toLocaleString('es-AR')+(a.uploaded_by?' · '+a.uploaded_by:'')+'</div></div>'+
+        '<a href="'+a.storage_url+'" target="_blank" class="btn sm bs" title="Abrir">👁</a> '+
+        '<a href="'+a.storage_url+'" download="'+escapeHtml(a.nombre_archivo)+'" class="btn sm bs" title="Descargar">📥</a> '+
+        (!ro?'<button class="btn sm bd" onclick="eliminarAdjCompra('+a.id+')" title="Eliminar">🗑</button>':'')+
+        '</div>';
+    });
+  }
+  var uploader=ro?'':
+    '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:20px;text-align:center;transition:all .15s">'+
+    '<input type="file" id="adjCompFileInp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="subirAdjuntosCompra(event)"/>'+
+    '<div style="font-size:32px;margin-bottom:6px">📎</div>'+
+    '<div style="font-size:13px;font-weight:600;color:var(--cyan)">Click para seleccionar archivos</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:4px">PDF · JPG · PNG · XLSX · XLS (máx. 10MB c/u)</div>'+
+    '</label>'+
+    '<div id="adjCompProgress"></div>'+
+    '</div>';
+  var content=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">📎 Adjuntos de Compra</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+(c.pedido?escapeHtml(c.pedido)+' · ':'')+(c.proveedor?escapeHtml(c.proveedor)+' · ':'')+fmtD(c.fecha_compra)+'</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjCompra()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">'+adjs.length+' archivo'+(adjs.length===1?'':'s')+'</div>'+
+    listaHTML+uploader+
+    '</div></div>';
+  document.getElementById('modalAdjCompra').innerHTML=content;
+}
+
+function subirAdjuntosCompra(ev){
+  var files=ev.target.files;
+  if(!files||files.length===0)return;
+  var compraId=modalAdjCompraId;
+  if(!compraId){toast('Compra perdida','error');return;}
+  var validos=[],errores=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>ADJ_MAX_SIZE){errores.push(f.name+' (>10MB)');continue;}
+    var ext=f.name.toLowerCase().split('.').pop();
+    if(['pdf','jpg','jpeg','png','xlsx','xls'].indexOf(ext)===-1&&ADJ_MIME_OK.indexOf(f.type)===-1){
+      errores.push(f.name+' (tipo no permitido)');continue;
+    }
+    validos.push(f);
+  }
+  if(errores.length>0)toast('Saltados: '+errores.join(', '),'error');
+  if(validos.length===0){ev.target.value='';return;}
+  var prog=document.getElementById('adjCompProgress');
+  prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subiendo '+validos.length+' archivo'+(validos.length===1?'':'s')+'...</div>';
+  var chain=Promise.resolve();
+  var subidos=0,fallos=0;
+  validos.forEach(function(f){
+    chain=chain.then(function(){return subirUnArchivoCompra(compraId,f);}).then(function(ok){
+      if(ok)subidos++;else fallos++;
+      prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subidos '+subidos+'/'+validos.length+(fallos>0?' · '+fallos+' fallos':'')+'</div>';
+    });
+  });
+  chain.then(function(){
+    ev.target.value='';
+    if(fallos>0)toast(subidos+' subidos, '+fallos+' fallaron','error');
+    else toast(subidos+' archivo'+(subidos===1?'':'s')+' subido'+(subidos===1?'':'s'),'success');
+    sbGet('compra_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+      C.compra_adjuntos=Array.isArray(r)?r:[];
+      renderModalAdjCompra();
+    });
+  });
+}
+
+function subirUnArchivoCompra(compraId,file){
+  var uuid='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+  var safeName=file.name.replace(/[^\w.\-]/g,'_');
+  var path='compras/'+compraId+'/'+uuid+'-'+safeName;
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+    body:file
+  }).then(function(r){
+    if(!r.ok){return r.json().then(function(err){throw new Error(err.message||'Error subiendo');});}
+    return r.json();
+  }).then(function(){
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    return sbPost('compra_adjuntos',{
+      compra_id:compraId,nombre_archivo:file.name,tipo_mime:file.type||null,
+      tamaño_bytes:file.size,storage_path:path,storage_url:publicUrl,
+      uploaded_by:CU?CU.u:null
+    });
+  }).then(function(){return true;}).catch(function(e){
+    console.error('Error subiendo '+file.name+':',e);return false;
+  });
+}
+
+function eliminarAdjCompra(adjId){
+  var adj=(C.compra_adjuntos||[]).find(function(a){return a.id===adjId;});
+  if(!adj){toast('Adjunto no encontrado','error');return;}
+  if(!confirm('¿Eliminar "'+adj.nombre_archivo+'"?\nSe borra de Storage de forma definitiva.'))return;
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+adj.storage_path,{
+    method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(){
+    sbDelete('compra_adjuntos',adjId).then(function(){
+      toast('Adjunto eliminado','success');
+      sbGet('compra_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+        C.compra_adjuntos=Array.isArray(r)?r:[];
+        renderModalAdjCompra();
+      });
+    });
+  });
+}
+
 </script>
 <script>
 // ============================================================
