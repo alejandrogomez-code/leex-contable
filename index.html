@@ -3085,15 +3085,18 @@ function pgCompras(){
     if(F.lote&&(c.lote||'').toLowerCase().indexOf(F.lote.toLowerCase())===-1)return false;
     return true;
   });
-  var totFob=0,totARS=0,cntPagado=0,cntEnviado=0,cntRevision=0,cntNoPagar=0;
+  var totFob=0,totARS=0,estadoCounts={};
   fil.forEach(function(c){
     totFob+=parseFloat(c.usd_fob)||0;
     totARS+=parseFloat(c.importe_total)||0;
-    if(c.estado_pago==='Pagado')cntPagado++;
-    else if(c.estado_pago==='Enviado a Pagar')cntEnviado++;
-    else if(c.estado_pago==='En Revisión')cntRevision++;
-    else cntNoPagar++;
+    var ep=c.estado_pago||'Sin estado';
+    estadoCounts[ep]=(estadoCounts[ep]||0)+1;
   });
+  var cntPagado=estadoCounts['Pagado']||0;
+  var cntEnviado=estadoCounts['Enviado a Pagar']||0;
+  var cntRevision=estadoCounts['En Revisión']||0;
+  var cntNoPagar=estadoCounts['No Pagar']||0;
+  var cntPendiente=estadoCounts['Pendiente']||0;
   var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
   var proveedores=C.cfg_listas.proveedor_compra||[];
   var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
@@ -3121,10 +3124,13 @@ function pgCompras(){
   fil.forEach(function(c){
     var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===c.id;}).length;
     var estBadge='';
-    if(c.estado_pago==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
-    else if(c.estado_pago==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
-    else if(c.estado_pago==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
-    else estBadge='<span class="badge bgr">⏸ No Pagar</span>';
+    var ep=c.estado_pago||'Sin estado';
+    if(ep==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
+    else if(ep==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
+    else if(ep==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
+    else if(ep==='No Pagar')estBadge='<span class="badge bgr">⏸ No Pagar</span>';
+    else if(ep==='Pendiente')estBadge='<span class="badge by">⏳ Pendiente</span>';
+    else estBadge='<span class="badge bgr">'+escapeHtml(ep)+'</span>';
     var docCell=c.documento_url?'<a href="'+escapeHtml(c.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px" title="'+escapeHtml(c.documento_url)+'">🔗 Drive</a>':'<span style="color:var(--text2);font-size:11px">—</span>';
     var adjCell=nAdj>0?
       '<button class="btn sm bs" onclick="verAdjuntosCompra('+c.id+')" title="Ver adjuntos"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
@@ -3163,6 +3169,7 @@ function pgCompras(){
     '<div class="card"><div class="lbl">Importe Total</div><div class="val yellow">$'+fmtN(totARS)+'</div><div class="sub">ARS</div></div>'+
     '<div class="card"><div class="lbl">Pagado</div><div class="val green">'+cntPagado+'</div><div class="sub">'+(fil.length?Math.round(cntPagado/fil.length*100):0)+'%</div></div>'+
     '<div class="card"><div class="lbl">Enviado a Pagar</div><div class="val cyan">'+cntEnviado+'</div></div>'+
+    '<div class="card"><div class="lbl">Pendiente</div><div class="val yellow">'+cntPendiente+'</div></div>'+
     '<div class="card"><div class="lbl">En Revisión</div><div class="val yellow">'+cntRevision+'</div></div>'+
     '<div class="card"><div class="lbl">No Pagar</div><div class="val">'+cntNoPagar+'</div></div>'+
     '</div>'+
@@ -4850,10 +4857,13 @@ function renderCajaLeex(){
   var rows='';
   fil.forEach(function(c){
     var estBadge='';
-    if(c.estado_pago==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
-    else if(c.estado_pago==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
-    else if(c.estado_pago==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
-    else estBadge='<span class="badge bgr">⏸ '+escapeHtml(c.estado_pago||'—')+'</span>';
+    var epCL=c.estado_pago||'—';
+    if(epCL==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
+    else if(epCL==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
+    else if(epCL==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
+    else if(epCL==='Pendiente')estBadge='<span class="badge by">⏳ Pendiente</span>';
+    else if(epCL==='No Pagar')estBadge='<span class="badge bgr">⏸ No Pagar</span>';
+    else estBadge='<span class="badge bgr">'+escapeHtml(epCL)+'</span>';
     var docCell=c.documento_url?'<a href="'+escapeHtml(c.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
     rows+='<tr>'+
       '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'#'+c.id)+'</td>'+
