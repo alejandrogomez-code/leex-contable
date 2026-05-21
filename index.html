@@ -213,6 +213,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="ni" data-sec="logistica" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
     <div class="ni" data-sec="logistica" data-page="stock" onclick="go('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Stock</div>
 
+    <div class="divider" data-sec="proyectos"></div>
+    <div class="sbSection" data-sec="proyectos">Proyectos</div>
+    <div class="ni" data-sec="proyectos" data-page="chile" onclick="go('chile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Chile</div>
+
     <div class="divider" data-sec="sistema"></div>
     <div class="sbSection" data-sec="sistema">Sistema</div>
     <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
@@ -280,7 +284,12 @@ var C={
   // Stock
   stock_items:[],
   stock_bajas:[],
-  stock_adjuntos:[]
+  stock_adjuntos:[],
+  // Proyectos > Chile
+  caja_oficina_chile:[],
+  caja_chile_aportes:[],
+  caja_deam:[],
+  caja_adjuntos:[]
 };
 
 // === ESTADO UI ===
@@ -364,7 +373,11 @@ function loadAll(){
     sbGet('movimiento_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
     sbGet('stock_items','select=*&order=fecha_alta.desc,id.desc').catch(function(){return[];}),
     sbGet('stock_bajas','select=*&order=fecha_baja.desc,id.desc').catch(function(){return[];}),
-    sbGet('stock_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
+    sbGet('stock_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('caja_oficina_chile','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
+    sbGet('caja_oficina_chile_aportes','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
+    sbGet('caja_deam','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
+    sbGet('caja_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -404,6 +417,10 @@ function loadAll(){
     C.stock_items=Array.isArray(res[17])?res[17]:[];
     C.stock_bajas=Array.isArray(res[18])?res[18]:[];
     C.stock_adjuntos=Array.isArray(res[19])?res[19]:[];
+    C.caja_oficina_chile=Array.isArray(res[20])?res[20]:[];
+    C.caja_chile_aportes=Array.isArray(res[21])?res[21]:[];
+    C.caja_deam=Array.isArray(res[22])?res[22]:[];
+    C.caja_adjuntos=Array.isArray(res[23])?res[23]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -438,6 +455,7 @@ function go(page){
       proyectos:pgProyectos,
       compras:pgCompras,
       stock:pgStock,
+      chile:pgChile,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -4257,6 +4275,1097 @@ function eliminarAdjStock(adjId){
 
 // Helper: ¿es admin o logistica?
 function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica');}
+
+</script>
+<script>
+// ============================================================
+// PÁGINA: PROYECTOS > CHILE
+// Tabs: Caja Oficina Chile (+ Saldo Vigente) · Caja DEAM · Caja Leex
+// ============================================================
+var chileTab='oficina';
+var chileMostrarSaldo=false;
+var cajaChileFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',estado:''};
+var cajaChileSort={col:'fecha',asc:false};
+var cajaDeamFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',dueno:'',estado:''};
+var cajaDeamSort={col:'fecha',asc:false};
+var cajaLeexFiltros={busqueda:'',fecha:'',proveedor:'',estado_pago:''};
+var cajaLeexSort={col:'fecha_compra',asc:false};
+var saldoFiltros={fecha:'',proveedor:'',concepto:'',tipo_mov:''};
+var editingChile=null;   // id en edición
+var editingDeam=null;
+var editingAporte=null;
+var modalAdjCajaTipo=null;  // 'chile' | 'deam'
+var modalAdjCajaId=null;
+
+function pgChile(){
+  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(chileTab==='oficina'?' active':'')+'" onclick="chileTab=\'oficina\';go(\'chile\')">💰 Caja Oficina Chile</div>'+
+    '<div class="tab'+(chileTab==='deam'?' active':'')+'" onclick="chileTab=\'deam\';go(\'chile\')">🇦🇷 Caja DEAM</div>'+
+    '<div class="tab'+(chileTab==='leex'?' active':'')+'" onclick="chileTab=\'leex\';go(\'chile\')">🛒 Caja Leex</div>'+
+    '</div>';
+  var contenido='';
+  if(chileTab==='oficina')contenido=renderCajaChile();
+  else if(chileTab==='deam')contenido=renderCajaDeam();
+  else if(chileTab==='leex')contenido=renderCajaLeex();
+  return ejGlobalBar()+
+    '<div class="pageTitle">🇨🇱 Proyecto Chile</div>'+
+    '<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · No impacta contabilidad. Caja Leex se sincroniza desde Compras (tipo=Chile).</div>'+
+    tabs+contenido+
+    '<div id="modalCaja" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalCajaAdj" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
+}
+
+// ============================================================
+// CAJA OFICINA CHILE
+// ============================================================
+function renderCajaChile(){
+  var F=cajaChileFiltros;
+  var S=cajaChileSort;
+  var conceptos=C.cfg_listas.concepto_caja||[];
+  var estados=C.cfg_listas.estado_caja||['Pendiente','Pagado'];
+
+  var fil=C.caja_oficina_chile.filter(function(r){
+    if(F.busqueda){
+      var b=F.busqueda.toLowerCase();
+      var t=((r.proveedor||'')+' '+(r.concepto||'')+' '+(r.detalle||'')+' '+(r.estado||'')).toLowerCase();
+      if(t.indexOf(b)===-1)return false;
+    }
+    if(F.fecha&&r.fecha!==F.fecha)return false;
+    if(F.proveedor&&(r.proveedor||'').toLowerCase().indexOf(F.proveedor.toLowerCase())===-1)return false;
+    if(F.concepto&&r.concepto!==F.concepto)return false;
+    if(F.estado&&r.estado!==F.estado)return false;
+    return true;
+  });
+
+  // Sort
+  fil.sort(function(a,b){
+    var va=a[S.col],vb=b[S.col];
+    if(va==null)va='';if(vb==null)vb='';
+    if(typeof va==='number'||!isNaN(parseFloat(va))&&typeof va!=='string'){
+      return (S.asc?1:-1)*((parseFloat(va)||0)-(parseFloat(vb)||0));
+    }
+    return (S.asc?1:-1)*String(va).localeCompare(String(vb));
+  });
+
+  var totImp=0,totIva=0;
+  fil.forEach(function(r){totImp+=parseFloat(r.importe_clp)||0;totIva+=parseFloat(r.importe_iva_clp)||0;});
+
+  function sortBtn(col,label){
+    var arrow=S.col===col?(S.asc?' ↑':' ↓'):'';
+    return '<a href="#" onclick="cajaChileSort.col=\''+col+'\';cajaChileSort.asc='+(S.col===col?!S.asc:true)+';go(\'chile\');return false;" style="color:inherit;text-decoration:none">'+label+arrow+'</a>';
+  }
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  // === Filtros + búsqueda ===
+  var hayFiltros=F.busqueda||F.fecha||F.proveedor||F.concepto||F.estado;
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+    '<input type="text" value="'+escapeHtml(F.busqueda)+'" placeholder="🔍 Buscar..." oninput="cajaChileFiltros.busqueda=this.value;clearTimeout(window._cchb);window._cchb=setTimeout(function(){go(\'chile\')},300)" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none"/>'+
+    '<input type="date" value="'+F.fecha+'" onchange="cajaChileFiltros.fecha=this.value;go(\'chile\')" title="Fecha" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<input type="text" value="'+escapeHtml(F.proveedor)+'" placeholder="Proveedor..." oninput="cajaChileFiltros.proveedor=this.value;clearTimeout(window._cchp);window._cchp=setTimeout(function(){go(\'chile\')},300)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;width:150px"/>'+
+    '<select onchange="cajaChileFiltros.concepto=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(conceptos,F.concepto)+'</select>'+
+    '<select onchange="cajaChileFiltros.estado=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="cajaChileFiltros={busqueda:\'\',fecha:\'\',proveedor:\'\',concepto:\'\',estado:\'\'};go(\'chile\')">✕</button>':'')+
+    '<button class="btn bp sm" onclick="abrirModalCaja(\'chile\',0)">+ Nueva fila</button>'+
+    '<button class="btn bs sm" onclick="exportCajaChile()">⬇ Excel</button>'+
+    '</div>';
+
+  // === Tabla ===
+  var rows='';
+  fil.forEach(function(r){
+    var nAdj=(C.caja_adjuntos||[]).filter(function(a){return a.caja_tipo==='chile'&&a.registro_id===r.id;}).length;
+    var adjCell=nAdj>0?
+      '<button class="miniBtn" onclick="verAdjuntosCaja(\'chile\','+r.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      '<button class="miniBtn" onclick="verAdjuntosCaja(\'chile\','+r.id+')" style="color:var(--text2)">📎</button>';
+    var urlCell=r.url?'<a href="'+escapeHtml(r.url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
+    var estBadge=r.estado==='Pagado'?'<span class="badge bg">✓ Pagado</span>':'<span class="badge by">⏳ Pendiente</span>';
+    rows+='<tr>'+
+      '<td>'+(r.numero||'—')+'</td>'+
+      '<td>'+fmtD(r.fecha)+'</td>'+
+      '<td>'+escapeHtml(r.proveedor||'—')+'</td>'+
+      '<td>'+(r.concepto?'<span class="badge bb">'+escapeHtml(r.concepto)+'</span>':'—')+'</td>'+
+      '<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeHtml(r.detalle||'')+'">'+escapeHtml(r.detalle||'')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">$'+fmtN(r.importe_clp||0)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">$'+fmtN(r.importe_iva_clp||0)+'</td>'+
+      '<td>'+estBadge+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      '<td>'+urlCell+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalCaja(\'chile\','+r.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteCajaItem(\'chile\','+r.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  var tabla='<div class="twrap">'+
+    '<div style="overflow-x:auto"><table style="min-width:1200px"><thead><tr>'+
+      '<th>'+sortBtn('numero','N°')+'</th>'+
+      '<th>'+sortBtn('fecha','Fecha')+'</th>'+
+      '<th>'+sortBtn('proveedor','Proveedor')+'</th>'+
+      '<th>'+sortBtn('concepto','Concepto')+'</th>'+
+      '<th>Detalle</th>'+
+      '<th style="text-align:right">'+sortBtn('importe_clp','Importe $')+'</th>'+
+      '<th style="text-align:right">'+sortBtn('importe_iva_clp','IVA $')+'</th>'+
+      '<th>'+sortBtn('estado','Estado')+'</th>'+
+      '<th>📎</th><th>URL</th><th></th>'+
+      '</tr></thead><tbody>'+
+      (rows||'<tr><td colspan="11" style="text-align:center;color:var(--text2);padding:20px">Sin registros. <a href="#" onclick="abrirModalCaja(\'chile\',0);return false;" style="color:var(--cyan)">Agregar primero →</a></td></tr>')+
+      '</tbody></table></div></div>';
+
+  // === Totales ===
+  var totales='<div class="cards" style="margin:14px 0">'+
+    '<div class="card"><div class="lbl">Total Importe $ Chile</div><div class="val cyan">$'+fmtN(totImp)+'</div><div class="sub">filtrado</div></div>'+
+    '<div class="card"><div class="lbl">Total IVA $ Chile</div><div class="val yellow">$'+fmtN(totIva)+'</div></div>'+
+    '<div class="card"><div class="lbl">Registros</div><div class="val">'+fil.length+'</div><div class="sub">de '+C.caja_oficina_chile.length+'</div></div>'+
+    '</div>';
+
+  // === Toggle saldo vigente ===
+  var toggleSaldo='<div style="margin:18px 0 10px"><button class="btn '+(chileMostrarSaldo?'bp':'bs')+'" onclick="chileMostrarSaldo='+(!chileMostrarSaldo)+';go(\'chile\')">'+
+    (chileMostrarSaldo?'▼ Ocultar Saldo Vigente':'▶ Ver Saldo Vigente USD')+
+    '</button></div>';
+
+  return filtrosHTML+tabla+totales+toggleSaldo+(chileMostrarSaldo?renderSaldoVigente():'');
+}
+
+// ============================================================
+// SALDO VIGENTE (sub-tabla dentro de Caja Oficina Chile)
+// ============================================================
+function renderSaldoVigente(){
+  var F=saldoFiltros;
+  var conceptos=C.cfg_listas.concepto_caja||[];
+
+  // Buscar saldo inicial (único)
+  var saldoInicial=(C.caja_chile_aportes||[]).find(function(a){return a.es_saldo_inicial;});
+  var saldoInicialUsd=saldoInicial?parseFloat(saldoInicial.importe_usd):0;
+
+  // Construir lista combinada de movimientos:
+  // - Gastos: filas de caja_oficina_chile con importe_clp > 0 y tipo_cambio_usd > 0 (negativos al saldo)
+  // - Aportes: filas de caja_chile_aportes que NO sean saldo inicial (positivos)
+  var movs=[];
+  C.caja_oficina_chile.forEach(function(r){
+    var imp=parseFloat(r.importe_clp)||0;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    var impUsd=tc>0?imp/tc:0;
+    movs.push({
+      tipo_mov:'Gasto',
+      origen:'caja_chile',
+      id:r.id,
+      numero:r.numero,
+      fecha:r.fecha,
+      proveedor:r.proveedor,
+      concepto:r.concepto,
+      importe_clp:imp,
+      tipo_cambio_usd:tc,
+      importe_usd:impUsd,
+      signo:-1,
+      url:r.url
+    });
+  });
+  (C.caja_chile_aportes||[]).forEach(function(a){
+    if(a.es_saldo_inicial)return;  // saldo inicial se trata aparte
+    movs.push({
+      tipo_mov:'Aporte de capital',
+      origen:'aporte',
+      id:a.id,
+      numero:null,
+      fecha:a.fecha,
+      proveedor:'',
+      concepto:a.descripcion||'Aporte',
+      importe_clp:null,
+      tipo_cambio_usd:null,
+      importe_usd:parseFloat(a.importe_usd)||0,
+      signo:1,
+      url:a.url
+    });
+  });
+
+  // Ordenar por fecha asc para calcular saldo acumulado correctamente
+  movs.sort(function(a,b){
+    if(!a.fecha)return 1;if(!b.fecha)return -1;
+    return a.fecha.localeCompare(b.fecha);
+  });
+
+  // Calcular saldo acumulado
+  var saldo=saldoInicialUsd;
+  movs.forEach(function(m){
+    saldo+=m.signo*m.importe_usd;
+    m.saldo_usd=saldo;
+  });
+  var saldoFinal=saldo;
+
+  // Aplicar filtros
+  var fil=movs.filter(function(m){
+    if(F.fecha&&m.fecha!==F.fecha)return false;
+    if(F.proveedor&&(m.proveedor||'').toLowerCase().indexOf(F.proveedor.toLowerCase())===-1)return false;
+    if(F.concepto&&m.concepto!==F.concepto)return false;
+    if(F.tipo_mov&&m.tipo_mov!==F.tipo_mov)return false;
+    return true;
+  });
+
+  // Totales del filtro
+  var totGastosUsd=0,totAportesUsd=0;
+  fil.forEach(function(m){
+    if(m.tipo_mov==='Gasto')totGastosUsd+=m.importe_usd;
+    else if(m.tipo_mov==='Aporte de capital')totAportesUsd+=m.importe_usd;
+  });
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var hayFiltros=F.fecha||F.proveedor||F.concepto||F.tipo_mov;
+
+  // Configuración del saldo inicial
+  var siCard=saldoInicial?
+    '<div class="card" style="border-color:var(--lime)"><div class="lbl">Saldo Inicial</div><div class="val green">$'+fmtN(saldoInicialUsd)+'</div><div class="sub">'+fmtD(saldoInicial.fecha)+' <button class="miniBtn" onclick="abrirModalSaldoInicial()">✏</button></div></div>':
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">Saldo Inicial</div><div class="val yellow"><button class="btn bp sm" onclick="abrirModalSaldoInicial()">+ Configurar</button></div></div>';
+
+  var filtrosHTML='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+    '<input type="date" value="'+F.fecha+'" onchange="saldoFiltros.fecha=this.value;go(\'chile\')" title="Fecha" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<input type="text" value="'+escapeHtml(F.proveedor)+'" placeholder="Proveedor..." oninput="saldoFiltros.proveedor=this.value;clearTimeout(window._svp);window._svp=setTimeout(function(){go(\'chile\')},300)" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;width:150px"/>'+
+    '<select onchange="saldoFiltros.concepto=this.value;go(\'chile\')" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(conceptos,F.concepto)+'</select>'+
+    '<select onchange="saldoFiltros.tipo_mov=this.value;go(\'chile\')" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Gasto','Aporte de capital'],F.tipo_mov)+'</select>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="saldoFiltros={fecha:\'\',proveedor:\'\',concepto:\'\',tipo_mov:\'\'};go(\'chile\')">✕</button>':'')+
+    '<button class="btn bp sm" onclick="abrirModalAporte(0)">+ Aporte de Capital</button>'+
+    '<button class="btn bs sm" onclick="exportSaldoVigente()">⬇ Excel</button>'+
+    '</div>';
+
+  // Tabla
+  var rows='';
+  fil.forEach(function(m){
+    var urlCell=m.url?'<a href="'+escapeHtml(m.url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
+    var tipoBadge=m.tipo_mov==='Aporte de capital'?'<span class="badge bg">+ Aporte</span>':'<span class="badge br">- Gasto</span>';
+    var btns='';
+    if(m.origen==='caja_chile'){
+      btns='<button class="miniBtn" onclick="abrirModalCaja(\'chile\','+m.id+')" title="Editar gasto">✏</button>';
+    }else{
+      btns='<button class="miniBtn" onclick="abrirModalAporte('+m.id+')" title="Editar aporte">✏</button> '+
+           '<button class="miniBtn" style="color:var(--red)" onclick="deleteAporte('+m.id+')" title="Eliminar">🗑</button>';
+    }
+    var tcCell=m.tipo_cambio_usd?fmtN(m.tipo_cambio_usd):'<span style="color:var(--text2)">—</span>';
+    if(m.origen==='caja_chile'&&!m.tipo_cambio_usd){
+      tcCell='<button class="miniBtn" style="color:var(--yellow)" onclick="abrirModalCaja(\'chile\','+m.id+')" title="Falta TC">⚠ Falta TC</button>';
+    }
+    rows+='<tr>'+
+      '<td>'+(m.numero||'—')+'</td>'+
+      '<td>'+fmtD(m.fecha)+'</td>'+
+      '<td>'+escapeHtml(m.proveedor||'—')+'</td>'+
+      '<td>'+escapeHtml(m.concepto||'—')+'</td>'+
+      '<td>'+tipoBadge+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(m.importe_clp!=null?'$'+fmtN(m.importe_clp):'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+tcCell+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:'+(m.signo>0?'var(--green)':'var(--red)')+'">'+(m.signo>0?'+':'-')+'$'+fmtN(m.importe_usd)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:'+(m.saldo_usd>=0?'var(--green)':'var(--red)')+';font-weight:600">$'+fmtN(m.saldo_usd)+'</td>'+
+      '<td>'+urlCell+'</td>'+
+      '<td>'+btns+'</td>'+
+      '</tr>';
+  });
+
+  var tabla='<div class="twrap">'+
+    '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr>'+
+      '<th>N°</th><th>Fecha</th><th>Proveedor</th><th>Concepto</th><th>Tipo</th>'+
+      '<th style="text-align:right">Importe $ Chile</th>'+
+      '<th style="text-align:right">T.Cambio USD</th>'+
+      '<th style="text-align:right">Importe USD</th>'+
+      '<th style="text-align:right">Saldo USD</th>'+
+      '<th>URL</th><th></th>'+
+      '</tr></thead><tbody>'+
+      (rows||'<tr><td colspan="11" style="text-align:center;color:var(--text2);padding:20px">Sin movimientos con los filtros aplicados</td></tr>')+
+      '</tbody></table></div></div>';
+
+  var totales='<div class="cards" style="margin-top:14px">'+
+    siCard+
+    '<div class="card"><div class="lbl">Total Gastos USD</div><div class="val red">$'+fmtN(totGastosUsd)+'</div><div class="sub">filtrado</div></div>'+
+    '<div class="card"><div class="lbl">Total Aportes USD</div><div class="val green">$'+fmtN(totAportesUsd)+'</div><div class="sub">filtrado</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Saldo Vigente USD</div><div class="val '+(saldoFinal>=0?'green':'red')+'">$'+fmtN(saldoFinal)+'</div><div class="sub">acumulado total</div></div>'+
+    '<div class="card"><div class="lbl">Movimientos</div><div class="val">'+fil.length+'</div></div>'+
+    '</div>';
+
+  return '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;padding:16px;margin-bottom:14px">'+
+    '<h3 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--cyan)">💵 Saldo Vigente USD</h3>'+
+    filtrosHTML+tabla+totales+
+    '</div>';
+}
+
+// ============================================================
+// CAJA DEAM
+// ============================================================
+function renderCajaDeam(){
+  var F=cajaDeamFiltros;
+  var S=cajaDeamSort;
+  var conceptos=C.cfg_listas.concepto_caja||[];
+  var duenos=C.cfg_listas.dueno_pago_caja||['DEAM','IBS'];
+  var estados=C.cfg_listas.estado_caja||['Pendiente','Pagado'];
+
+  var fil=C.caja_deam.filter(function(r){
+    if(F.busqueda){
+      var b=F.busqueda.toLowerCase();
+      var t=((r.proveedor||'')+' '+(r.concepto||'')+' '+(r.detalle||'')+' '+(r.estado||'')+' '+(r.dueno_pago||'')).toLowerCase();
+      if(t.indexOf(b)===-1)return false;
+    }
+    if(F.fecha&&r.fecha!==F.fecha)return false;
+    if(F.proveedor&&(r.proveedor||'').toLowerCase().indexOf(F.proveedor.toLowerCase())===-1)return false;
+    if(F.concepto&&r.concepto!==F.concepto)return false;
+    if(F.dueno&&r.dueno_pago!==F.dueno)return false;
+    if(F.estado&&r.estado!==F.estado)return false;
+    return true;
+  });
+
+  fil.sort(function(a,b){
+    var va=a[S.col],vb=b[S.col];
+    if(va==null)va='';if(vb==null)vb='';
+    if(typeof va==='number'||!isNaN(parseFloat(va))&&typeof va!=='string'){
+      return (S.asc?1:-1)*((parseFloat(va)||0)-(parseFloat(vb)||0));
+    }
+    return (S.asc?1:-1)*String(va).localeCompare(String(vb));
+  });
+
+  var totArs=0,totUsd=0;
+  fil.forEach(function(r){
+    totArs+=parseFloat(r.importe_ars)||0;
+    totUsd+=parseFloat(r.importe_usd)||0;
+  });
+
+  function sortBtn(col,label){
+    var arrow=S.col===col?(S.asc?' ↑':' ↓'):'';
+    return '<a href="#" onclick="cajaDeamSort.col=\''+col+'\';cajaDeamSort.asc='+(S.col===col?!S.asc:true)+';go(\'chile\');return false;" style="color:inherit;text-decoration:none">'+label+arrow+'</a>';
+  }
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var hayFiltros=F.busqueda||F.fecha||F.proveedor||F.concepto||F.dueno||F.estado;
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+    '<input type="text" value="'+escapeHtml(F.busqueda)+'" placeholder="🔍 Buscar..." oninput="cajaDeamFiltros.busqueda=this.value;clearTimeout(window._cdb);window._cdb=setTimeout(function(){go(\'chile\')},300)" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none"/>'+
+    '<input type="date" value="'+F.fecha+'" onchange="cajaDeamFiltros.fecha=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<input type="text" value="'+escapeHtml(F.proveedor)+'" placeholder="Proveedor..." oninput="cajaDeamFiltros.proveedor=this.value;clearTimeout(window._cdp);window._cdp=setTimeout(function(){go(\'chile\')},300)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;width:150px"/>'+
+    '<select onchange="cajaDeamFiltros.concepto=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(conceptos,F.concepto)+'</select>'+
+    '<select onchange="cajaDeamFiltros.dueno=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(duenos,F.dueno)+'</select>'+
+    '<select onchange="cajaDeamFiltros.estado=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="cajaDeamFiltros={busqueda:\'\',fecha:\'\',proveedor:\'\',concepto:\'\',dueno:\'\',estado:\'\'};go(\'chile\')">✕</button>':'')+
+    '<button class="btn bp sm" onclick="abrirModalCaja(\'deam\',0)">+ Nueva fila</button>'+
+    '<button class="btn bs sm" onclick="exportCajaDeam()">⬇ Excel</button>'+
+    '</div>';
+
+  var rows='';
+  fil.forEach(function(r){
+    var nAdj=(C.caja_adjuntos||[]).filter(function(a){return a.caja_tipo==='deam'&&a.registro_id===r.id;}).length;
+    var adjCell=nAdj>0?
+      '<button class="miniBtn" onclick="verAdjuntosCaja(\'deam\','+r.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
+      '<button class="miniBtn" onclick="verAdjuntosCaja(\'deam\','+r.id+')" style="color:var(--text2)">📎</button>';
+    var urlCell=r.url?'<a href="'+escapeHtml(r.url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
+    var estBadge=r.estado==='Pagado'?'<span class="badge bg">✓ Pagado</span>':'<span class="badge by">⏳ Pendiente</span>';
+    rows+='<tr>'+
+      '<td>'+(r.numero||'—')+'</td>'+
+      '<td>'+fmtD(r.fecha)+'</td>'+
+      '<td>'+escapeHtml(r.proveedor||'—')+'</td>'+
+      '<td>'+(r.concepto?'<span class="badge bb">'+escapeHtml(r.concepto)+'</span>':'—')+'</td>'+
+      '<td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeHtml(r.detalle||'')+'">'+escapeHtml(r.detalle||'')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">$'+fmtN(r.importe_ars||0)+'</td>'+
+      '<td>'+(r.dueno_pago?'<span class="badge by">'+escapeHtml(r.dueno_pago)+'</span>':'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(r.tipo_cambio?fmtN(r.tipo_cambio):'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">$'+fmtN(r.importe_usd||0)+'</td>'+
+      '<td>'+estBadge+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      '<td>'+urlCell+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalCaja(\'deam\','+r.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteCajaItem(\'deam\','+r.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  var tabla='<div class="twrap">'+
+    '<div style="overflow-x:auto"><table style="min-width:1400px"><thead><tr>'+
+      '<th>'+sortBtn('numero','N°')+'</th>'+
+      '<th>'+sortBtn('fecha','Fecha')+'</th>'+
+      '<th>'+sortBtn('proveedor','Proveedor')+'</th>'+
+      '<th>'+sortBtn('concepto','Concepto')+'</th>'+
+      '<th>Detalle</th>'+
+      '<th style="text-align:right">'+sortBtn('importe_ars','Importe $ Arg')+'</th>'+
+      '<th>'+sortBtn('dueno_pago','Dueño')+'</th>'+
+      '<th style="text-align:right">'+sortBtn('tipo_cambio','T.Cambio')+'</th>'+
+      '<th style="text-align:right">'+sortBtn('importe_usd','USD')+'</th>'+
+      '<th>'+sortBtn('estado','Estado')+'</th>'+
+      '<th>📎</th><th>URL</th><th></th>'+
+      '</tr></thead><tbody>'+
+      (rows||'<tr><td colspan="13" style="text-align:center;color:var(--text2);padding:20px">Sin registros. <a href="#" onclick="abrirModalCaja(\'deam\',0);return false;" style="color:var(--cyan)">Agregar primero →</a></td></tr>')+
+      '</tbody></table></div></div>';
+
+  var totales='<div class="cards" style="margin-top:14px">'+
+    '<div class="card"><div class="lbl">Total $ Arg</div><div class="val cyan">$'+fmtN(totArs)+'</div><div class="sub">filtrado</div></div>'+
+    '<div class="card"><div class="lbl">Total USD</div><div class="val yellow">$'+fmtN(totUsd)+'</div></div>'+
+    '<div class="card"><div class="lbl">Registros</div><div class="val">'+fil.length+'</div><div class="sub">de '+C.caja_deam.length+'</div></div>'+
+    '</div>';
+
+  return filtrosHTML+tabla+totales;
+}
+
+// ============================================================
+// CAJA LEEX (derivada de Compras tipo=Chile)
+// ============================================================
+function renderCajaLeex(){
+  var F=cajaLeexFiltros;
+  var S=cajaLeexSort;
+
+  var comprasChile=C.compras.filter(function(c){return c.tipo_operacion==='Chile';});
+  var fil=comprasChile.filter(function(c){
+    if(F.busqueda){
+      var b=F.busqueda.toLowerCase();
+      var t=((c.proveedor||'')+' '+(c.pedido||'')+' '+(c.notas||'')+' '+(c.lote||'')).toLowerCase();
+      if(t.indexOf(b)===-1)return false;
+    }
+    if(F.fecha&&c.fecha_compra!==F.fecha)return false;
+    if(F.proveedor&&(c.proveedor||'').toLowerCase().indexOf(F.proveedor.toLowerCase())===-1)return false;
+    if(F.estado_pago&&c.estado_pago!==F.estado_pago)return false;
+    return true;
+  });
+
+  fil.sort(function(a,b){
+    var va=a[S.col],vb=b[S.col];
+    if(va==null)va='';if(vb==null)vb='';
+    return (S.asc?1:-1)*String(va).localeCompare(String(vb));
+  });
+
+  // Calcular total USD (USD FOB)
+  var totUsd=0;
+  fil.forEach(function(c){totUsd+=parseFloat(c.usd_fob)||0;});
+
+  function sortBtn(col,label){
+    var arrow=S.col===col?(S.asc?' ↑':' ↓'):'';
+    return '<a href="#" onclick="cajaLeexSort.col=\''+col+'\';cajaLeexSort.asc='+(S.col===col?!S.asc:true)+';go(\'chile\');return false;" style="color:inherit;text-decoration:none">'+label+arrow+'</a>';
+  }
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión'];
+
+  var hayFiltros=F.busqueda||F.fecha||F.proveedor||F.estado_pago;
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+    '<input type="text" value="'+escapeHtml(F.busqueda)+'" placeholder="🔍 Buscar..." oninput="cajaLeexFiltros.busqueda=this.value;clearTimeout(window._clb);window._clb=setTimeout(function(){go(\'chile\')},300)" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none"/>'+
+    '<input type="date" value="'+F.fecha+'" onchange="cajaLeexFiltros.fecha=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<input type="text" value="'+escapeHtml(F.proveedor)+'" placeholder="Proveedor..." oninput="cajaLeexFiltros.proveedor=this.value;clearTimeout(window._clp);window._clp=setTimeout(function(){go(\'chile\')},300)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;width:150px"/>'+
+    '<select onchange="cajaLeexFiltros.estado_pago=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosPago,F.estado_pago)+'</select>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="cajaLeexFiltros={busqueda:\'\',fecha:\'\',proveedor:\'\',estado_pago:\'\'};go(\'chile\')">✕</button>':'')+
+    '<button class="btn bs sm" onclick="exportCajaLeex()">⬇ Excel</button>'+
+    '</div>';
+
+  var rows='';
+  fil.forEach(function(c){
+    var estBadge='';
+    if(c.estado_pago==='Pagado')estBadge='<span class="badge bg">✓ Pagado</span>';
+    else if(c.estado_pago==='Enviado a Pagar')estBadge='<span class="badge bb">📤 Enviado</span>';
+    else if(c.estado_pago==='En Revisión')estBadge='<span class="badge by">🔍 Revisión</span>';
+    else estBadge='<span class="badge bgr">⏸ '+escapeHtml(c.estado_pago||'—')+'</span>';
+    var docCell=c.documento_url?'<a href="'+escapeHtml(c.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
+    rows+='<tr>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'#'+c.id)+'</td>'+
+      '<td>'+fmtD(c.fecha_compra)+'</td>'+
+      '<td>'+escapeHtml(c.proveedor||'—')+'</td>'+
+      '<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeHtml(c.notas||c.lote||'')+'">'+escapeHtml(c.notas||c.lote||'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">'+(c.usd_fob?fmtN(c.usd_fob):'—')+'</td>'+
+      '<td>USD</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(c.tipo_cambio?fmtN(c.tipo_cambio):'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">$'+(c.usd_fob?fmtN(c.usd_fob):'0.00')+'</td>'+
+      '<td>'+estBadge+'</td>'+
+      '<td>'+docCell+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirCompraOriginal('+c.id+')" title="Ver/editar en Compras">→ Ver</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  var tabla='<div class="twrap">'+
+    '<div style="overflow-x:auto"><table style="min-width:1200px"><thead><tr>'+
+      '<th>N° Compra</th>'+
+      '<th>'+sortBtn('fecha_compra','Fecha')+'</th>'+
+      '<th>'+sortBtn('proveedor','Proveedor')+'</th>'+
+      '<th>Producto / Detalle</th>'+
+      '<th style="text-align:right">Importe</th>'+
+      '<th>Moneda</th>'+
+      '<th style="text-align:right">T.Cambio</th>'+
+      '<th style="text-align:right">Importe USD</th>'+
+      '<th>'+sortBtn('estado_pago','Estado')+'</th>'+
+      '<th>Doc.</th><th></th>'+
+      '</tr></thead><tbody>'+
+      (rows||'<tr><td colspan="11" style="text-align:center;color:var(--text2);padding:20px">Sin compras con tipo "Chile". <a href="#" onclick="go(\'compras\');return false;" style="color:var(--cyan)">Ir a Compras →</a></td></tr>')+
+      '</tbody></table></div></div>';
+
+  var totales='<div class="cards" style="margin-top:14px">'+
+    '<div class="card"><div class="lbl">Total USD</div><div class="val cyan">$'+fmtN(totUsd)+'</div><div class="sub">filtrado</div></div>'+
+    '<div class="card"><div class="lbl">Registros</div><div class="val">'+fil.length+'</div><div class="sub">de '+comprasChile.length+' Chile</div></div>'+
+    '</div>'+
+    '<div class="alert ainfo" style="margin-top:14px">🔄 Esta vista se sincroniza automáticamente con la sección <a href="#" onclick="go(\'compras\');return false;" style="color:var(--cyan)">Compras</a>. Cualquier compra con <strong>Tipo de Operación = Chile</strong> aparece acá. Para modificar una fila, hacé clic en <strong>"→ Ver"</strong>.</div>';
+
+  return filtrosHTML+tabla+totales;
+}
+
+function abrirCompraOriginal(id){
+  // Va a la página Compras y abre el modal de edición
+  go('compras');
+  setTimeout(function(){if(typeof abrirModalCompra==='function')abrirModalCompra(id);},150);
+}
+
+// ============================================================
+// MODAL: NUEVA / EDITAR FILA CAJA (Chile o DEAM)
+// ============================================================
+function abrirModalCaja(tipo,id){
+  var conceptos=C.cfg_listas.concepto_caja||[];
+  var estados=C.cfg_listas.estado_caja||['Pendiente','Pagado'];
+  var duenos=C.cfg_listas.dueno_pago_caja||['DEAM','IBS'];
+
+  var r;
+  if(tipo==='chile'){
+    r=id===0?{fecha:hoy(),proveedor:'',concepto:'',detalle:'',importe_clp:'',importe_iva_clp:'',estado:'Pendiente',url:'',tipo_cambio_usd:''}:(C.caja_oficina_chile.find(function(x){return x.id===id;})||{});
+    editingChile=id;
+  }else{
+    r=id===0?{fecha:hoy(),proveedor:'',concepto:'',detalle:'',importe_ars:'',dueno_pago:'',tipo_cambio:'',importe_usd:'',estado:'Pendiente',url:''}:(C.caja_deam.find(function(x){return x.id===id;})||{});
+    editingDeam=id;
+  }
+
+  function opts(arr,sel,placeholder){
+    var h='<option value="">'+(placeholder||'— elegir —')+'</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var titulo=(id===0?'➕ Nueva fila — ':'✏ Editar fila #'+id+' — ')+(tipo==='chile'?'Caja Oficina Chile':'Caja DEAM');
+
+  var fields='';
+  if(tipo==='chile'){
+    fields=
+      '<div class="fg3">'+
+      '<div class="f"><label>Fecha</label><input type="date" id="cjF" value="'+(r.fecha||'')+'"/></div>'+
+      '<div class="f"><label>Proveedor</label><input type="text" id="cjProv" value="'+escapeHtml(r.proveedor||'')+'"/></div>'+
+      '<div class="f"><label>Concepto</label><select id="cjConc">'+opts(conceptos,r.concepto,'')+'</select></div>'+
+      '</div>'+
+      '<div class="f" style="margin-top:10px"><label>Detalle</label><input type="text" id="cjDet" value="'+escapeHtml(r.detalle||'')+'" placeholder="Descripción libre..."/></div>'+
+      '<div class="fg3" style="margin-top:10px">'+
+      '<div class="f"><label>Importe $ Chile</label><input type="number" id="cjImp" value="'+(r.importe_clp||'')+'" step="0.01" min="0"/></div>'+
+      '<div class="f"><label>IVA $ Chile</label><input type="number" id="cjIva" value="'+(r.importe_iva_clp||'')+'" step="0.01" min="0"/></div>'+
+      '<div class="f"><label>Estado</label><select id="cjEst">'+opts(estados,r.estado||'Pendiente','')+'</select></div>'+
+      '</div>'+
+      '<div class="fg2" style="margin-top:10px">'+
+      '<div class="f"><label>T. Cambio USD <span style="font-size:9px;color:var(--text2)">(para saldo vigente)</span></label><input type="number" id="cjTC" value="'+(r.tipo_cambio_usd||'')+'" step="0.0001" min="0" placeholder="opcional"/></div>'+
+      '<div class="f"><label>URL externa</label><input type="text" id="cjUrl" value="'+escapeHtml(r.url||'')+'" placeholder="https://..."/></div>'+
+      '</div>';
+  }else{
+    fields=
+      '<div class="fg3">'+
+      '<div class="f"><label>Fecha</label><input type="date" id="cjF" value="'+(r.fecha||'')+'"/></div>'+
+      '<div class="f"><label>Proveedor</label><input type="text" id="cjProv" value="'+escapeHtml(r.proveedor||'')+'"/></div>'+
+      '<div class="f"><label>Concepto</label><select id="cjConc">'+opts(conceptos,r.concepto,'')+'</select></div>'+
+      '</div>'+
+      '<div class="f" style="margin-top:10px"><label>Detalle</label><input type="text" id="cjDet" value="'+escapeHtml(r.detalle||'')+'" placeholder="Descripción libre..."/></div>'+
+      '<div class="fg4" style="margin-top:10px">'+
+      '<div class="f"><label>Importe $ Arg</label><input type="number" id="cjImp" value="'+(r.importe_ars||'')+'" step="0.01" min="0" oninput="calcDeamUsd()"/></div>'+
+      '<div class="f"><label>Dueño del Pago</label><select id="cjDue">'+opts(duenos,r.dueno_pago,'')+'</select></div>'+
+      '<div class="f"><label>T. Cambio</label><input type="number" id="cjTC" value="'+(r.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcDeamUsd()"/></div>'+
+      '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--cyan)">(auto)</span></label><input type="text" id="cjUsd" value="'+(r.importe_usd?fmtN(r.importe_usd):'')+'" readonly style="color:var(--yellow);font-weight:600"/></div>'+
+      '</div>'+
+      '<div class="fg2" style="margin-top:10px">'+
+      '<div class="f"><label>Estado</label><select id="cjEst">'+opts(estados,r.estado||'Pendiente','')+'</select></div>'+
+      '<div class="f"><label>URL externa</label><input type="text" id="cjUrl" value="'+escapeHtml(r.url||'')+'" placeholder="https://..."/></div>'+
+      '</div>';
+  }
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:820px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    fields+
+    (id>0?'<div class="alert ainfo" style="margin-top:14px">💡 Los archivos se gestionan desde el botón 📎 de la fila.</div>':
+      '<div class="alert ainfo" style="margin-top:14px">💡 Una vez guardada la fila vas a poder subir archivos (PDF, imagen, Excel) desde la columna 📎 de la tabla.</div>')+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarCajaItem(\''+tipo+'\')">💾 '+(id===0?'Crear':'Guardar cambios')+'</button>'+
+    (id>0?'<button class="btn bs" onclick="verAdjuntosCaja(\''+tipo+'\','+id+');cerrarModalCaja()">📎 Adjuntos</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalCaja()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalCaja');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalCaja(){
+  var m=document.getElementById('modalCaja');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editingChile=null;editingDeam=null;editingAporte=null;
+}
+
+function calcDeamUsd(){
+  var imp=parseFloat(document.getElementById('cjImp').value)||0;
+  var tc=parseFloat(document.getElementById('cjTC').value)||0;
+  document.getElementById('cjUsd').value=tc>0?fmtN(imp/tc):'';
+}
+
+function guardarCajaItem(tipo){
+  var url=document.getElementById('cjUrl').value.trim();
+  if(tipo==='chile'){
+    var payload={
+      fecha:document.getElementById('cjF').value||null,
+      proveedor:document.getElementById('cjProv').value.trim()||null,
+      concepto:document.getElementById('cjConc').value||null,
+      detalle:document.getElementById('cjDet').value.trim()||null,
+      importe_clp:parseFloat(document.getElementById('cjImp').value)||0,
+      importe_iva_clp:parseFloat(document.getElementById('cjIva').value)||0,
+      estado:document.getElementById('cjEst').value||'Pendiente',
+      tipo_cambio_usd:parseFloat(document.getElementById('cjTC').value)||null,
+      url:url||null
+    };
+    if(payload.tipo_cambio_usd&&payload.importe_clp){
+      payload.importe_usd=payload.importe_clp/payload.tipo_cambio_usd;
+    }
+    if(editingChile===0){
+      // Numero correlativo
+      var maxN=0;
+      C.caja_oficina_chile.forEach(function(r){if(r.numero&&r.numero>maxN)maxN=r.numero;});
+      payload.numero=maxN+1;
+      sbPost('caja_oficina_chile',payload).then(function(res){
+        if(res&&res.code){toast('Error: '+res.message,'error');return;}
+        toast('Fila creada','success');
+        cerrarModalCaja();
+        reload('chile');
+      });
+    }else{
+      sbPatch('caja_oficina_chile',editingChile,payload).then(function(res){
+        if(res&&res.code){toast('Error: '+res.message,'error');return;}
+        toast('Fila actualizada','success');
+        cerrarModalCaja();
+        reload('chile');
+      });
+    }
+  }else{
+    var imp=parseFloat(document.getElementById('cjImp').value)||0;
+    var tc=parseFloat(document.getElementById('cjTC').value)||0;
+    var payload={
+      fecha:document.getElementById('cjF').value||null,
+      proveedor:document.getElementById('cjProv').value.trim()||null,
+      concepto:document.getElementById('cjConc').value||null,
+      detalle:document.getElementById('cjDet').value.trim()||null,
+      importe_ars:imp,
+      dueno_pago:document.getElementById('cjDue').value||null,
+      tipo_cambio:tc||null,
+      importe_usd:tc>0?imp/tc:null,
+      estado:document.getElementById('cjEst').value||'Pendiente',
+      url:url||null
+    };
+    if(editingDeam===0){
+      var maxN=0;
+      C.caja_deam.forEach(function(r){if(r.numero&&r.numero>maxN)maxN=r.numero;});
+      payload.numero=maxN+1;
+      sbPost('caja_deam',payload).then(function(res){
+        if(res&&res.code){toast('Error: '+res.message,'error');return;}
+        toast('Fila creada','success');
+        cerrarModalCaja();
+        reload('chile');
+      });
+    }else{
+      sbPatch('caja_deam',editingDeam,payload).then(function(res){
+        if(res&&res.code){toast('Error: '+res.message,'error');return;}
+        toast('Fila actualizada','success');
+        cerrarModalCaja();
+        reload('chile');
+      });
+    }
+  }
+}
+
+function deleteCajaItem(tipo,id){
+  var tabla=tipo==='chile'?'caja_oficina_chile':'caja_deam';
+  var coll=tipo==='chile'?C.caja_oficina_chile:C.caja_deam;
+  var r=coll.find(function(x){return x.id===id;});
+  if(!r)return;
+  var nAdj=(C.caja_adjuntos||[]).filter(function(a){return a.caja_tipo===tipo&&a.registro_id===id;}).length;
+  var msg='¿Eliminar esta fila?';
+  if(nAdj>0)msg+='\n'+nAdj+' adjunto'+(nAdj===1?'':'s')+' se borrará'+(nAdj===1?'':'n')+'.';
+  if(!confirm(msg))return;
+  var adjs=(C.caja_adjuntos||[]).filter(function(a){return a.caja_tipo===tipo&&a.registro_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    // Borrar adjuntos registros
+    fetch(SB_URL+'/rest/v1/caja_adjuntos?caja_tipo=eq.'+tipo+'&registro_id=eq.'+id,{method:'DELETE',headers:sbH()}).then(function(){
+      sbDelete(tabla,id).then(function(){
+        toast('Fila eliminada','success');
+        reload('chile');
+      });
+    });
+  });
+}
+
+// ============================================================
+// MODAL: SALDO INICIAL Y APORTES
+// ============================================================
+function abrirModalSaldoInicial(){
+  var saldoIni=(C.caja_chile_aportes||[]).find(function(a){return a.es_saldo_inicial;});
+  var r=saldoIni||{fecha:hoy(),descripcion:'Saldo inicial',importe_usd:'',url:''};
+  var existe=!!saldoIni;
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--lime);border-radius:12px;max-width:560px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<h3 style="font-size:15px;font-weight:600">💰 '+(existe?'Editar':'Configurar')+' Saldo Inicial USD</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Este es el saldo único de arranque en USD. Los aportes y gastos posteriores se calculan sobre este valor.</div>'+
+    '<div class="fg2">'+
+    '<div class="f"><label>Fecha</label><input type="date" id="siF" value="'+(r.fecha||hoy())+'"/></div>'+
+    '<div class="f"><label>Importe USD</label><input type="number" id="siImp" value="'+(r.importe_usd||'')+'" step="0.01" placeholder="0.00"/></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:10px"><label>Descripción (opcional)</label><input type="text" id="siDesc" value="'+escapeHtml(r.descripcion||'Saldo inicial')+'"/></div>'+
+    '<div class="factions" style="margin-top:18px">'+
+    '<button class="btn bp" onclick="guardarSaldoInicial('+(saldoIni?saldoIni.id:0)+')">💾 Guardar</button>'+
+    (existe?'<button class="btn bd" onclick="borrarSaldoInicial('+saldoIni.id+')">🗑 Borrar</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalCaja()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalCaja');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function guardarSaldoInicial(id){
+  var f=document.getElementById('siF').value;
+  var imp=parseFloat(document.getElementById('siImp').value);
+  var desc=document.getElementById('siDesc').value.trim();
+  if(!f||isNaN(imp)){toast('Completá fecha e importe','error');return;}
+  var payload={fecha:f,descripcion:desc||'Saldo inicial',importe_usd:imp,es_saldo_inicial:true,created_by:CU?CU.u:null};
+  if(id===0){
+    sbPost('caja_oficina_chile_aportes',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Saldo inicial guardado','success');
+      cerrarModalCaja();
+      reload('chile');
+    });
+  }else{
+    sbPatch('caja_oficina_chile_aportes',id,payload).then(function(){
+      toast('Saldo inicial actualizado','success');
+      cerrarModalCaja();
+      reload('chile');
+    });
+  }
+}
+
+function borrarSaldoInicial(id){
+  if(!confirm('¿Borrar el saldo inicial?\nLa caja vuelve a partir de 0.'))return;
+  sbDelete('caja_oficina_chile_aportes',id).then(function(){
+    toast('Saldo inicial borrado','info');
+    cerrarModalCaja();
+    reload('chile');
+  });
+}
+
+function abrirModalAporte(id){
+  editingAporte=id;
+  var r=id===0?{fecha:hoy(),descripcion:'',importe_usd:'',url:''}:((C.caja_chile_aportes||[]).find(function(x){return x.id===id;})||{});
+  if(r.es_saldo_inicial){abrirModalSaldoInicial();return;}
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--green);border-radius:12px;max-width:560px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<h3 style="font-size:15px;font-weight:600">💵 '+(id===0?'Nuevo Aporte de Capital':'Editar Aporte #'+id)+' (USD)</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="fg2">'+
+    '<div class="f"><label>Fecha</label><input type="date" id="apF" value="'+(r.fecha||hoy())+'"/></div>'+
+    '<div class="f"><label>Importe USD</label><input type="number" id="apImp" value="'+(r.importe_usd||'')+'" step="0.01" min="0"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-top:10px">'+
+    '<div class="f"><label>Descripción</label><input type="text" id="apDesc" value="'+escapeHtml(r.descripcion||'')+'" placeholder="Ej: Aporte socio Mayo"/></div>'+
+    '<div class="f"><label>URL externa</label><input type="text" id="apUrl" value="'+escapeHtml(r.url||'')+'"/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px">'+
+    '<button class="btn bp" onclick="guardarAporte()">💾 '+(id===0?'Crear':'Guardar')+'</button>'+
+    '<button class="btn bs" onclick="cerrarModalCaja()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalCaja');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function guardarAporte(){
+  var f=document.getElementById('apF').value;
+  var imp=parseFloat(document.getElementById('apImp').value);
+  var desc=document.getElementById('apDesc').value.trim();
+  var url=document.getElementById('apUrl').value.trim();
+  if(!f||isNaN(imp)||imp<=0){toast('Completá fecha e importe positivo','error');return;}
+  var payload={fecha:f,descripcion:desc||'Aporte',importe_usd:imp,es_saldo_inicial:false,url:url||null,created_by:CU?CU.u:null};
+  if(editingAporte===0){
+    sbPost('caja_oficina_chile_aportes',payload).then(function(){
+      toast('Aporte registrado','success');
+      cerrarModalCaja();
+      reload('chile');
+    });
+  }else{
+    sbPatch('caja_oficina_chile_aportes',editingAporte,payload).then(function(){
+      toast('Aporte actualizado','success');
+      cerrarModalCaja();
+      reload('chile');
+    });
+  }
+}
+
+function deleteAporte(id){
+  if(!confirm('¿Eliminar este aporte de capital?'))return;
+  sbDelete('caja_oficina_chile_aportes',id).then(function(){
+    toast('Aporte eliminado','success');
+    reload('chile');
+  });
+}
+
+// ============================================================
+// MODAL: ADJUNTOS DE CAJA (Chile o DEAM)
+// ============================================================
+function verAdjuntosCaja(tipo,id){
+  modalAdjCajaTipo=tipo;
+  modalAdjCajaId=id;
+  renderModalAdjCaja();
+  document.getElementById('modalCajaAdj').style.display='flex';
+}
+function cerrarModalAdjCaja(){
+  var m=document.getElementById('modalCajaAdj');
+  if(m){m.style.display='none';m.innerHTML='';}
+  modalAdjCajaTipo=null;modalAdjCajaId=null;
+}
+function renderModalAdjCaja(){
+  var coll=modalAdjCajaTipo==='chile'?C.caja_oficina_chile:C.caja_deam;
+  var r=coll.find(function(x){return x.id===modalAdjCajaId;});
+  if(!r)return;
+  var adjs=(C.caja_adjuntos||[]).filter(function(a){return a.caja_tipo===modalAdjCajaTipo&&a.registro_id===modalAdjCajaId;});
+  var listaHTML='';
+  if(adjs.length===0){
+    listaHTML='<div style="text-align:center;color:var(--text2);padding:30px;font-size:13px">📂 Sin adjuntos todavía</div>';
+  }else{
+    adjs.forEach(function(a){
+      var icono='📄';
+      if(a.tipo_mime&&a.tipo_mime.indexOf('image/')===0)icono='🖼️';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('pdf')>-1)icono='📕';
+      else if(a.tipo_mime&&(a.tipo_mime.indexOf('sheet')>-1||a.tipo_mime.indexOf('excel')>-1))icono='📊';
+      var tamañoKB=a.tamaño_bytes?(a.tamaño_bytes/1024).toFixed(0)+' KB':'-';
+      listaHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">'+
+        '<div style="font-size:24px">'+icono+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.nombre_archivo)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+tamañoKB+' · '+new Date(a.uploaded_at).toLocaleString('es-AR')+(a.uploaded_by?' · '+a.uploaded_by:'')+'</div></div>'+
+        '<a href="'+a.storage_url+'" target="_blank" class="btn sm bs">👁</a> '+
+        '<a href="'+a.storage_url+'" download="'+escapeHtml(a.nombre_archivo)+'" class="btn sm bs">📥</a> '+
+        '<button class="btn sm bd" onclick="eliminarAdjCaja('+a.id+')">🗑</button>'+
+        '</div>';
+    });
+  }
+  var titulo=modalAdjCajaTipo==='chile'?'Caja Chile #'+r.numero:'Caja DEAM #'+r.numero;
+  var content=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">📎 Adjuntos — '+titulo+'</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+fmtD(r.fecha)+' · '+escapeHtml(r.proveedor||'')+' · '+escapeHtml(r.concepto||'')+'</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjCaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">'+adjs.length+' archivo'+(adjs.length===1?'':'s')+'</div>'+
+    listaHTML+
+    '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:20px;text-align:center">'+
+    '<input type="file" id="adjCajaFileInp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="subirAdjuntosCaja(event)"/>'+
+    '<div style="font-size:32px;margin-bottom:6px">📎</div>'+
+    '<div style="font-size:13px;font-weight:600;color:var(--cyan)">Click para seleccionar archivos</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:4px">PDF · JPG · PNG · XLSX · XLS (máx. 10MB c/u)</div>'+
+    '</label>'+
+    '<div id="adjCajaProgress"></div>'+
+    '</div>'+
+    '</div></div>';
+  document.getElementById('modalCajaAdj').innerHTML=content;
+}
+
+function subirAdjuntosCaja(ev){
+  var files=ev.target.files;
+  if(!files||files.length===0)return;
+  var tipo=modalAdjCajaTipo,id=modalAdjCajaId;
+  if(!tipo||!id){toast('Registro perdido','error');return;}
+  var validos=[],errores=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>ADJ_MAX_SIZE){errores.push(f.name+' (>10MB)');continue;}
+    var ext=f.name.toLowerCase().split('.').pop();
+    if(['pdf','jpg','jpeg','png','xlsx','xls'].indexOf(ext)===-1&&ADJ_MIME_OK.indexOf(f.type)===-1){
+      errores.push(f.name+' (tipo no permitido)');continue;
+    }
+    validos.push(f);
+  }
+  if(errores.length>0)toast('Saltados: '+errores.join(', '),'error');
+  if(validos.length===0){ev.target.value='';return;}
+  var prog=document.getElementById('adjCajaProgress');
+  prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subiendo '+validos.length+'...</div>';
+  var chain=Promise.resolve();
+  var subidos=0,fallos=0;
+  validos.forEach(function(f){
+    chain=chain.then(function(){return subirUnArchivoCaja(tipo,id,f);}).then(function(ok){
+      if(ok)subidos++;else fallos++;
+      prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subidos '+subidos+'/'+validos.length+(fallos>0?' · '+fallos+' fallos':'')+'</div>';
+    });
+  });
+  chain.then(function(){
+    ev.target.value='';
+    if(fallos>0)toast(subidos+' subidos, '+fallos+' fallaron','error');
+    else toast(subidos+' archivo'+(subidos===1?'':'s')+' subido'+(subidos===1?'':'s'),'success');
+    sbGet('caja_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+      C.caja_adjuntos=Array.isArray(r)?r:[];
+      renderModalAdjCaja();
+    });
+  });
+}
+
+function subirUnArchivoCaja(tipo,id,file){
+  var uuid='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+  var safeName=file.name.replace(/[^\w.\-]/g,'_');
+  var prefix=tipo==='chile'?'caja_chile':'caja_deam';
+  var path=prefix+'/'+id+'/'+uuid+'-'+safeName;
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+    body:file
+  }).then(function(r){
+    if(!r.ok){return r.json().then(function(err){throw new Error(err.message||'Error');});}
+    return r.json();
+  }).then(function(){
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    return sbPost('caja_adjuntos',{
+      caja_tipo:tipo,registro_id:id,nombre_archivo:file.name,
+      tipo_mime:file.type||null,tamaño_bytes:file.size,
+      storage_path:path,storage_url:publicUrl,uploaded_by:CU?CU.u:null
+    });
+  }).then(function(){return true;}).catch(function(e){
+    console.error('Error subiendo '+file.name+':',e);return false;
+  });
+}
+
+function eliminarAdjCaja(adjId){
+  var adj=(C.caja_adjuntos||[]).find(function(a){return a.id===adjId;});
+  if(!adj){toast('Adjunto no encontrado','error');return;}
+  if(!confirm('¿Eliminar "'+adj.nombre_archivo+'"?'))return;
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+adj.storage_path,{
+    method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(){
+    sbDelete('caja_adjuntos',adjId).then(function(){
+      toast('Adjunto eliminado','success');
+      sbGet('caja_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+        C.caja_adjuntos=Array.isArray(r)?r:[];
+        renderModalAdjCaja();
+      });
+    });
+  });
+}
+
+// ============================================================
+// EXPORTS A EXCEL
+// ============================================================
+function exportCajaChile(){
+  var fil=C.caja_oficina_chile;
+  var data=fil.map(function(r){
+    return {
+      'N°':r.numero||'',
+      'Fecha':fmtD(r.fecha),
+      'Proveedor':r.proveedor||'',
+      'Concepto':r.concepto||'',
+      'Detalle':r.detalle||'',
+      'Importe $ Chile':parseFloat(r.importe_clp)||0,
+      'IVA $ Chile':parseFloat(r.importe_iva_clp)||0,
+      'T.Cambio USD':parseFloat(r.tipo_cambio_usd)||'',
+      'Importe USD':parseFloat(r.importe_usd)||'',
+      'Estado':r.estado||'',
+      'URL':r.url||''
+    };
+  });
+  exportExcel(data,['N°','Fecha','Proveedor','Concepto','Detalle','Importe $ Chile','IVA $ Chile','T.Cambio USD','Importe USD','Estado','URL'],'Caja_Oficina_Chile','Chile');
+}
+
+function exportCajaDeam(){
+  var fil=C.caja_deam;
+  var data=fil.map(function(r){
+    return {
+      'N°':r.numero||'',
+      'Fecha':fmtD(r.fecha),
+      'Proveedor':r.proveedor||'',
+      'Concepto':r.concepto||'',
+      'Detalle':r.detalle||'',
+      'Importe $ Arg':parseFloat(r.importe_ars)||0,
+      'Dueño Pago':r.dueno_pago||'',
+      'T.Cambio':parseFloat(r.tipo_cambio)||'',
+      'Importe USD':parseFloat(r.importe_usd)||0,
+      'Estado':r.estado||'',
+      'URL':r.url||''
+    };
+  });
+  exportExcel(data,['N°','Fecha','Proveedor','Concepto','Detalle','Importe $ Arg','Dueño Pago','T.Cambio','Importe USD','Estado','URL'],'Caja_DEAM','DEAM');
+}
+
+function exportCajaLeex(){
+  var comprasChile=C.compras.filter(function(c){return c.tipo_operacion==='Chile';});
+  var data=comprasChile.map(function(c){
+    return {
+      'N° Compra':c.pedido||'#'+c.id,
+      'Fecha':fmtD(c.fecha_compra),
+      'Proveedor':c.proveedor||'',
+      'Detalle':c.notas||c.lote||'',
+      'Importe USD':parseFloat(c.usd_fob)||0,
+      'Moneda':'USD',
+      'T.Cambio':parseFloat(c.tipo_cambio)||'',
+      'Importe USD (total)':parseFloat(c.usd_fob)||0,
+      'Estado':c.estado_pago||'',
+      'Documento':c.documento_url||''
+    };
+  });
+  exportExcel(data,['N° Compra','Fecha','Proveedor','Detalle','Importe USD','Moneda','T.Cambio','Importe USD (total)','Estado','Documento'],'Caja_Leex_Chile','Leex');
+}
+
+function exportSaldoVigente(){
+  // Reconstruir movimientos como en render
+  var saldoInicial=(C.caja_chile_aportes||[]).find(function(a){return a.es_saldo_inicial;});
+  var saldoInicialUsd=saldoInicial?parseFloat(saldoInicial.importe_usd):0;
+  var movs=[];
+  C.caja_oficina_chile.forEach(function(r){
+    var imp=parseFloat(r.importe_clp)||0;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    movs.push({tipo:'Gasto',fecha:r.fecha,proveedor:r.proveedor,concepto:r.concepto,importe_clp:imp,tc:tc,importe_usd:tc>0?imp/tc:0,signo:-1,url:r.url});
+  });
+  (C.caja_chile_aportes||[]).forEach(function(a){
+    if(a.es_saldo_inicial)return;
+    movs.push({tipo:'Aporte de capital',fecha:a.fecha,proveedor:'',concepto:a.descripcion||'Aporte',importe_clp:null,tc:null,importe_usd:parseFloat(a.importe_usd)||0,signo:1,url:a.url});
+  });
+  movs.sort(function(a,b){if(!a.fecha)return 1;if(!b.fecha)return -1;return a.fecha.localeCompare(b.fecha);});
+  var saldo=saldoInicialUsd;
+  var data=[{Fecha:saldoInicial?fmtD(saldoInicial.fecha):'',Tipo:'Saldo Inicial',Proveedor:'',Concepto:saldoInicial?saldoInicial.descripcion:'',Importe_CLP:'',Tipo_Cambio:'',Importe_USD:saldoInicialUsd,Saldo_USD:saldoInicialUsd,URL:''}];
+  movs.forEach(function(m){
+    saldo+=m.signo*m.importe_usd;
+    data.push({Fecha:fmtD(m.fecha),Tipo:m.tipo,Proveedor:m.proveedor||'',Concepto:m.concepto||'',Importe_CLP:m.importe_clp||'',Tipo_Cambio:m.tc||'',Importe_USD:m.signo*m.importe_usd,Saldo_USD:saldo,URL:m.url||''});
+  });
+  exportExcel(data,['Fecha','Tipo','Proveedor','Concepto','Importe_CLP','Tipo_Cambio','Importe_USD','Saldo_USD','URL'],'Saldo_Vigente_USD','SaldoVigente');
+}
 
 </script>
 <script>
