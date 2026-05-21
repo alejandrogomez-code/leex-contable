@@ -491,7 +491,10 @@ function go(page){
 }
 function reload(page){
   document.getElementById('main').innerHTML='<div class="loading"><div class="spinner"></div>Actualizando...</div>';
-  loadAll().then(function(){go(page||'dashboard');});
+  // Pequeño delay para que Supabase propague writes recientes antes del SELECT
+  setTimeout(function(){
+    loadAll().then(function(){go(page||'dashboard');});
+  },300);
 }
 
 // ============================================================
@@ -3267,8 +3270,13 @@ function calcImporteCompra(){
 }
 
 function guardarCompra(){
-  var fob=parseFloat(document.getElementById('cmpFob').value)||0;
-  var tc=parseFloat(document.getElementById('cmpTC').value)||0;
+  var fob=parseFloat(document.getElementById('cmpFob').value);
+  var tc=parseFloat(document.getElementById('cmpTC').value);
+  // Si son NaN, las dejo como null (no las mando) en vez de 0
+  if(isNaN(fob))fob=null;
+  if(isNaN(tc))tc=null;
+  var importeTotal=(fob!==null&&tc!==null)?fob*tc:null;
+
   var payload={
     fecha_compra:document.getElementById('cmpFecha').value||null,
     tipo_operacion:document.getElementById('cmpTipoOp').value||null,
@@ -3278,37 +3286,81 @@ function guardarCompra(){
     pi_ci:document.getElementById('cmpPiCi').value.trim()||null,
     codigo_pago:document.getElementById('cmpCodPago').value.trim()||null,
     swift_cuit_despachante:document.getElementById('cmpSwift').value.trim()||null,
-    usd_fob:fob||null,
-    tipo_cambio:tc||null,
-    importe_total:(fob*tc)||null,
+    usd_fob:fob,
+    tipo_cambio:tc,
+    importe_total:importeTotal,
     vencimiento_prov:document.getElementById('cmpVto').value||null,
     fecha_pago:document.getElementById('cmpFPago').value||null,
     estado_pago:document.getElementById('cmpEstado').value||'No Pagar',
     documento_url:document.getElementById('cmpDocUrl').value.trim()||null,
     notas:document.getElementById('cmpNotas').value.trim()||null
   };
+
+  // SANITIZAR: remover claves cuyos valores son NaN (Postgres rechaza)
+  Object.keys(payload).forEach(function(k){
+    if(typeof payload[k]==='number'&&isNaN(payload[k]))payload[k]=null;
+  });
+
   if(!payload.fecha_compra&&!payload.proveedor&&!payload.pedido){
     toast('Completá al menos fecha + proveedor o pedido','error');return;
   }
+
   if(editCompraId===0){
-    console.log('[guardarCompra] CREATE payload:', payload);
+    console.log('[guardarCompra] CREATE payload:', JSON.stringify(payload));
     sbPost('compras',payload).then(function(res){
       console.log('[guardarCompra] CREATE response:', res);
-      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      // Detectar TODOS los tipos de error posibles
+      if(!res){toast('Error: respuesta vacía del servidor','error');return;}
+      if(res.code||res.message||res.error){
+        toast('Error Supabase: '+(res.message||res.error||res.code),'error');
+        console.error('[guardarCompra] CREATE error response:',res);return;
+      }
+      if(Array.isArray(res)&&res.length===0){toast('⚠ No se creó la compra (respuesta vacía)','error');return;}
       toast('Compra creada','success');
       cerrarModalCompra();
       reload('compras');
     }).catch(function(e){console.error('[guardarCompra] CREATE error:',e);toast('Error: '+(e.message||e),'error');});
   }else{
-    console.log('[guardarCompra] UPDATE id='+editCompraId+' payload:', payload);
-    sbPatch('compras',editCompraId,payload).then(function(res){
-      console.log('[guardarCompra] UPDATE response:', res);
-      if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      if(Array.isArray(res)&&res.length===0){toast('⚠ La fila no se actualizó (no se encontró id='+editCompraId+')','error');return;}
-      toast('Compra actualizada','success');
+    console.log('[guardarCompra] UPDATE id='+editCompraId+' payload:', JSON.stringify(payload));
+    // Hago el UPDATE manual con fetch para poder leer el status HTTP real
+    fetch(SB_URL+'/rest/v1/compras?id=eq.'+editCompraId,{
+      method:'PATCH',
+      headers:Object.assign({'Prefer':'return=representation'},sbH()),
+      body:JSON.stringify(payload),
+      cache:'no-store'
+    }).then(function(r){
+      console.log('[guardarCompra] UPDATE HTTP status:',r.status);
+      return r.text().then(function(txt){
+        console.log('[guardarCompra] UPDATE raw body:',txt);
+        if(!r.ok){
+          toast('Error HTTP '+r.status+': '+txt.substring(0,200),'error');
+          throw new Error('HTTP '+r.status);
+        }
+        try{return JSON.parse(txt);}catch(e){return txt;}
+      });
+    }).then(function(res){
+      console.log('[guardarCompra] UPDATE response parseada:',res);
+      if(!res){toast('Error: respuesta vacía','error');return;}
+      if(res.code||res.error){toast('Error Supabase: '+(res.message||res.error||res.code),'error');return;}
+      if(Array.isArray(res)&&res.length===0){
+        toast('⚠ El UPDATE no actualizó ninguna fila. ID='+editCompraId+' no existe en BD','error');
+        return;
+      }
+      // Verificar que la respuesta de Supabase realmente tenga el estado_pago que enviamos
+      if(Array.isArray(res)&&res.length>0){
+        var filaActualizada=res[0];
+        console.log('[guardarCompra] Estado guardado en BD:',filaActualizada.estado_pago);
+        if(filaActualizada.estado_pago!==payload.estado_pago){
+          toast('⚠ La BD guardó "'+filaActualizada.estado_pago+'" pero enviamos "'+payload.estado_pago+'"','error');
+        }
+      }
+      toast('Compra actualizada ✓','success');
       cerrarModalCompra();
       reload('compras');
-    }).catch(function(e){console.error('[guardarCompra] UPDATE error:',e);toast('Error: '+(e.message||e),'error');});
+    }).catch(function(e){
+      console.error('[guardarCompra] UPDATE error:',e);
+      if(e.message&&e.message.indexOf('HTTP')!==0)toast('Error: '+(e.message||e),'error');
+    });
   }
 }
 
