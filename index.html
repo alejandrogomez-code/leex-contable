@@ -217,6 +217,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="sbSection" data-sec="proyectos">Proyectos</div>
     <div class="ni" data-sec="proyectos" data-page="chile" onclick="go('chile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Chile</div>
 
+    <div class="divider" data-sec="clientes"></div>
+    <div class="sbSection" data-sec="clientes">Comercial</div>
+    <div class="ni" data-sec="clientes" data-page="clientes" onclick="go('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
+
     <div class="divider" data-sec="sistema"></div>
     <div class="sbSection" data-sec="sistema">Sistema</div>
     <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
@@ -289,7 +293,14 @@ var C={
   caja_oficina_chile:[],
   caja_chile_aportes:[],
   caja_deam:[],
-  caja_adjuntos:[]
+  caja_adjuntos:[],
+  // Clientes / Comercial
+  clientes:[],
+  ventas:[],
+  cobros:[],
+  cobro_imputaciones:[],
+  cliente_adjuntos:[],
+  usuario_permisos:[]
 };
 
 // === ESTADO UI ===
@@ -377,7 +388,13 @@ function loadAll(){
     sbGet('caja_oficina_chile','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
     sbGet('caja_oficina_chile_aportes','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
     sbGet('caja_deam','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),
-    sbGet('caja_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
+    sbGet('caja_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('clientes','select=*&order=nombre_empresa').catch(function(){return[];}),
+    sbGet('ventas','select=*&order=fecha.desc').catch(function(){return[];}),
+    sbGet('cobros','select=*&order=fecha.desc').catch(function(){return[];}),
+    sbGet('cobro_imputaciones','select=*').catch(function(){return[];}),
+    sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('usuario_permisos','select=*').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -421,6 +438,12 @@ function loadAll(){
     C.caja_chile_aportes=Array.isArray(res[21])?res[21]:[];
     C.caja_deam=Array.isArray(res[22])?res[22]:[];
     C.caja_adjuntos=Array.isArray(res[23])?res[23]:[];
+    C.clientes=Array.isArray(res[24])?res[24]:[];
+    C.ventas=Array.isArray(res[25])?res[25]:[];
+    C.cobros=Array.isArray(res[26])?res[26]:[];
+    C.cobro_imputaciones=Array.isArray(res[27])?res[27]:[];
+    C.cliente_adjuntos=Array.isArray(res[28])?res[28]:[];
+    C.usuario_permisos=Array.isArray(res[29])?res[29]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -456,6 +479,7 @@ function go(page){
       compras:pgCompras,
       stock:pgStock,
       chile:pgChile,
+      clientes:pgClientes,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -1526,6 +1550,11 @@ function guardarAsientoModal(yConciliar){
       sbPatch('movimientos_banco',m.id,updMov).then(function(){
         toast(yConciliar?'Asiento generado y conciliado':'Asiento generado','success');
         cerrarModalAsiento();
+        // Detectar si el asiento toca cuentas de venta para preguntar imputación
+        var ventaInfo=detectarAsientoVenta&&detectarAsientoVenta(ast,ls);
+        if(ventaInfo){
+          setTimeout(function(){preguntarImputacionBanco(ast.id,m.fecha,ventaInfo.importe,ventaInfo.cuenta);},400);
+        }
         reload('banco');
       });
     });
@@ -5365,6 +5394,1526 @@ function exportSaldoVigente(){
     data.push({Fecha:fmtD(m.fecha),Tipo:m.tipo,Proveedor:m.proveedor||'',Concepto:m.concepto||'',Importe_CLP:m.importe_clp||'',Tipo_Cambio:m.tc||'',Importe_USD:m.signo*m.importe_usd,Saldo_USD:saldo,URL:m.url||''});
   });
   exportExcel(data,['Fecha','Tipo','Proveedor','Concepto','Importe_CLP','Tipo_Cambio','Importe_USD','Saldo_USD','URL'],'Saldo_Vigente_USD','SaldoVigente');
+}
+
+</script>
+<script>
+// ============================================================
+// CLIENTES — Helpers + Tab Datos
+// ============================================================
+var clientesTab='datos';   // datos | ventas | cobros | ctacte
+var clientesFiltros={busca:'',pais:'',ciudad:'',contactoLeex:'',tipoCliente:'',estado:''};
+var ventasFiltros={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',estadoEntrega:'',estadoCobro:'',tipoOp:''};
+var cobrosFiltros={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',medioCobro:'',estado:''};
+var ctaCteSelectedCliente=null;     // detalle expandido
+var editClienteId=null;
+var editVentaId=null;
+var editCobroId=null;
+var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
+
+function pgClientes(){
+  // Solo admin tiene acceso por ahora
+  if(!isAdmin()){
+    return ejGlobalBar()+'<div class="pageTitle">👥 Clientes</div>'+
+      '<div class="alert ainfo">Solo administradores. Pronto sistema de permisos por usuario.</div>';
+  }
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(clientesTab==='datos'?' active':'')+'" onclick="clientesTab=\'datos\';go(\'clientes\')">👥 Datos</div>'+
+    '<div class="tab'+(clientesTab==='ventas'?' active':'')+'" onclick="clientesTab=\'ventas\';go(\'clientes\')">📤 Ventas</div>'+
+    '<div class="tab'+(clientesTab==='cobros'?' active':'')+'" onclick="clientesTab=\'cobros\';go(\'clientes\')">💵 Cobros</div>'+
+    '<div class="tab'+(clientesTab==='ctacte'?' active':'')+'" onclick="clientesTab=\'ctacte\';go(\'clientes\')">📊 Cuenta Corriente</div>'+
+    '</div>';
+  var contenido='';
+  if(clientesTab==='datos')contenido=renderTabClientesDatos();
+  else if(clientesTab==='ventas')contenido=renderTabVentas();
+  else if(clientesTab==='cobros')contenido=renderTabCobros();
+  else if(clientesTab==='ctacte')contenido=renderTabCtaCte();
+  return ejGlobalBar()+
+    '<div class="pageTitle">👥 Clientes</div>'+
+    '<div class="alert awarn">📊 <strong>Módulo Comercial</strong> · Ventas generan deuda · Cobros restan deuda según imputación · Cuenta Corriente se calcula automáticamente en USD.</div>'+
+    tabs+contenido+
+    '<div id="modalCliente" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalVenta" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalCobro" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalImpBanco" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1100;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>';
+}
+
+// ============================================================
+// HELPERS DE CÁLCULO (CTA CTE)
+// ============================================================
+function calcImporteUSD(importe, moneda, tc){
+  importe=parseFloat(importe)||0;
+  if(moneda==='USD')return importe;
+  tc=parseFloat(tc)||0;
+  return tc>0?importe/tc:0;
+}
+
+function imputacionesDeVenta(ventaId){
+  return (C.cobro_imputaciones||[]).filter(function(i){return i.venta_id===ventaId;});
+}
+function imputacionesDeCobro(cobroId){
+  return (C.cobro_imputaciones||[]).filter(function(i){return i.cobro_id===cobroId;});
+}
+
+function saldoVenta(venta){
+  var imputado=0;
+  imputacionesDeVenta(venta.id).forEach(function(i){imputado+=parseFloat(i.importe_aplicado_usd)||0;});
+  return (parseFloat(venta.importe_usd)||0)-imputado;
+}
+
+function estadoVentaCalc(venta){
+  var imputado=0;
+  imputacionesDeVenta(venta.id).forEach(function(i){imputado+=parseFloat(i.importe_aplicado_usd)||0;});
+  var total=parseFloat(venta.importe_usd)||0;
+  if(Math.abs(total-imputado)<0.01)return 'Cobrado';
+  if(imputado>0.01)return 'Parcial';
+  return 'Pendiente';
+}
+
+function isVentaVencida(venta){
+  return venta.fecha_vencimiento && venta.fecha_vencimiento < hoy() && saldoVenta(venta) > 0.01;
+}
+
+function saldoNoAplicadoCobro(cobro){
+  var aplicado=0;
+  imputacionesDeCobro(cobro.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+  return Math.max(0,(parseFloat(cobro.importe_usd)||0)-aplicado);
+}
+
+function ctaCteCliente(clienteId){
+  var ventas=(C.ventas||[]).filter(function(v){return v.cliente_id===clienteId;});
+  var cobros=(C.cobros||[]).filter(function(c){return c.cliente_id===clienteId;});
+  var totalFacturado=0,totalCobrado=0,facturasPend=0,facturasVenc=0,cobrosNoApl=0;
+  var ultimoCobro=null;
+  ventas.forEach(function(v){
+    totalFacturado+=parseFloat(v.importe_usd)||0;
+    var s=saldoVenta(v);
+    if(s>0.01){
+      facturasPend++;
+      if(isVentaVencida(v))facturasVenc++;
+    }
+  });
+  cobros.forEach(function(c){
+    totalCobrado+=parseFloat(c.importe_usd)||0;
+    cobrosNoApl+=saldoNoAplicadoCobro(c);
+    if(!ultimoCobro||c.fecha>ultimoCobro)ultimoCobro=c.fecha;
+  });
+  var saldo=totalFacturado-totalCobrado;
+  var estado='Al día';
+  if(facturasVenc>0)estado='Con deuda vencida';
+  else if(saldo>0.01)estado='Con saldo pendiente';
+  return {
+    totalFacturado:totalFacturado,
+    totalCobrado:totalCobrado,
+    saldoPendiente:saldo,
+    cobrosNoAplicados:cobrosNoApl,
+    cantFacturas:ventas.length,
+    cantFacturasPend:facturasPend,
+    cantFacturasVenc:facturasVenc,
+    ultimoCobro:ultimoCobro,
+    estado:estado
+  };
+}
+
+// Helper: opciones de cliente para dropdowns
+function clienteOpts(sel,placeholder){
+  var h='<option value="">'+(placeholder||'— elegir cliente —')+'</option>';
+  (C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).forEach(function(c){
+    h+='<option value="'+c.id+'"'+(c.id==sel?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+(c.pais?' ('+escapeHtml(c.pais)+')':'')+'</option>';
+  });
+  return h;
+}
+function clienteName(id){var c=(C.clientes||[]).find(function(x){return x.id===id;});return c?c.nombre_empresa:'—';}
+
+// ============================================================
+// TAB 1: DATOS DE CLIENTES
+// ============================================================
+function renderTabClientesDatos(){
+  var F=clientesFiltros;
+  var fil=(C.clientes||[]).filter(function(c){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=(c.nombre_empresa||'').toLowerCase().indexOf(b)>-1||
+                (c.dato_fiscal||'').toLowerCase().indexOf(b)>-1||
+                (c.email||'').toLowerCase().indexOf(b)>-1||
+                (c.cuit_rut_taxid||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.pais&&c.pais!==F.pais)return false;
+    if(F.ciudad&&c.ciudad!==F.ciudad)return false;
+    if(F.contactoLeex&&c.contacto_leex!==F.contactoLeex)return false;
+    if(F.tipoCliente&&c.tipo_cliente!==F.tipoCliente)return false;
+    if(F.estado&&c.estado!==F.estado)return false;
+    return true;
+  });
+  // Listas únicas para filtros
+  var paises=Array.from(new Set((C.clientes||[]).map(function(c){return c.pais;}).filter(Boolean))).sort();
+  var ciudades=Array.from(new Set((C.clientes||[]).map(function(c){return c.ciudad;}).filter(Boolean))).sort();
+  var contactos=C.cfg_listas.contacto_leex||[];
+  var tipos=C.cfg_listas.tipo_cliente||[];
+  var estados=C.cfg_listas.estado_cliente||['Activo','Inactivo','Prospecto','Bloqueado'];
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosClientes()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCliente(0)">+ Nuevo Cliente</button>'+
+    '<button class="btn bs sm" onclick="exportClientesExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (nombre/fiscal/email)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="clientesFiltros.busca=this.value;clearTimeout(window._fcli);window._fcli=setTimeout(function(){go(\'clientes\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="clientesFiltros.pais=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ciudad</div><select onchange="clientesFiltros.ciudad=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(ciudades,F.ciudad)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Contacto Leex</div><select onchange="clientesFiltros.contactoLeex=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(contactos,F.contactoLeex)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="clientesFiltros.tipoCliente=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoCliente)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="clientesFiltros.estado=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
+    '</div></div>';
+
+  var rows='';
+  fil.forEach(function(c){
+    var estClass=c.estado==='Activo'?'bg':c.estado==='Prospecto'?'bb':c.estado==='Bloqueado'?'br':'bgr';
+    var cta=ctaCteCliente(c.id);
+    rows+='<tr>'+
+      '<td style="font-weight:600">'+escapeHtml(c.nombre_empresa||'—')+'</td>'+
+      '<td>'+escapeHtml(c.referente||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.cuit_rut_taxid||'—')+'</td>'+
+      '<td>'+(c.pais?escapeHtml(c.pais):'—')+(c.ciudad?'<div style="font-size:10px;color:var(--text2)">'+escapeHtml(c.ciudad)+'</div>':'')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.email||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.telefono||'—')+'</td>'+
+      '<td>'+(c.contacto_leex?'<span class="badge bb">'+escapeHtml(c.contacto_leex)+'</span>':'—')+'</td>'+
+      '<td>'+(c.tipo_cliente?'<span class="badge by">'+escapeHtml(c.tipo_cliente)+'</span>':'—')+'</td>'+
+      '<td><span class="badge '+estClass+'">'+escapeHtml(c.estado||'—')+'</span></td>'+
+      '<td class="'+(cta.saldoPendiente>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtS(cta.saldoPendiente)+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="verCtaCteCliente('+c.id+')" title="Ver cta cte">📊</button> '+
+        '<button class="miniBtn" onclick="abrirModalCliente('+c.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteCliente('+c.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Total Clientes</div><div class="val">'+(C.clientes||[]).length+'</div></div>'+
+    '<div class="card"><div class="lbl">Filtrados</div><div class="val cyan">'+fil.length+'</div></div>'+
+    '<div class="card"><div class="lbl">Activos</div><div class="val green">'+(C.clientes||[]).filter(function(c){return c.estado==='Activo';}).length+'</div></div>'+
+    '<div class="card"><div class="lbl">Prospectos</div><div class="val yellow">'+(C.clientes||[]).filter(function(c){return c.estado==='Prospecto';}).length+'</div></div>'+
+    '</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Listado de Clientes</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.clientes||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">👥 Sin clientes cargados. <a href="#" onclick="abrirModalCliente(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr>'+
+      '<th>Empresa</th><th>Referente</th><th>Fiscal/CUIT</th><th>País / Ciudad</th><th>Email</th><th>Tel</th>'+
+      '<th>Contacto Leex</th><th>Tipo</th><th>Estado</th><th style="text-align:right">Saldo USD</th><th>Acc.</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosClientes(){
+  clientesFiltros={busca:'',pais:'',ciudad:'',contactoLeex:'',tipoCliente:'',estado:''};
+  go('clientes');
+}
+
+function exportClientesExcel(){
+  var data=(C.clientes||[]).map(function(c){
+    var cta=ctaCteCliente(c.id);
+    return {
+      Empresa:c.nombre_empresa,Referente:c.referente,DatoFiscal:c.dato_fiscal,CUIT:c.cuit_rut_taxid,
+      Direccion:c.direccion,CP:c.codigo_postal,Ciudad:c.ciudad,Pais:c.pais,
+      Email:c.email,Telefono:c.telefono,ContactoLeex:c.contacto_leex,Tipo:c.tipo_cliente,
+      Estado:c.estado,CondPago:c.condicion_pago,MonedaHabitual:c.moneda_habitual,
+      Facturado_USD:cta.totalFacturado,Cobrado_USD:cta.totalCobrado,Saldo_USD:cta.saldoPendiente,
+      Observaciones:c.observaciones
+    };
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Clientes_'+hoy(),'Clientes');
+}
+
+// ============================================================
+// MODAL: CLIENTE (alta/edición)
+// ============================================================
+function abrirModalCliente(id){
+  editClienteId=id;
+  var c=id===0?{
+    nombre_empresa:'',referente:'',dato_fiscal:'',cuit_rut_taxid:'',
+    direccion:'',codigo_postal:'',ciudad:'',pais:'',
+    email:'',telefono:'',contacto_leex:'',tipo_cliente:'',
+    estado:'Activo',condicion_pago:'',moneda_habitual:'USD',
+    observaciones:'',url:''
+  }:(C.clientes||[]).find(function(x){return x.id===id;})||{};
+
+  var contactos=C.cfg_listas.contacto_leex||[];
+  var tipos=C.cfg_listas.tipo_cliente||[];
+  var estados=C.cfg_listas.estado_cliente||['Activo','Inactivo','Prospecto','Bloqueado'];
+  var cond=C.cfg_listas.condicion_pago||['Contado','30 días','60 días','Anticipo','Mixto'];
+  var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
+
+  function opts(arr,sel,placeholder){
+    var h='<option value="">'+(placeholder||'— elegir —')+'</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var titulo=id===0?'➕ Nuevo Cliente':'✏ Editar Cliente';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCliente()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🏢 Datos generales</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Nombre de empresa *</label><input type="text" id="clNombre" value="'+escapeHtml(c.nombre_empresa||'')+'"/></div>'+
+    '<div class="f"><label>Nombre referente</label><input type="text" id="clRef" value="'+escapeHtml(c.referente||'')+'"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Dato fiscal (Razón social)</label><input type="text" id="clFiscal" value="'+escapeHtml(c.dato_fiscal||'')+'"/></div>'+
+    '<div class="f"><label>CUIT / RUT / Tax ID</label><input type="text" id="clCuit" value="'+escapeHtml(c.cuit_rut_taxid||'')+'"/></div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📍 Ubicación</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f" style="grid-column:span 2"><label>Dirección</label><input type="text" id="clDir" value="'+escapeHtml(c.direccion||'')+'"/></div>'+
+    '<div class="f"><label>Código postal</label><input type="text" id="clCp" value="'+escapeHtml(c.codigo_postal||'')+'"/></div>'+
+    '<div class="f"><label>Ciudad</label><input type="text" id="clCiudad" value="'+escapeHtml(c.ciudad||'')+'"/></div>'+
+    '</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>País</label><input type="text" id="clPais" value="'+escapeHtml(c.pais||'')+'"/></div>'+
+    '<div class="f"><label>Email</label><input type="email" id="clEmail" value="'+escapeHtml(c.email||'')+'"/></div>'+
+    '<div class="f"><label>Teléfono</label><input type="text" id="clTel" value="'+escapeHtml(c.telefono||'')+'"/></div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">⚙ Clasificación</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Contacto Leex</label><select id="clContLeex">'+opts(contactos,c.contacto_leex)+'</select></div>'+
+    '<div class="f"><label>Tipo de cliente</label><select id="clTipo">'+opts(tipos,c.tipo_cliente)+'</select></div>'+
+    '<div class="f"><label>Estado</label><select id="clEstado">'+opts(estados,c.estado||'Activo','')+'</select></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Condición de pago</label><select id="clCondPago">'+opts(cond,c.condicion_pago)+'</select></div>'+
+    '<div class="f"><label>Moneda habitual</label><select id="clMoneda">'+opts(monedas,c.moneda_habitual||'USD','')+'</select></div>'+
+    '</div>'+
+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>URL</label><input type="text" id="clUrl" value="'+escapeHtml(c.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observaciones internas</label><input type="text" id="clObs" value="'+escapeHtml(c.observaciones||'')+'"/></div>'+
+    '</div>'+
+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarCliente()">💾 '+(id===0?'Crear cliente':'Guardar cambios')+'</button>'+
+    '<button class="btn bs" onclick="cerrarModalCliente()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalCliente');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalCliente(){
+  var m=document.getElementById('modalCliente');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editClienteId=null;
+}
+
+function guardarCliente(){
+  var payload={
+    nombre_empresa:document.getElementById('clNombre').value.trim(),
+    referente:document.getElementById('clRef').value.trim()||null,
+    dato_fiscal:document.getElementById('clFiscal').value.trim()||null,
+    cuit_rut_taxid:document.getElementById('clCuit').value.trim()||null,
+    direccion:document.getElementById('clDir').value.trim()||null,
+    codigo_postal:document.getElementById('clCp').value.trim()||null,
+    ciudad:document.getElementById('clCiudad').value.trim()||null,
+    pais:document.getElementById('clPais').value.trim()||null,
+    email:document.getElementById('clEmail').value.trim()||null,
+    telefono:document.getElementById('clTel').value.trim()||null,
+    contacto_leex:document.getElementById('clContLeex').value||null,
+    tipo_cliente:document.getElementById('clTipo').value||null,
+    estado:document.getElementById('clEstado').value||'Activo',
+    condicion_pago:document.getElementById('clCondPago').value||null,
+    moneda_habitual:document.getElementById('clMoneda').value||'USD',
+    url:document.getElementById('clUrl').value.trim()||null,
+    observaciones:document.getElementById('clObs').value.trim()||null
+  };
+  if(!payload.nombre_empresa){toast('Nombre de empresa obligatorio','error');return;}
+  if(editClienteId===0){
+    sbPost('clientes',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Cliente creado','success');cerrarModalCliente();reload('clientes');
+    });
+  }else{
+    sbPatch('clientes',editClienteId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Cliente actualizado','success');cerrarModalCliente();reload('clientes');
+    });
+  }
+}
+
+function deleteCliente(id){
+  var c=(C.clientes||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  var nV=(C.ventas||[]).filter(function(v){return v.cliente_id===id;}).length;
+  var nC=(C.cobros||[]).filter(function(x){return x.cliente_id===id;}).length;
+  if(nV>0||nC>0){
+    toast('No se puede eliminar: tiene '+nV+' ventas y '+nC+' cobros. Marcalo como Inactivo.','error');return;
+  }
+  if(!confirm('¿Eliminar el cliente "'+c.nombre_empresa+'"?'))return;
+  sbDelete('clientes',id).then(function(){
+    toast('Cliente eliminado','success');reload('clientes');
+  });
+}
+
+function verCtaCteCliente(id){
+  ctaCteSelectedCliente=id;
+  clientesTab='ctacte';
+  go('clientes');
+}
+// ============================================================
+// CLIENTES — PARTE 2: VENTAS + ADJUNTOS GENÉRICOS
+// ============================================================
+
+// ============================================================
+// TAB 2: VENTAS
+// ============================================================
+function renderTabVentas(){
+  var F=ventasFiltros;
+  var fil=(C.ventas||[]).filter(function(v){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=(v.numero_factura||'').toLowerCase().indexOf(b)>-1||
+                clienteName(v.cliente_id).toLowerCase().indexOf(b)>-1||
+                (v.observacion||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.clienteId&&v.cliente_id!=F.clienteId)return false;
+    if(F.fechaDesde&&v.fecha<F.fechaDesde)return false;
+    if(F.fechaHasta&&v.fecha>F.fechaHasta)return false;
+    if(F.moneda&&v.moneda!==F.moneda)return false;
+    if(F.estadoEntrega&&v.estado_entrega!==F.estadoEntrega)return false;
+    if(F.estadoCobro&&estadoVentaCalc(v)!==F.estadoCobro)return false;
+    if(F.tipoOp&&v.tipo_operacion!==F.tipoOp)return false;
+    return true;
+  });
+
+  // Totales
+  var totalUsd=0,totalMonedaOriginal={};
+  fil.forEach(function(v){
+    totalUsd+=parseFloat(v.importe_usd)||0;
+    if(!totalMonedaOriginal[v.moneda])totalMonedaOriginal[v.moneda]=0;
+    totalMonedaOriginal[v.moneda]+=parseFloat(v.importe_total)||0;
+  });
+
+  var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
+  var estadosEntrega=C.cfg_listas.estado_entrega||['Sí','No','Parcial','Pendiente'];
+  var tiposOp=C.cfg_listas.tipo_op_venta||['Producto','Servicio','Demo','Alquiler','Leasing'];
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosVentas()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalVenta(0)">+ Nueva Venta</button>'+
+    '<button class="btn bs sm" onclick="exportVentasExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (Nº fact / cliente / obs)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ventasFiltros.busca=this.value;clearTimeout(window._fv0);window._fv0=setTimeout(function(){go(\'clientes\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="ventasFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="ventasFiltros.fechaDesde=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="ventasFiltros.fechaHasta=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="ventasFiltros.moneda=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Entrega</div><select onchange="ventasFiltros.estadoEntrega=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosEntrega,F.estadoEntrega)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Cobro</div><select onchange="ventasFiltros.estadoCobro=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Pendiente','Parcial','Cobrado'],F.estadoCobro)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo Operación</div><select onchange="ventasFiltros.tipoOp=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tiposOp,F.tipoOp)+'</select></div>'+
+    '</div></div>';
+
+  var rows='';
+  fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(v){
+    var saldo=saldoVenta(v);
+    var est=estadoVentaCalc(v);
+    var estClass=est==='Cobrado'?'bg':est==='Parcial'?'by':'br';
+    var venc=isVentaVencida(v);
+    var nAdj=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
+    rows+='<tr>'+
+      '<td>'+fmtD(v.fecha)+'</td>'+
+      '<td style="font-weight:600">'+escapeHtml(clienteName(v.cliente_id))+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(v.numero_factura||'—')+'</td>'+
+      '<td>'+(v.tipo_operacion?'<span class="badge bb">'+escapeHtml(v.tipo_operacion)+'</span>':'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(v.importe_total)+'</td>'+
+      '<td>'+(v.moneda||'USD')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(v.tipo_cambio?fmtN(v.tipo_cambio):'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(v.importe_usd)+'</td>'+
+      '<td>'+fmtD(v.fecha_vencimiento)+(venc?' <span class="badge br" style="font-size:9px">VENCIDA</span>':'')+'</td>'+
+      '<td>'+(v.estado_entrega?'<span class="badge by">'+escapeHtml(v.estado_entrega)+'</span>':'—')+'</td>'+
+      '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
+      '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
+      '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalVenta('+v.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteVenta('+v.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  var totalesPorMoneda='';
+  Object.keys(totalMonedaOriginal).forEach(function(m){
+    totalesPorMoneda+='<div class="card"><div class="lbl">Total '+m+'</div><div class="val">'+fmtN(totalMonedaOriginal[m])+'</div></div>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Ventas (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.ventas||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total USD</div><div class="val cyan">'+fmtN(totalUsd)+'</div></div>'+
+    totalesPorMoneda+
+    '</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Ventas / Facturas</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.ventas||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVenta(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
+      '<th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
+      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>📎</th><th>Acc.</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosVentas(){
+  ventasFiltros={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',estadoEntrega:'',estadoCobro:'',tipoOp:''};
+  go('clientes');
+}
+
+function exportVentasExcel(){
+  var data=(C.ventas||[]).map(function(v){
+    return {
+      Fecha:v.fecha,Cliente:clienteName(v.cliente_id),NFactura:v.numero_factura,
+      TipoOp:v.tipo_operacion,Importe:v.importe_total,Moneda:v.moneda,TC:v.tipo_cambio,
+      ImporteUSD:v.importe_usd,Vencimiento:v.fecha_vencimiento,EstadoEntrega:v.estado_entrega,
+      EstadoCobro:estadoVentaCalc(v),SaldoUSD:saldoVenta(v),Observacion:v.observacion
+    };
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Ventas_'+hoy(),'Ventas');
+}
+
+// ============================================================
+// MODAL: VENTA
+// ============================================================
+function abrirModalVenta(id){
+  editVentaId=id;
+  var v=id===0?{
+    fecha:hoy(),cliente_id:'',numero_factura:'',tipo_operacion:'',
+    importe_total:'',moneda:'USD',tipo_cambio:'',importe_usd:'',
+    fecha_vencimiento:'',estado_entrega:'Pendiente',
+    observacion:'',url:''
+  }:(C.ventas||[]).find(function(x){return x.id===id;})||{};
+
+  var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
+  var tiposOp=C.cfg_listas.tipo_op_venta||['Producto','Servicio','Demo','Alquiler','Leasing'];
+  var estadosEntrega=C.cfg_listas.estado_entrega||['Sí','No','Parcial','Pendiente'];
+
+  function opts(arr,sel,placeholder){
+    var h='<option value="">'+(placeholder||'— elegir —')+'</option>';
+    arr.forEach(function(x){h+='<option value="'+escapeHtml(x)+'"'+(x===sel?' selected':'')+'>'+escapeHtml(x)+'</option>';});
+    return h;
+  }
+
+  var titulo=id===0?'➕ Nueva Venta':'✏ Editar Venta';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:780px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalVenta()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha de venta *</label><input type="date" id="vF" value="'+(v.fecha||'')+'"/></div>'+
+    '<div class="f"><label>Cliente *</label><select id="vCliente">'+clienteOpts(v.cliente_id,'— elegir —')+'</select></div>'+
+    '</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Número de factura</label><input type="text" id="vNumF" value="'+escapeHtml(v.numero_factura||'')+'"/></div>'+
+    '<div class="f"><label>Tipo de operación</label><select id="vTipoOp">'+opts(tiposOp,v.tipo_operacion)+'</select></div>'+
+    '<div class="f"><label>Vencimiento</label><input type="date" id="vVto" value="'+(v.fecha_vencimiento||'')+'"/></div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Importe</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Importe total *</label><input type="number" id="vImp" value="'+(v.importe_total||'')+'" step="0.01" min="0" oninput="calcImporteUSDVenta()"/></div>'+
+    '<div class="f"><label>Moneda</label><select id="vMoneda" onchange="calcImporteUSDVenta()">'+opts(monedas,v.moneda||'USD','')+'</select></div>'+
+    '<div class="f"><label>Tipo de cambio</label><input type="number" id="vTC" value="'+(v.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDVenta()" placeholder="Solo si moneda ≠ USD"/></div>'+
+    '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="vUSD" readonly value="'+(v.importe_usd?fmtN(v.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Estado entrega</label><select id="vEntrega">'+opts(estadosEntrega,v.estado_entrega||'Pendiente','')+'</select></div>'+
+    '<div class="f"><label>URL</label><input type="text" id="vUrl" value="'+escapeHtml(v.url||'')+'" placeholder="https://..."/></div>'+
+    '</div>'+
+    '<div class="f" style="margin-bottom:14px"><label>Observación</label><input type="text" id="vObs" value="'+escapeHtml(v.observacion||'')+'"/></div>'+
+
+    (id>0?'<div class="alert ainfo">💡 Los adjuntos (PDF/imagen) se gestionan desde el botón 📎 de la fila en el listado.</div>':'')+
+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarVenta()">💾 '+(id===0?'Crear venta':'Guardar cambios')+'</button>'+
+    '<button class="btn bs" onclick="cerrarModalVenta()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalVenta');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalVenta(){
+  var m=document.getElementById('modalVenta');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editVentaId=null;
+}
+
+function calcImporteUSDVenta(){
+  var imp=parseFloat(document.getElementById('vImp').value)||0;
+  var mon=document.getElementById('vMoneda').value;
+  var tc=parseFloat(document.getElementById('vTC').value)||0;
+  var usd=calcImporteUSD(imp,mon,tc);
+  document.getElementById('vUSD').value=usd>0?fmtN(usd):'';
+  // Auto-llenar TC=1 si moneda=USD para evitar errores
+  var tcInput=document.getElementById('vTC');
+  if(mon==='USD'){tcInput.disabled=true;tcInput.value='';}
+  else{tcInput.disabled=false;}
+}
+
+function guardarVenta(){
+  var imp=parseFloat(document.getElementById('vImp').value)||0;
+  var mon=document.getElementById('vMoneda').value;
+  var tc=parseFloat(document.getElementById('vTC').value)||0;
+  var usd=calcImporteUSD(imp,mon,tc);
+  var cliente=parseInt(document.getElementById('vCliente').value);
+  if(!cliente){toast('Elegí un cliente','error');return;}
+  if(!document.getElementById('vF').value){toast('Falta fecha','error');return;}
+  if(imp<=0){toast('El importe debe ser mayor a 0','error');return;}
+  if(mon!=='USD'&&tc<=0){toast('Para moneda '+mon+' necesitás un tipo de cambio','error');return;}
+
+  var payload={
+    fecha:document.getElementById('vF').value,
+    cliente_id:cliente,
+    numero_factura:document.getElementById('vNumF').value.trim()||null,
+    tipo_operacion:document.getElementById('vTipoOp').value||null,
+    importe_total:imp,
+    moneda:mon,
+    tipo_cambio:mon==='USD'?null:tc,
+    importe_usd:usd,
+    fecha_vencimiento:document.getElementById('vVto').value||null,
+    estado_entrega:document.getElementById('vEntrega').value||'Pendiente',
+    estado_cobro:editVentaId===0?'Pendiente':undefined,  // mantener en edición
+    observacion:document.getElementById('vObs').value.trim()||null,
+    url:document.getElementById('vUrl').value.trim()||null
+  };
+  if(editVentaId===0){
+    sbPost('ventas',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Venta creada','success');cerrarModalVenta();reload('clientes');
+    });
+  }else{
+    delete payload.estado_cobro;
+    sbPatch('ventas',editVentaId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      toast('Venta actualizada','success');cerrarModalVenta();reload('clientes');
+    });
+  }
+}
+
+function deleteVenta(id){
+  var v=(C.ventas||[]).find(function(x){return x.id===id;});
+  if(!v)return;
+  var imps=imputacionesDeVenta(id);
+  if(imps.length>0){
+    if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.\n\n¿Continuar?'))return;
+  }else{
+    if(!confirm('¿Eliminar la venta '+(v.numero_factura||'#'+id)+'?'))return;
+  }
+  // Borrar adjuntos
+  var adjs=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    sbDeleteWhere('cliente_adjuntos','registro_id',id).then(function(){
+      // Borrar imputaciones (CASCADE en BD, pero por las dudas)
+      sbDeleteWhere('cobro_imputaciones','venta_id',id).then(function(){
+        sbDelete('ventas',id).then(function(){
+          toast('Venta eliminada','success');reload('clientes');
+        });
+      });
+    });
+  });
+}
+
+// ============================================================
+// ADJUNTOS GENÉRICOS (venta o cobro)
+// ============================================================
+var modalAdjClienteTipo=null; // 'venta' o 'cobro'
+var modalAdjClienteId=null;
+
+function verAdjuntosCliente(tipo,registroId){
+  modalAdjClienteTipo=tipo;
+  modalAdjClienteId=registroId;
+  // Reuso modalVenta como contenedor genérico
+  renderModalAdjCliente();
+  document.getElementById('modalVenta').style.display='flex';
+}
+
+function cerrarModalAdjCliente(){
+  var m=document.getElementById('modalVenta');
+  if(m){m.style.display='none';m.innerHTML='';}
+  modalAdjClienteTipo=null;modalAdjClienteId=null;
+}
+
+function renderModalAdjCliente(){
+  var tipo=modalAdjClienteTipo;
+  var registroId=modalAdjClienteId;
+  var label='';
+  if(tipo==='venta'){
+    var v=(C.ventas||[]).find(function(x){return x.id===registroId;});
+    label=v?'Venta · '+clienteName(v.cliente_id)+' · '+(v.numero_factura||'#'+v.id):'';
+  }else{
+    var c=(C.cobros||[]).find(function(x){return x.id===registroId;});
+    label=c?'Cobro · '+clienteName(c.cliente_id)+' · '+fmtD(c.fecha):'';
+  }
+  var adjs=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo===tipo&&a.registro_id===registroId;});
+  var listaHTML='';
+  if(adjs.length===0){
+    listaHTML='<div style="text-align:center;color:var(--text2);padding:30px;font-size:13px">📂 Sin adjuntos todavía</div>';
+  }else{
+    adjs.forEach(function(a){
+      var icono='📄';
+      if(a.tipo_mime&&a.tipo_mime.indexOf('image/')===0)icono='🖼️';
+      else if(a.tipo_mime&&a.tipo_mime.indexOf('pdf')>-1)icono='📕';
+      else if(a.tipo_mime&&(a.tipo_mime.indexOf('sheet')>-1||a.tipo_mime.indexOf('excel')>-1))icono='📊';
+      var tamañoKB=a.tamaño_bytes?(a.tamaño_bytes/1024).toFixed(0)+' KB':'-';
+      listaHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border:1px solid var(--border)">'+
+        '<div style="font-size:24px">'+icono+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(a.nombre_archivo)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+tamañoKB+' · '+new Date(a.uploaded_at).toLocaleString('es-AR')+(a.uploaded_by?' · '+a.uploaded_by:'')+'</div></div>'+
+        '<a href="'+a.storage_url+'" target="_blank" class="btn sm bs">👁</a> '+
+        '<a href="'+a.storage_url+'" download="'+escapeHtml(a.nombre_archivo)+'" class="btn sm bs">📥</a> '+
+        '<button class="btn sm bd" onclick="eliminarAdjCliente('+a.id+')">🗑</button>'+
+        '</div>';
+    });
+  }
+  var content=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">📎 Adjuntos</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+escapeHtml(label)+'</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjCliente()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">'+adjs.length+' archivo'+(adjs.length===1?'':'s')+'</div>'+
+    listaHTML+
+    '<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:20px;text-align:center">'+
+    '<input type="file" id="adjCliFileInp" multiple accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls" style="display:none" onchange="subirAdjuntosCliente(event)"/>'+
+    '<div style="font-size:32px;margin-bottom:6px">📎</div>'+
+    '<div style="font-size:13px;font-weight:600;color:var(--cyan)">Click para seleccionar archivos</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:4px">PDF · JPG · PNG · XLSX (máx. 10MB c/u)</div>'+
+    '</label>'+
+    '<div id="adjCliProgress"></div>'+
+    '</div>'+
+    '</div></div>';
+  document.getElementById('modalVenta').innerHTML=content;
+}
+
+function subirAdjuntosCliente(ev){
+  var files=ev.target.files;
+  if(!files||files.length===0)return;
+  var tipo=modalAdjClienteTipo,registroId=modalAdjClienteId;
+  var validos=[],errores=[];
+  for(var i=0;i<files.length;i++){
+    var f=files[i];
+    if(f.size>ADJ_MAX_SIZE){errores.push(f.name+' (>10MB)');continue;}
+    var ext=f.name.toLowerCase().split('.').pop();
+    if(['pdf','jpg','jpeg','png','xlsx','xls'].indexOf(ext)===-1&&ADJ_MIME_OK.indexOf(f.type)===-1){
+      errores.push(f.name+' (tipo no permitido)');continue;
+    }
+    validos.push(f);
+  }
+  if(errores.length>0)toast('Saltados: '+errores.join(', '),'error');
+  if(validos.length===0){ev.target.value='';return;}
+  var prog=document.getElementById('adjCliProgress');
+  prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subiendo '+validos.length+'...</div>';
+  var chain=Promise.resolve(),subidos=0,fallos=0;
+  validos.forEach(function(f){
+    chain=chain.then(function(){return subirUnArchivoCliente(tipo,registroId,f);}).then(function(ok){
+      if(ok)subidos++;else fallos++;
+      prog.innerHTML='<div style="margin-top:10px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Subidos '+subidos+'/'+validos.length+'</div>';
+    });
+  });
+  chain.then(function(){
+    ev.target.value='';
+    if(fallos>0)toast(subidos+' subidos, '+fallos+' fallaron','error');
+    else toast(subidos+' archivo'+(subidos===1?'':'s')+' subido'+(subidos===1?'':'s'),'success');
+    sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+      C.cliente_adjuntos=Array.isArray(r)?r:[];
+      renderModalAdjCliente();
+    });
+  });
+}
+
+function subirUnArchivoCliente(tipo,registroId,file){
+  var uuid='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+    var r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);
+  });
+  var safeName=file.name.replace(/[^\w.\-]/g,'_');
+  var prefix=tipo==='venta'?'ventas':'cobros';
+  var path=prefix+'/'+registroId+'/'+uuid+'-'+safeName;
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+    body:file
+  }).then(function(r){
+    if(!r.ok)return r.json().then(function(err){throw new Error(err.message||'Error subiendo');});
+    return r.json();
+  }).then(function(){
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    return sbPost('cliente_adjuntos',{
+      tipo:tipo,registro_id:registroId,nombre_archivo:file.name,tipo_mime:file.type||null,
+      tamaño_bytes:file.size,storage_path:path,storage_url:publicUrl,
+      uploaded_by:CU?CU.u:null
+    });
+  }).then(function(){return true;}).catch(function(e){
+    console.error('Error subiendo:',e);return false;
+  });
+}
+
+function eliminarAdjCliente(adjId){
+  var adj=(C.cliente_adjuntos||[]).find(function(a){return a.id===adjId;});
+  if(!adj){toast('Adjunto no encontrado','error');return;}
+  if(!confirm('¿Eliminar "'+adj.nombre_archivo+'"?'))return;
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+adj.storage_path,{
+    method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+  }).then(function(){
+    sbDelete('cliente_adjuntos',adjId).then(function(){
+      toast('Adjunto eliminado','success');
+      sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').then(function(r){
+        C.cliente_adjuntos=Array.isArray(r)?r:[];
+        renderModalAdjCliente();
+      });
+    });
+  });
+}
+// ============================================================
+// CLIENTES — PARTE 3: COBROS + CTA CTE + INTEGRACIÓN BANCO
+// ============================================================
+
+// ============================================================
+// TAB 3: COBROS
+// ============================================================
+function renderTabCobros(){
+  var F=cobrosFiltros;
+  var fil=(C.cobros||[]).filter(function(c){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=clienteName(c.cliente_id).toLowerCase().indexOf(b)>-1||
+                (c.observacion||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.clienteId&&c.cliente_id!=F.clienteId)return false;
+    if(F.fechaDesde&&c.fecha<F.fechaDesde)return false;
+    if(F.fechaHasta&&c.fecha>F.fechaHasta)return false;
+    if(F.moneda&&c.moneda!==F.moneda)return false;
+    if(F.medioCobro&&c.medio_cobro!==F.medioCobro)return false;
+    if(F.estado){
+      var aplicado=imputacionesDeCobro(c.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+      var totalC=parseFloat(c.importe_usd)||0;
+      var estCalc=Math.abs(totalC-aplicado)<0.01&&totalC>0?'Imputado':aplicado>0?'Parcial':'Pendiente de imputación';
+      if(estCalc!==F.estado)return false;
+    }
+    return true;
+  });
+
+  var totalUsd=0,totalNoAplicado=0;
+  fil.forEach(function(c){
+    totalUsd+=parseFloat(c.importe_usd)||0;
+    totalNoAplicado+=saldoNoAplicadoCobro(c);
+  });
+
+  var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
+  var medios=C.cfg_listas.medio_cobro||['Transferencia','Efectivo','Cheque','Otro'];
+  var estados=['Imputado','Parcial','Pendiente de imputación'];
+
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosCobros()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCobro(0)">+ Nuevo Cobro</button>'+
+    '<button class="btn bs sm" onclick="exportCobrosExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="cobrosFiltros.busca=this.value;clearTimeout(window._fc0);window._fc0=setTimeout(function(){go(\'clientes\')},400)" placeholder="Cliente / obs..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="cobrosFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="cobrosFiltros.fechaDesde=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="cobrosFiltros.fechaHasta=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="cobrosFiltros.moneda=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Medio</div><select onchange="cobrosFiltros.medioCobro=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(medios,F.medioCobro)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="cobrosFiltros.estado=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
+    '</div></div>';
+
+  var rows='';
+  fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(c){
+    var aplicado=imputacionesDeCobro(c.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    var totalC=parseFloat(c.importe_usd)||0;
+    var noApl=Math.max(0,totalC-aplicado);
+    var estCalc=Math.abs(totalC-aplicado)<0.01&&totalC>0?'Imputado':aplicado>0?'Parcial':'Pendiente de imputación';
+    var estClass=estCalc==='Imputado'?'bg':estCalc==='Parcial'?'by':'br';
+    var nAdj=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='cobro'&&a.registro_id===c.id;}).length;
+    var nImp=imputacionesDeCobro(c.id).length;
+    var astBadge=c.asiento_id?'<span class="badge bb" style="font-size:9px" title="Vinculado a asiento bancario">🔗 AST</span>':'';
+    rows+='<tr>'+
+      '<td>'+fmtD(c.fecha)+'</td>'+
+      '<td style="font-weight:600">'+escapeHtml(clienteName(c.cliente_id))+'</td>'+
+      '<td>'+(c.medio_cobro?'<span class="badge bb">'+escapeHtml(c.medio_cobro)+'</span>':'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(c.importe)+'</td>'+
+      '<td>'+(c.moneda||'USD')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(c.tipo_cambio?fmtN(c.tipo_cambio):'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(c.importe_usd)+'</td>'+
+      '<td><span class="badge '+estClass+'">'+estCalc+'</span> '+astBadge+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(aplicado)+'</td>'+
+      '<td class="'+(noApl>0.01?'yellow':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(noApl)+'</td>'+
+      '<td style="text-align:center">'+nImp+'</td>'+
+      '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosCliente(\'cobro\','+c.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosCliente(\'cobro\','+c.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalCobro('+c.id+')" title="Editar / Imputar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteCobro('+c.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Cobros (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.cobros||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total Cobrado USD</div><div class="val cyan">'+fmtN(totalUsd)+'</div></div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">No Aplicado USD</div><div class="val yellow">'+fmtN(totalNoAplicado)+'</div><div class="sub">a imputar</div></div>'+
+    '</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Cobros Recibidos</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.cobros||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">💵 Sin cobros cargados. <a href="#" onclick="abrirModalCobro(0);return false;" style="color:var(--cyan)">Registrar el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<th>Fecha</th><th>Cliente</th><th>Medio</th>'+
+      '<th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
+      '<th>Estado</th><th style="text-align:right">Aplicado USD</th><th style="text-align:right">No Aplic.</th><th>#Imp</th><th>📎</th><th>Acc.</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosCobros(){
+  cobrosFiltros={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',medioCobro:'',estado:''};
+  go('clientes');
+}
+
+function exportCobrosExcel(){
+  var data=(C.cobros||[]).map(function(c){
+    var aplicado=imputacionesDeCobro(c.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    return {
+      Fecha:c.fecha,Cliente:clienteName(c.cliente_id),Medio:c.medio_cobro,
+      Importe:c.importe,Moneda:c.moneda,TC:c.tipo_cambio,ImporteUSD:c.importe_usd,
+      AplicadoUSD:aplicado,NoAplicadoUSD:saldoNoAplicadoCobro(c),
+      Observacion:c.observacion
+    };
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Cobros_'+hoy(),'Cobros');
+}
+
+// ============================================================
+// MODAL: COBRO con IMPUTACIONES MANUALES
+// ============================================================
+function abrirModalCobro(id,opciones){
+  // opciones: {clienteId, asientoId, importeUSD, fecha} para precargar desde banco
+  editCobroId=id;
+  imputacionLineas=[];
+  var c;
+  if(id===0){
+    c={
+      fecha:(opciones&&opciones.fecha)||hoy(),
+      cliente_id:(opciones&&opciones.clienteId)||'',
+      medio_cobro:(opciones&&opciones.asientoId)?'Transferencia':'',
+      importe:(opciones&&opciones.importeUSD)||'',
+      moneda:'USD',
+      tipo_cambio:'',
+      importe_usd:(opciones&&opciones.importeUSD)||'',
+      asiento_id:(opciones&&opciones.asientoId)||null,
+      observacion:'',
+      url:''
+    };
+  }else{
+    c=(C.cobros||[]).find(function(x){return x.id===id;})||{};
+    // Cargar imputaciones existentes en el editor
+    imputacionLineas=imputacionesDeCobro(id).map(function(i){
+      return {ventaId:i.venta_id,importeUSD:parseFloat(i.importe_aplicado_usd)||0,imputacionId:i.id};
+    });
+  }
+
+  var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
+  var medios=C.cfg_listas.medio_cobro||['Transferencia','Efectivo','Cheque','Otro'];
+
+  function opts(arr,sel,placeholder){
+    var h='<option value="">'+(placeholder||'— elegir —')+'</option>';
+    arr.forEach(function(x){h+='<option value="'+escapeHtml(x)+'"'+(x===sel?' selected':'')+'>'+escapeHtml(x)+'</option>';});
+    return h;
+  }
+
+  var titulo=id===0?'➕ Nuevo Cobro':'✏ Editar Cobro';
+  var bancoBadge=c.asiento_id?'<span class="badge bb" style="font-size:10px;margin-left:8px">🔗 desde asiento bancario</span>':'';
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:880px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+bancoBadge+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCobro()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="cF" value="'+(c.fecha||'')+'"/></div>'+
+    '<div class="f"><label>Cliente *</label><select id="cCliente" onchange="renderImputacionesEditor()">'+clienteOpts(c.cliente_id,'— elegir —')+'</select></div>'+
+    '<div class="f"><label>Medio de cobro</label><select id="cMedio">'+opts(medios,c.medio_cobro)+'</select></div>'+
+    '</div>'+
+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Importe</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Importe *</label><input type="number" id="cImp" value="'+(c.importe||'')+'" step="0.01" min="0" oninput="calcImporteUSDCobro()"/></div>'+
+    '<div class="f"><label>Moneda</label><select id="cMoneda" onchange="calcImporteUSDCobro()">'+opts(monedas,c.moneda||'USD','')+'</select></div>'+
+    '<div class="f"><label>Tipo de cambio</label><input type="number" id="cTC" value="'+(c.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDCobro()" placeholder="Si moneda ≠ USD"/></div>'+
+    '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="cUSD" readonly value="'+(c.importe_usd?fmtN(c.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+
+    // ESPACIO PARA IMPUTACIONES (se llena con renderImputacionesEditor)
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🎯 Imputar a facturas pendientes</div>'+
+    '<div id="imputacionesEditor"></div>'+
+
+    '<div class="fg2" style="margin-top:14px;margin-bottom:14px">'+
+    '<div class="f"><label>URL / comprobante</label><input type="text" id="cUrl" value="'+escapeHtml(c.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observación</label><input type="text" id="cObs" value="'+escapeHtml(c.observacion||'')+'"/></div>'+
+    '</div>'+
+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarCobro()">💾 '+(id===0?'Crear cobro':'Guardar cambios')+'</button>'+
+    '<button class="btn bs" onclick="cerrarModalCobro()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalCobro');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+  // Render inicial del editor de imputaciones
+  setTimeout(function(){renderImputacionesEditor();calcImporteUSDCobro();},10);
+}
+
+function cerrarModalCobro(){
+  var m=document.getElementById('modalCobro');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editCobroId=null;
+  imputacionLineas=[];
+}
+
+function calcImporteUSDCobro(){
+  var imp=parseFloat(document.getElementById('cImp').value)||0;
+  var mon=document.getElementById('cMoneda').value;
+  var tc=parseFloat(document.getElementById('cTC').value)||0;
+  var usd=calcImporteUSD(imp,mon,tc);
+  document.getElementById('cUSD').value=usd>0?fmtN(usd):'';
+  var tcInput=document.getElementById('cTC');
+  if(mon==='USD'){tcInput.disabled=true;tcInput.value='';}
+  else{tcInput.disabled=false;}
+  // re-render del editor para que actualice "queda por aplicar"
+  renderImputacionesEditor();
+}
+
+function renderImputacionesEditor(){
+  var div=document.getElementById('imputacionesEditor');
+  if(!div)return;
+  var clienteId=parseInt(document.getElementById('cCliente').value)||0;
+  if(!clienteId){
+    div.innerHTML='<div class="alert ainfo">💡 Seleccioná un cliente para imputar a sus facturas pendientes.</div>';
+    return;
+  }
+  // Facturas con saldo > 0 del cliente
+  var facturas=(C.ventas||[]).filter(function(v){return v.cliente_id===clienteId&&saldoVenta(v)>0.01;});
+  // Sumar también facturas ya imputadas en esta sesión (para no perderlas si están "totalmente cobradas" en el editor)
+  imputacionLineas.forEach(function(line){
+    if(!facturas.find(function(v){return v.id===line.ventaId;})){
+      var v=(C.ventas||[]).find(function(x){return x.id===line.ventaId;});
+      if(v)facturas.push(v);
+    }
+  });
+  facturas.sort(function(a,b){return (a.fecha_vencimiento||a.fecha||'').localeCompare(b.fecha_vencimiento||b.fecha||'');});
+
+  var importeUSDCobro=calcImporteUSD(parseFloat(document.getElementById('cImp').value)||0,document.getElementById('cMoneda').value,parseFloat(document.getElementById('cTC').value)||0);
+  var totalImputado=imputacionLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+  var noAplicado=Math.max(0,importeUSDCobro-totalImputado);
+  var excedido=totalImputado>importeUSDCobro+0.01;
+
+  if(facturas.length===0){
+    div.innerHTML='<div class="alert ainfo">Este cliente no tiene facturas pendientes. El cobro quedará como <strong>"Pendiente de imputación"</strong>.</div>';
+    return;
+  }
+
+  var filasHTML='';
+  facturas.forEach(function(v){
+    var saldoFac=saldoVenta(v);
+    var line=imputacionLineas.find(function(l){return l.ventaId===v.id;});
+    // El saldo "visible" en el editor incluye la imputación temporal en sesión
+    var saldoDisponibleEditor=saldoFac+(line?line.importeUSD:0);  // si ya tenía algo asignado a esta sesión, sumarlo
+    var checked=!!line;
+    var venc=v.fecha_vencimiento&&v.fecha_vencimiento<hoy();
+    filasHTML+='<tr style="border-top:1px solid var(--border)">'+
+      '<td style="padding:8px 10px"><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleImputacion('+v.id+',this.checked,'+saldoDisponibleEditor+')"/></td>'+
+      '<td style="padding:8px 10px;font-family:monospace;font-size:11px">'+escapeHtml(v.numero_factura||'#'+v.id)+'</td>'+
+      '<td style="padding:8px 10px">'+fmtD(v.fecha)+'</td>'+
+      '<td style="padding:8px 10px">'+(v.fecha_vencimiento?fmtD(v.fecha_vencimiento):'—')+(venc?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td>'+
+      '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+fmtN(v.importe_usd)+'</td>'+
+      '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">'+fmtN(saldoDisponibleEditor)+'</td>'+
+      '<td style="padding:8px 10px">'+
+        (checked?'<input type="number" step="0.01" min="0" max="'+saldoDisponibleEditor+'" value="'+(line?line.importeUSD:'')+'" oninput="setImputacionMonto('+v.id+',this.value,'+saldoDisponibleEditor+')" style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:11px;outline:none;text-align:right"/>':'<span style="color:var(--text2)">—</span>')+
+      '</td>'+
+      '</tr>';
+  });
+
+  div.innerHTML=
+    '<div style="background:var(--bg3);border-radius:8px;padding:0;border:1px solid var(--border);overflow:hidden">'+
+    '<table style="width:100%;font-size:11px"><thead><tr style="background:var(--bg);font-size:10px;text-transform:uppercase;color:var(--text2);letter-spacing:.4px">'+
+    '<th style="padding:8px 10px;text-align:left">Aplicar</th><th style="padding:8px 10px;text-align:left">Factura</th><th style="padding:8px 10px;text-align:left">Fecha</th><th style="padding:8px 10px;text-align:left">Vto.</th>'+
+    '<th style="padding:8px 10px;text-align:right">Total USD</th><th style="padding:8px 10px;text-align:right">Saldo USD</th><th style="padding:8px 10px;text-align:right">Aplicar USD</th>'+
+    '</tr></thead><tbody>'+filasHTML+'</tbody></table>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid '+(excedido?'var(--red)':noAplicado<0.01&&totalImputado>0?'var(--green)':'var(--border)')+'">'+
+    '<div style="font-size:11px;color:var(--text2)">'+
+    '<strong style="color:var(--cyan)">Importe cobro USD:</strong> '+fmtN(importeUSDCobro)+' &nbsp;·&nbsp; '+
+    '<strong style="color:var(--green)">Imputado:</strong> '+fmtN(totalImputado)+' &nbsp;·&nbsp; '+
+    '<strong style="color:'+(noAplicado>0.01?'var(--yellow)':'var(--green)')+'">No aplicado:</strong> '+fmtN(noAplicado)+
+    '</div>'+
+    (excedido?'<span class="badge br" style="font-size:10px">⚠ Imputado &gt; Cobro</span>':noAplicado<0.01&&totalImputado>0?'<span class="badge bg" style="font-size:10px">✓ Totalmente imputado</span>':noAplicado>0&&totalImputado>0?'<span class="badge by" style="font-size:10px">⚠ Quedará '+fmtN(noAplicado)+' sin aplicar</span>':'<span class="badge bgr" style="font-size:10px">Sin imputar (quedará pendiente)</span>')+
+    '</div>';
+}
+
+function toggleImputacion(ventaId,checked,saldoMax){
+  if(checked){
+    if(!imputacionLineas.find(function(l){return l.ventaId===ventaId;})){
+      // Auto-asignar el menor entre saldo factura y lo que queda por aplicar del cobro
+      var importeUSDCobro=calcImporteUSD(parseFloat(document.getElementById('cImp').value)||0,document.getElementById('cMoneda').value,parseFloat(document.getElementById('cTC').value)||0);
+      var totalImputado=imputacionLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+      var quedaPorAplicar=Math.max(0,importeUSDCobro-totalImputado);
+      var sugerido=Math.min(saldoMax,quedaPorAplicar);
+      imputacionLineas.push({ventaId:ventaId,importeUSD:sugerido});
+    }
+  }else{
+    imputacionLineas=imputacionLineas.filter(function(l){return l.ventaId!==ventaId;});
+  }
+  renderImputacionesEditor();
+}
+
+function setImputacionMonto(ventaId,monto,saldoMax){
+  var m=parseFloat(monto)||0;
+  if(m<0)m=0;
+  if(m>saldoMax)m=saldoMax;
+  var line=imputacionLineas.find(function(l){return l.ventaId===ventaId;});
+  if(line)line.importeUSD=m;
+  // No re-render para no perder foco; solo actualizar totales abajo
+  // En realidad sí re-renderizamos para actualizar el resumen abajo
+  // pero después de un timeout para no romper el foco
+  clearTimeout(window._impDebounce);
+  window._impDebounce=setTimeout(renderImputacionesEditor,300);
+}
+
+function guardarCobro(){
+  var imp=parseFloat(document.getElementById('cImp').value)||0;
+  var mon=document.getElementById('cMoneda').value;
+  var tc=parseFloat(document.getElementById('cTC').value)||0;
+  var usd=calcImporteUSD(imp,mon,tc);
+  var cliente=parseInt(document.getElementById('cCliente').value);
+  if(!cliente){toast('Elegí un cliente','error');return;}
+  if(!document.getElementById('cF').value){toast('Falta fecha','error');return;}
+  if(imp<=0){toast('Importe debe ser > 0','error');return;}
+  if(mon!=='USD'&&tc<=0){toast('Para '+mon+' necesitás un tipo de cambio','error');return;}
+
+  // Validar imputaciones
+  var totalImp=imputacionLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+  if(totalImp>usd+0.01){toast('Las imputaciones suman más que el cobro','error');return;}
+
+  // Estado del cobro
+  var estado='Pendiente de imputación';
+  if(Math.abs(usd-totalImp)<0.01&&totalImp>0)estado='Imputado';
+  else if(totalImp>0)estado='Parcial';
+
+  // Obtener cobro_id existente o nuevo
+  var cobroEditando=editCobroId>0?(C.cobros||[]).find(function(x){return x.id===editCobroId;}):null;
+  var payload={
+    fecha:document.getElementById('cF').value,
+    cliente_id:cliente,
+    medio_cobro:document.getElementById('cMedio').value||null,
+    importe:imp,
+    moneda:mon,
+    tipo_cambio:mon==='USD'?null:tc,
+    importe_usd:usd,
+    observacion:document.getElementById('cObs').value.trim()||null,
+    url:document.getElementById('cUrl').value.trim()||null,
+    estado:estado
+  };
+  // Preservar asiento_id si venía de banco
+  if(cobroEditando&&cobroEditando.asiento_id)payload.asiento_id=cobroEditando.asiento_id;
+  if(editCobroId===0&&window._cobroAsientoPendiente)payload.asiento_id=window._cobroAsientoPendiente;
+
+  var savePromise=editCobroId===0?
+    sbPost('cobros',payload):
+    sbPatch('cobros',editCobroId,payload);
+
+  savePromise.then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');return;}
+    var cobro=Array.isArray(res)?res[0]:res;
+    var cobroId=cobro&&cobro.id?cobro.id:editCobroId;
+    if(!cobroId){toast('Error obteniendo ID del cobro','error');return;}
+
+    // Sincronizar imputaciones:
+    // 1) Borrar todas las imputaciones existentes de este cobro
+    // 2) Recrear según imputacionLineas
+    var paso1=editCobroId>0?sbDeleteWhere('cobro_imputaciones','cobro_id',cobroId):Promise.resolve();
+    paso1.then(function(){
+      // Crear nuevas imputaciones
+      var nuevas=imputacionLineas.filter(function(l){return l.importeUSD>0.001;}).map(function(l){
+        var venta=(C.ventas||[]).find(function(v){return v.id===l.ventaId;});
+        return {
+          cobro_id:cobroId,
+          venta_id:l.ventaId,
+          importe_aplicado_usd:l.importeUSD,
+          importe_aplicado_moneda_venta:venta&&venta.moneda!=='USD'&&venta.tipo_cambio?l.importeUSD*parseFloat(venta.tipo_cambio):l.importeUSD,
+          created_by:CU?CU.u:null
+        };
+      });
+      if(nuevas.length===0){
+        // Actualizar estado_cobro de las ventas afectadas (limpiar)
+        return Promise.resolve();
+      }
+      return sbPost('cobro_imputaciones',nuevas);
+    }).then(function(){
+      // Actualizar estado_cobro de cada venta involucrada
+      var ventaIds=imputacionLineas.map(function(l){return l.ventaId;});
+      // También recalcular ventas que estaban antes (caso edición)
+      if(cobroEditando){
+        imputacionesDeCobro(editCobroId).forEach(function(i){
+          if(ventaIds.indexOf(i.venta_id)===-1)ventaIds.push(i.venta_id);
+        });
+      }
+      // Cargar estado actual desde BD para recalcular bien
+      return sbGet('cobro_imputaciones','select=*').then(function(allImp){
+        C.cobro_imputaciones=Array.isArray(allImp)?allImp:[];
+        // Actualizar cada venta
+        var chain=Promise.resolve();
+        ventaIds.forEach(function(vid){
+          chain=chain.then(function(){
+            var venta=(C.ventas||[]).find(function(v){return v.id===vid;});
+            if(!venta)return;
+            var nuevoEstado=estadoVentaCalc(venta);
+            return sbPatch('ventas',vid,{estado_cobro:nuevoEstado});
+          });
+        });
+        return chain;
+      });
+    }).then(function(){
+      toast('Cobro guardado · '+estado,'success');
+      window._cobroAsientoPendiente=null;
+      cerrarModalCobro();
+      reload('clientes');
+    }).catch(function(e){
+      toast('Error guardando imputaciones: '+(e.message||e),'error');
+    });
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+}
+
+function deleteCobro(id){
+  var c=(C.cobros||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  if(!confirm('¿Eliminar este cobro? Sus imputaciones también se borrarán y los saldos de las facturas se recalcularán.'))return;
+  var imps=imputacionesDeCobro(id);
+  var ventaIds=imps.map(function(i){return i.venta_id;});
+  // Borrar adjuntos
+  var adjs=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='cobro'&&a.registro_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    sbDeleteWhere('cliente_adjuntos','registro_id',id).then(function(){
+      sbDeleteWhere('cobro_imputaciones','cobro_id',id).then(function(){
+        sbDelete('cobros',id).then(function(){
+          // Recalcular estado de ventas afectadas
+          sbGet('cobro_imputaciones','select=*').then(function(allImp){
+            C.cobro_imputaciones=Array.isArray(allImp)?allImp:[];
+            var chain=Promise.resolve();
+            ventaIds.forEach(function(vid){
+              chain=chain.then(function(){
+                var venta=(C.ventas||[]).find(function(v){return v.id===vid;});
+                if(!venta)return;
+                return sbPatch('ventas',vid,{estado_cobro:estadoVentaCalc(venta)});
+              });
+            });
+            return chain;
+          }).then(function(){
+            toast('Cobro eliminado','success');
+            reload('clientes');
+          });
+        });
+      });
+    });
+  });
+}
+
+// ============================================================
+// TAB 4: CUENTA CORRIENTE
+// ============================================================
+function renderTabCtaCte(){
+  // Vista general: tabla por cliente con totales
+  var clientesConMovs=(C.clientes||[]).map(function(c){
+    return Object.assign({},c,{_cta:ctaCteCliente(c.id)});
+  }).filter(function(c){return c._cta.cantFacturas>0||c._cta.cantFacturas>0;});
+
+  // Totales generales
+  var totFact=0,totCobr=0,totSaldo=0,totNoApl=0,clientesConDeuda=0,clientesConVenc=0;
+  clientesConMovs.forEach(function(c){
+    totFact+=c._cta.totalFacturado;
+    totCobr+=c._cta.totalCobrado;
+    totSaldo+=c._cta.saldoPendiente;
+    totNoApl+=c._cta.cobrosNoAplicados;
+    if(c._cta.saldoPendiente>0.01)clientesConDeuda++;
+    if(c._cta.cantFacturasVenc>0)clientesConVenc++;
+  });
+
+  var rows='';
+  clientesConMovs.sort(function(a,b){return b._cta.saldoPendiente-a._cta.saldoPendiente;}).forEach(function(c){
+    var cta=c._cta;
+    var estClass=cta.estado==='Al día'?'bg':cta.estado==='Con saldo pendiente'?'by':'br';
+    rows+='<tr style="cursor:pointer" onclick="ctaCteSelectedCliente='+c.id+';go(\'clientes\')">'+
+      '<td style="font-weight:600">'+escapeHtml(c.nombre_empresa)+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(cta.totalFacturado)+'</td>'+
+      '<td class="green" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(cta.totalCobrado)+'</td>'+
+      '<td class="'+(cta.saldoPendiente>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(cta.saldoPendiente)+'</td>'+
+      '<td style="text-align:center">'+cta.cantFacturas+'</td>'+
+      '<td style="text-align:center">'+cta.cantFacturasPend+'</td>'+
+      '<td class="'+(cta.cantFacturasVenc>0?'red':'')+'" style="text-align:center;font-weight:600">'+cta.cantFacturasVenc+'</td>'+
+      '<td class="yellow" style="font-variant-numeric:tabular-nums;text-align:right">'+(cta.cobrosNoAplicados>0.01?fmtN(cta.cobrosNoAplicados):'—')+'</td>'+
+      '<td>'+(cta.ultimoCobro?fmtD(cta.ultimoCobro):'—')+'</td>'+
+      '<td><span class="badge '+estClass+'">'+cta.estado+'</span></td>'+
+      '</tr>';
+  });
+
+  // Detalle de cliente seleccionado
+  var detalleHTML='';
+  if(ctaCteSelectedCliente){
+    detalleHTML=renderDetalleCliente(ctaCteSelectedCliente);
+  }
+
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Facturado USD</div><div class="val cyan">'+fmtN(totFact)+'</div></div>'+
+    '<div class="card"><div class="lbl">Cobrado USD</div><div class="val green">'+fmtN(totCobr)+'</div></div>'+
+    '<div class="card" style="border-color:'+(totSaldo>0.01?'var(--red)':'var(--green)')+'"><div class="lbl">Saldo Pendiente</div><div class="val '+(totSaldo>0.01?'red':'green')+'">'+fmtN(totSaldo)+'</div></div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">No Aplicado</div><div class="val yellow">'+fmtN(totNoApl)+'</div></div>'+
+    '<div class="card"><div class="lbl">Clientes c/deuda</div><div class="val">'+clientesConDeuda+'</div></div>'+
+    '<div class="card"><div class="lbl">Clientes vencidos</div><div class="val red">'+clientesConVenc+'</div></div>'+
+    '</div>'+
+    detalleHTML+
+    '<div class="twrap"><div class="thead2"><h3>Cuenta Corriente · Resumen por Cliente</h3><span style="font-size:12px;color:var(--text2)">Click en cliente para ver detalle</span></div>'+
+    (clientesConMovs.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">📊 Sin movimientos comerciales todavía.</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1200px"><thead><tr>'+
+      '<th>Cliente</th><th style="text-align:right">Facturado USD</th><th style="text-align:right">Cobrado USD</th><th style="text-align:right">Saldo USD</th>'+
+      '<th style="text-align:center">#Fact</th><th style="text-align:center">#Pend</th><th style="text-align:center">#Venc</th>'+
+      '<th style="text-align:right">No Apl.</th><th>Último Cobro</th><th>Estado</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function renderDetalleCliente(clienteId){
+  var c=(C.clientes||[]).find(function(x){return x.id===clienteId;});
+  if(!c)return '';
+  var cta=ctaCteCliente(clienteId);
+  var ventas=(C.ventas||[]).filter(function(v){return v.cliente_id===clienteId;}).slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  var cobros=(C.cobros||[]).filter(function(x){return x.cliente_id===clienteId;}).slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+
+  var rowsV='';
+  ventas.forEach(function(v){
+    var saldo=saldoVenta(v);
+    var est=estadoVentaCalc(v);
+    var estClass=est==='Cobrado'?'bg':est==='Parcial'?'by':'br';
+    var imps=imputacionesDeVenta(v.id);
+    var detImp='';
+    imps.forEach(function(i){
+      var cob=(C.cobros||[]).find(function(x){return x.id===i.cobro_id;});
+      detImp+='<div style="font-size:10px;color:var(--text2);padding-left:8px">↳ '+fmtD(cob?cob.fecha:'')+' · '+fmtN(i.importe_aplicado_usd)+' USD</div>';
+    });
+    rowsV+='<tr>'+
+      '<td>'+fmtD(v.fecha)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(v.numero_factura||'#'+v.id)+'</td>'+
+      '<td>'+(v.tipo_operacion||'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(v.importe_usd)+' USD</td>'+
+      '<td>'+fmtD(v.fecha_vencimiento)+(isVentaVencida(v)?' <span class="badge br" style="font-size:9px">V</span>':'')+'</td>'+
+      '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
+      '<td><span class="badge '+estClass+'">'+est+'</span>'+detImp+'</td>'+
+      '</tr>';
+  });
+  var rowsC='';
+  cobros.forEach(function(co){
+    var aplicado=imputacionesDeCobro(co.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    var noApl=Math.max(0,(parseFloat(co.importe_usd)||0)-aplicado);
+    rowsC+='<tr>'+
+      '<td>'+fmtD(co.fecha)+'</td>'+
+      '<td>'+(co.medio_cobro||'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(co.importe)+' '+co.moneda+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(co.importe_usd)+' USD</td>'+
+      '<td class="green" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(aplicado)+'</td>'+
+      '<td class="'+(noApl>0.01?'yellow':'')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(noApl)+'</td>'+
+      '</tr>';
+  });
+
+  return '<div class="panel" style="border-color:var(--cyan);margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
+    '<h3 style="font-size:15px;font-weight:600">📊 '+escapeHtml(c.nombre_empresa)+'</h3>'+
+    '<button class="btn bs sm" onclick="ctaCteSelectedCliente=null;go(\'clientes\')">✕ Cerrar detalle</button>'+
+    '</div>'+
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Facturado</div><div class="val cyan">'+fmtN(cta.totalFacturado)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Cobrado</div><div class="val green">'+fmtN(cta.totalCobrado)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card" style="border-color:'+(cta.saldoPendiente>0.01?'var(--red)':'var(--green)')+'"><div class="lbl">Saldo</div><div class="val '+(cta.saldoPendiente>0.01?'red':'green')+'">'+fmtN(cta.saldoPendiente)+'</div></div>'+
+    '<div class="card"><div class="lbl">Facturas</div><div class="val">'+cta.cantFacturas+'</div><div class="sub">'+cta.cantFacturasPend+' pend / '+cta.cantFacturasVenc+' venc</div></div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr;gap:14px">'+
+    '<div class="twrap"><div class="thead2"><h3>📤 Facturas</h3></div>'+
+    (ventas.length===0?'<div style="padding:18px;text-align:center;color:var(--text2)">Sin facturas</div>':
+    '<table><thead><tr><th>Fecha</th><th>N°</th><th>Tipo</th><th style="text-align:right">Total</th><th>Vto.</th><th style="text-align:right">Saldo</th><th>Estado / Imputaciones</th></tr></thead><tbody>'+rowsV+'</tbody></table>')+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>💵 Cobros</h3></div>'+
+    (cobros.length===0?'<div style="padding:18px;text-align:center;color:var(--text2)">Sin cobros</div>':
+    '<table><thead><tr><th>Fecha</th><th>Medio</th><th style="text-align:right">Importe</th><th style="text-align:right">USD</th><th style="text-align:right">Aplicado</th><th style="text-align:right">No Apl.</th></tr></thead><tbody>'+rowsC+'</tbody></table>')+
+    '</div>'+
+    '</div>'+
+    '</div>';
+}
+
+// ============================================================
+// INTEGRACIÓN BANCO → COBRO (modal auto al guardar asiento de venta)
+// ============================================================
+// Se invoca después de guardar un asiento si toca 4.1.01 / 4.1.02 / 4.2.01
+
+function detectarAsientoVenta(asiento,lineas){
+  var cuentasVenta=['4.1.01','4.1.02','4.2.01'];
+  // Buscar línea HABER en alguna de esas cuentas
+  for(var i=0;i<lineas.length;i++){
+    if(cuentasVenta.indexOf(lineas[i].cuenta_codigo)>-1 && (parseFloat(lineas[i].haber)||0)>0){
+      return {cuenta:lineas[i].cuenta_codigo,importe:parseFloat(lineas[i].haber)||0};
+    }
+  }
+  return null;
+}
+
+function preguntarImputacionBanco(asientoId,fecha,importeUSD,cuentaCodigo){
+  // Modal con opciones: cliente + factura
+  var clientesOpts='<option value="">— Sin imputar (no impacta cta cte) —</option>';
+  (C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).forEach(function(c){
+    clientesOpts+='<option value="'+c.id+'">'+escapeHtml(c.nombre_empresa)+'</option>';
+  });
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:580px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div><h3 style="font-size:15px;font-weight:600">💵 ¿Imputar este ingreso a un cliente?</h3>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">Cuenta '+cuentaCodigo+' · '+fmtD(fecha)+' · '+fmtN(importeUSD)+' USD</div></div>'+
+    '<button class="rlbtn" onclick="cerrarModalImpBanco()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Este asiento toca una cuenta de Ventas / Otros Ingresos. Podés generar automáticamente un registro en <strong>Cobros</strong> vinculado a este asiento y a un cliente.</div>'+
+    '<div class="f" style="margin-bottom:14px">'+
+    '<label>Cliente</label>'+
+    '<select id="impBancoCliente" style="width:100%">'+clientesOpts+'</select>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:14px">💡 Si elegís un cliente, se abrirá el formulario de Cobro precargado con esta info para que confirmes y, opcionalmente, lo imputes a facturas pendientes.</div>'+
+    '<div class="factions">'+
+    '<button class="btn bp" onclick="procesarImputacionBanco('+asientoId+',\''+fecha+'\','+importeUSD+')">📋 Continuar a Cobro</button>'+
+    '<button class="btn bs" onclick="cerrarModalImpBanco()">No imputar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  // Crear contenedor si no existe (puede estar fuera de pgClientes)
+  var modal=document.getElementById('modalImpBanco');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modalImpBanco';
+    modal.style.cssText='display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1100;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalImpBanco(){
+  var m=document.getElementById('modalImpBanco');
+  if(m){m.style.display='none';m.innerHTML='';}
+}
+
+function procesarImputacionBanco(asientoId,fecha,importeUSD){
+  var clienteId=parseInt(document.getElementById('impBancoCliente').value);
+  if(!clienteId){
+    toast('Sin imputar: el asiento no afecta cta cte','info');
+    cerrarModalImpBanco();
+    return;
+  }
+  cerrarModalImpBanco();
+  // Necesitamos cargar clientes si no están en C
+  var p=Array.isArray(C.clientes)&&C.clientes.length>0?Promise.resolve():
+    sbGet('clientes','select=*&order=nombre_empresa').then(function(r){C.clientes=Array.isArray(r)?r:[];});
+  p.then(function(){
+    return sbGet('ventas','select=*&order=fecha.desc').then(function(r){C.ventas=Array.isArray(r)?r:[];});
+  }).then(function(){
+    return sbGet('cobro_imputaciones','select=*').then(function(r){C.cobro_imputaciones=Array.isArray(r)?r:[];});
+  }).then(function(){
+    // Guardar asiento_id pendiente para que guardarCobro lo asigne
+    window._cobroAsientoPendiente=asientoId;
+    // Cambiar de página si no está en clientes
+    var activeItem=document.querySelector('.ni.active');
+    var paginaActual=activeItem?activeItem.getAttribute('data-page'):'';
+    if(paginaActual!=='clientes'){
+      clientesTab='cobros';
+      go('clientes');
+      setTimeout(function(){
+        abrirModalCobro(0,{clienteId:clienteId,asientoId:asientoId,importeUSD:importeUSD,fecha:fecha});
+      },200);
+    }else{
+      clientesTab='cobros';
+      go('clientes');
+      setTimeout(function(){
+        abrirModalCobro(0,{clienteId:clienteId,asientoId:asientoId,importeUSD:importeUSD,fecha:fecha});
+      },100);
+    }
+  });
 }
 
 </script>
