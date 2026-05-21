@@ -248,11 +248,11 @@ var SB_URL='https://metirtnwksooxukzqoti.supabase.co';
 var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldGlydG53a3Nvb3h1a3pxb3RpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDkwMTQsImV4cCI6MjA5MjI4NTAxNH0.AP0FRv8AyCWILlcbCa8aCpcp155CL0QwflYqDn5mrB0';
 
 function sbH(){return{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};}
-function sbGet(t,p){return fetch(SB_URL+'/rest/v1/'+t+'?'+(p||''),{headers:sbH()}).then(function(r){return r.json();});}
-function sbPost(t,b){return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
-function sbPatch(t,id,b){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
-function sbPatchWhere(t,col,val,b){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b)}).then(function(r){return r.json();});}
-function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH()});}
+function sbGet(t,p){return fetch(SB_URL+'/rest/v1/'+t+'?'+(p||''),{headers:sbH(),cache:'no-store'}).then(function(r){return r.json();});}
+function sbPost(t,b){return fetch(SB_URL+'/rest/v1/'+t,{method:'POST',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b),cache:'no-store'}).then(function(r){return r.json();});}
+function sbPatch(t,id,b){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b),cache:'no-store'}).then(function(r){return r.json();});}
+function sbPatchWhere(t,col,val,b){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'PATCH',headers:Object.assign({'Prefer':'return=representation'},sbH()),body:JSON.stringify(b),cache:'no-store'}).then(function(r){return r.json();});}
+function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH(),cache:'no-store'});}
 function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
 
 // === USUARIOS (auth simple client-side) ===
@@ -3291,19 +3291,24 @@ function guardarCompra(){
     toast('Completá al menos fecha + proveedor o pedido','error');return;
   }
   if(editCompraId===0){
+    console.log('[guardarCompra] CREATE payload:', payload);
     sbPost('compras',payload).then(function(res){
+      console.log('[guardarCompra] CREATE response:', res);
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       toast('Compra creada','success');
       cerrarModalCompra();
       reload('compras');
-    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+    }).catch(function(e){console.error('[guardarCompra] CREATE error:',e);toast('Error: '+(e.message||e),'error');});
   }else{
+    console.log('[guardarCompra] UPDATE id='+editCompraId+' payload:', payload);
     sbPatch('compras',editCompraId,payload).then(function(res){
+      console.log('[guardarCompra] UPDATE response:', res);
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      if(Array.isArray(res)&&res.length===0){toast('⚠ La fila no se actualizó (no se encontró id='+editCompraId+')','error');return;}
       toast('Compra actualizada','success');
       cerrarModalCompra();
       reload('compras');
-    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+    }).catch(function(e){console.error('[guardarCompra] UPDATE error:',e);toast('Error: '+(e.message||e),'error');});
   }
 }
 
@@ -3719,7 +3724,7 @@ function renderStockAlta(){
     '<div class="card"><div class="lbl">Vigentes</div><div class="val green">'+fil.filter(function(x){return x.estado!=='Baja';}).length+'</div></div>'+
     '<div class="card"><div class="lbl">De Baja</div><div class="val">'+fil.filter(function(x){return x.estado==='Baja';}).length+'</div></div>'+
     '</div>'+
-    (!ro?'<div style="margin-bottom:14px"><button class="btn bp" onclick="abrirModalStockItem(0)">+ Nueva Alta de Stock</button></div>':'')+
+    (!ro?'<div style="margin-bottom:14px;display:flex;gap:8px"><button class="btn bp" onclick="abrirModalStockItem(0)">+ Nueva Alta de Stock</button><button class="btn bs" onclick="abrirModalImportStock()">📥 Importar Excel</button></div>':'')+
     filtrosHTML+
     '<div class="twrap"><div class="thead2"><h3>Historial de Altas</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
     (C.stock_items.length===0?
@@ -6913,6 +6918,314 @@ function procesarImputacionBanco(asientoId,fecha,importeUSD){
         abrirModalCobro(0,{clienteId:clienteId,asientoId:asientoId,importeUSD:importeUSD,fecha:fecha});
       },100);
     }
+  });
+}
+
+</script>
+<script>
+// ============================================================
+// STOCK — IMPORTACIÓN MASIVA DESDE EXCEL
+// ============================================================
+var stockImportPreview=null; // {filas:[{...}], validas:N, conWarn:N, conError:N}
+
+function abrirModalImportStock(){
+  stockImportPreview=null;
+  var modal=document.getElementById('modalStockImport');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modalStockImport';
+    modal.style.cssText='display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+    document.body.appendChild(modal);
+  }
+  renderModalImportStock();
+  modal.style.display='flex';
+}
+
+function cerrarModalImportStock(){
+  var m=document.getElementById('modalStockImport');
+  if(m){m.style.display='none';m.innerHTML='';}
+  stockImportPreview=null;
+}
+
+function renderModalImportStock(){
+  var modal=document.getElementById('modalStockImport');
+  if(!modal)return;
+
+  var content;
+  if(!stockImportPreview){
+    // PASO 1: subir archivo
+    content=
+      '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+      '<h3 style="font-size:15px;font-weight:600">📥 Importar Stock desde Excel</h3>'+
+      '<button class="rlbtn" onclick="cerrarModalImportStock()" style="font-size:20px">✕</button>'+
+      '</div>'+
+      '<div style="padding:20px">'+
+      '<div class="alert ainfo" style="margin-bottom:14px">📋 Antes de importar:'+
+      '<ul style="margin-top:6px;padding-left:20px;font-size:12px">'+
+      '<li>Descargá la plantilla, completala con los items y subila acá.</li>'+
+      '<li>Columnas mínimas: <strong>pn_fabrica</strong>, <strong>sku_leex</strong>, <strong>descripcion</strong>, <strong>ubicacion</strong>.</li>'+
+      '<li>Valores de <strong>ubicación, tipo y estado</strong> deben existir en tus listas de configuración (sino la fila se rechaza).</li>'+
+      '<li>El SKU no puede estar repetido en el sistema.</li>'+
+      '<li>El campo "pedido" se vincula con Compras si coincide; si no, se importa sin pedido.</li>'+
+      '<li>Vas a ver un preview antes de confirmar la importación.</li>'+
+      '</ul></div>'+
+      '<div style="display:flex;gap:10px;margin-bottom:14px">'+
+      '<button class="btn bs" onclick="descargarPlantillaStock()">⬇ Descargar plantilla</button>'+
+      '</div>'+
+      '<label style="cursor:pointer;display:block;background:var(--bg3);border:2px dashed var(--cyan);border-radius:10px;padding:32px;text-align:center">'+
+      '<input type="file" id="stockImportFile" accept=".xlsx,.xls" style="display:none" onchange="procesarStockExcel(event)"/>'+
+      '<div style="font-size:42px;margin-bottom:8px">📊</div>'+
+      '<div style="font-size:14px;font-weight:600;color:var(--cyan)">Click para seleccionar archivo Excel</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:4px">.xlsx o .xls (máx. 5MB)</div>'+
+      '</label>'+
+      '<div id="stockImportStatus"></div>'+
+      '</div></div>';
+  }else{
+    // PASO 2: preview
+    var p=stockImportPreview;
+    var rowsHTML='';
+    p.filas.forEach(function(f,idx){
+      var bg='transparent',badge='';
+      if(f._status==='error'){bg='rgba(239,68,68,0.10)';badge='<span class="badge br" style="font-size:9px">❌ ERROR</span>';}
+      else if(f._status==='warning'){bg='rgba(234,179,8,0.10)';badge='<span class="badge by" style="font-size:9px">⚠ '+f._warnings.length+'</span>';}
+      else {bg='rgba(34,197,94,0.08)';badge='<span class="badge bg" style="font-size:9px">✓ OK</span>';}
+      var msgs=(f._errors||[]).concat(f._warnings||[]);
+      var msgsHTML=msgs.length>0?'<div style="font-size:10px;color:var(--text2);margin-top:3px">'+msgs.join(' · ')+'</div>':'';
+      rowsHTML+='<tr style="background:'+bg+'">'+
+        '<td style="text-align:center;font-size:11px;color:var(--text2)">'+(idx+1)+'</td>'+
+        '<td>'+badge+msgsHTML+'</td>'+
+        '<td style="font-family:monospace;font-size:11px">'+escapeHtml(f.sku_leex||'—')+'</td>'+
+        '<td style="font-family:monospace;font-size:11px">'+escapeHtml(f.pn_fabrica||'—')+'</td>'+
+        '<td style="font-size:11px">'+escapeHtml(f.descripcion||'—')+'</td>'+
+        '<td>'+escapeHtml(f.ubicacion||'—')+'</td>'+
+        '<td>'+escapeHtml(f.tipo_producto||'—')+'</td>'+
+        '<td>'+escapeHtml(f.estado||'Disponible')+'</td>'+
+        '<td>'+escapeHtml(f.pedido_compra||'—')+'</td>'+
+        '</tr>';
+    });
+    var validasYWarn=p.filas.filter(function(f){return f._status!=='error';}).length;
+    content=
+      '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:1100px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+      '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+      '<h3 style="font-size:15px;font-weight:600">📋 Preview de Importación · '+p.filas.length+' filas</h3>'+
+      '<button class="rlbtn" onclick="cerrarModalImportStock()" style="font-size:20px">✕</button>'+
+      '</div>'+
+      '<div style="padding:20px">'+
+      '<div class="cards" style="margin-bottom:14px">'+
+      '<div class="card" style="border-color:var(--green)"><div class="lbl">✓ OK</div><div class="val green">'+p.validas+'</div><div class="sub">listas para importar</div></div>'+
+      '<div class="card" style="border-color:var(--yellow)"><div class="lbl">⚠ Con avisos</div><div class="val yellow">'+p.conWarn+'</div><div class="sub">se importan igual</div></div>'+
+      '<div class="card" style="border-color:var(--red)"><div class="lbl">❌ Rechazadas</div><div class="val red">'+p.conError+'</div><div class="sub">NO se importan</div></div>'+
+      '</div>'+
+      '<div style="max-height:50vh;overflow-y:auto;overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:14px">'+
+      '<table style="min-width:1000px;font-size:11px"><thead style="position:sticky;top:0;background:var(--bg3);z-index:2"><tr>'+
+      '<th style="padding:8px;text-align:center">#</th><th style="padding:8px">Status</th><th style="padding:8px">SKU</th><th style="padding:8px">PN</th>'+
+      '<th style="padding:8px">Descripción</th><th style="padding:8px">Ubicación</th><th style="padding:8px">Tipo</th><th style="padding:8px">Estado</th><th style="padding:8px">Pedido</th>'+
+      '</tr></thead><tbody>'+rowsHTML+'</tbody></table>'+
+      '</div>'+
+      '<div class="factions">'+
+      (validasYWarn>0?'<button class="btn bp" onclick="confirmarImportStock()">✅ Importar '+validasYWarn+' fila'+(validasYWarn===1?'':'s')+'</button>':'')+
+      '<button class="btn bs" onclick="stockImportPreview=null;renderModalImportStock()">← Volver a subir</button>'+
+      '<button class="btn bd" onclick="cerrarModalImportStock()">Cancelar</button>'+
+      '</div>'+
+      '</div></div>';
+  }
+  modal.innerHTML=content;
+}
+
+function descargarPlantillaStock(){
+  // Generar el Excel template dinámicamente con XLSX.js (que ya está cargado en la app)
+  var wb=XLSX.utils.book_new();
+
+  // Hoja 1: Instrucciones
+  var instr=[
+    ['📦 LEEX — Plantilla de Importación Masiva de Stock'],
+    [''],
+    ['Cómo usar:'],
+    ['1. Andá a la hoja "Alta de Stock"'],
+    ['2. Borrá la fila de ejemplo (fila 2)'],
+    ['3. Completá una fila por cada item nuevo'],
+    ['4. Guardá y volvé a la app → Stock → Alta → Importar Excel'],
+    [''],
+    ['Columnas obligatorias: pn_fabrica, sku_leex, descripcion, ubicacion'],
+    ['SKU duplicado en el sistema = fila rechazada'],
+    ['Ver hoja "Listas válidas" para valores aceptados']
+  ];
+  var ws1=XLSX.utils.aoa_to_sheet(instr);
+  ws1['!cols']=[{wch:80}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Instrucciones');
+
+  // Hoja 2: Alta de Stock
+  var data=[
+    ['pn_fabrica','sku_leex','sn','descripcion','marca','modelo','ubicacion','tipo_producto','estado','verificacion','pedido','observaciones'],
+    ['ABC-1234','LEEX-001','SN20260001','Equipo de ejemplo','Marca Ejemplo','Modelo X','Oficina','Equipo','Disponible','Pendiente','PED-001','Comentarios']
+  ];
+  var ws2=XLSX.utils.aoa_to_sheet(data);
+  ws2['!cols']=[
+    {wch:14},{wch:14},{wch:16},{wch:30},{wch:14},{wch:14},
+    {wch:14},{wch:16},{wch:14},{wch:14},{wch:12},{wch:30}
+  ];
+  XLSX.utils.book_append_sheet(wb,ws2,'Alta de Stock');
+
+  // Hoja 3: Listas válidas
+  var ubic=C.cfg_listas.ubicacion_stock||['Oficina','Depósito','Laboratorio','Cliente','Demo','Tránsito'];
+  var tipos=C.cfg_listas.tipo_producto_stock||['Equipo','Insumo','Repuesto','Accesorio','Software','Otro'];
+  var estados=C.cfg_listas.estado_stock||['Disponible','Reservado','En demo','No conforme','Baja'];
+  var verif=['Pendiente','Verificado','Rechazado'];
+
+  var maxLen=Math.max(ubic.length,tipos.length,estados.length,verif.length);
+  var listas=[['Ubicación','Tipo Producto','Estado','Verificación']];
+  for(var i=0;i<maxLen;i++){
+    listas.push([ubic[i]||'',tipos[i]||'',estados[i]||'',verif[i]||'']);
+  }
+  var ws3=XLSX.utils.aoa_to_sheet(listas);
+  ws3['!cols']=[{wch:18},{wch:18},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Listas válidas');
+
+  XLSX.writeFile(wb,'Plantilla_Stock_Alta.xlsx');
+  toast('Plantilla descargada','success');
+}
+
+function procesarStockExcel(ev){
+  var file=ev.target.files[0];
+  if(!file)return;
+  if(file.size>5*1024*1024){toast('Archivo muy grande (>5MB)','error');return;}
+
+  var status=document.getElementById('stockImportStatus');
+  if(status)status.innerHTML='<div style="margin-top:14px;font-size:12px;color:var(--cyan)"><div class="spinner" style="display:inline-block;vertical-align:middle"></div> Procesando archivo...</div>';
+
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      // Buscar la hoja correcta
+      var sheetName=null;
+      for(var i=0;i<wb.SheetNames.length;i++){
+        var n=wb.SheetNames[i].toLowerCase();
+        if(n==='alta de stock'||n==='alta'||n==='stock'){sheetName=wb.SheetNames[i];break;}
+      }
+      if(!sheetName)sheetName=wb.SheetNames[0];
+      var sheet=wb.Sheets[sheetName];
+      var rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});
+
+      if(rows.length===0){toast('El archivo no tiene filas de datos','error');if(status)status.innerHTML='';return;}
+
+      // Validar cada fila
+      var skusExistentes={};
+      (C.stock_items||[]).forEach(function(it){if(it.sku_leex)skusExistentes[it.sku_leex.toLowerCase()]=true;});
+      var skusEnImport={}; // para detectar duplicados dentro del mismo Excel
+
+      var ubicValidas=(C.cfg_listas.ubicacion_stock||[]).map(function(x){return x.toLowerCase();});
+      var tiposValidos=(C.cfg_listas.tipo_producto_stock||[]).map(function(x){return x.toLowerCase();});
+      var estadosValidos=(C.cfg_listas.estado_stock||['Disponible','Reservado','En demo','No conforme','Baja']).map(function(x){return x.toLowerCase();});
+
+      var procesadas=rows.map(function(r,idx){
+        var f={
+          pn_fabrica:(r.pn_fabrica||r.PN_FABRICA||r.pn||'').toString().trim(),
+          sku_leex:(r.sku_leex||r.SKU_LEEX||r.sku||'').toString().trim(),
+          sn:(r.sn||r.SN||'').toString().trim()||null,
+          descripcion:(r.descripcion||r.DESCRIPCION||r.desc||'').toString().trim(),
+          marca:(r.marca||r.MARCA||'').toString().trim()||null,
+          modelo:(r.modelo||r.MODELO||'').toString().trim()||null,
+          ubicacion:(r.ubicacion||r.UBICACION||r.ubic||'').toString().trim(),
+          tipo_producto:(r.tipo_producto||r.TIPO_PRODUCTO||r.tipo||'').toString().trim()||null,
+          estado:(r.estado||r.ESTADO||'').toString().trim()||'Disponible',
+          verificacion:(r.verificacion||r.VERIFICACION||r.verif||'').toString().trim()||'Pendiente',
+          pedido_compra:(r.pedido||r.PEDIDO||r.pedido_compra||'').toString().trim()||null,
+          observaciones:(r.observaciones||r.OBSERVACIONES||r.obs||'').toString().trim()||null,
+          fecha_alta:hoy(),
+          responsable_alta:CU?CU.name:null,
+          _errors:[],
+          _warnings:[]
+        };
+
+        // Validaciones críticas (error → no se importa)
+        if(!f.pn_fabrica)f._errors.push('Falta pn_fabrica');
+        if(!f.sku_leex)f._errors.push('Falta sku_leex');
+        if(!f.descripcion)f._errors.push('Falta descripcion');
+        if(!f.ubicacion)f._errors.push('Falta ubicacion');
+
+        if(f.sku_leex){
+          var skuL=f.sku_leex.toLowerCase();
+          if(skusExistentes[skuL])f._errors.push('SKU ya existe en stock');
+          if(skusEnImport[skuL])f._errors.push('SKU duplicado en este Excel');
+          else skusEnImport[skuL]=true;
+        }
+
+        // Warnings (se importa igual)
+        if(f.ubicacion&&ubicValidas.length>0&&ubicValidas.indexOf(f.ubicacion.toLowerCase())===-1){
+          f._errors.push('Ubicación "'+f.ubicacion+'" no está en listas');
+        }
+        if(f.tipo_producto&&tiposValidos.length>0&&tiposValidos.indexOf(f.tipo_producto.toLowerCase())===-1){
+          f._errors.push('Tipo "'+f.tipo_producto+'" no está en listas');
+        }
+        if(f.estado&&estadosValidos.length>0&&estadosValidos.indexOf(f.estado.toLowerCase())===-1){
+          f._errors.push('Estado "'+f.estado+'" no está en listas');
+        }
+
+        // Matching de pedido con compras: si no encuentra, deja vacío + warning
+        if(f.pedido_compra){
+          var comp=(C.compras||[]).find(function(c){return c.pedido&&c.pedido.toLowerCase()===f.pedido_compra.toLowerCase();});
+          if(!comp){
+            f._warnings.push('Pedido "'+f.pedido_compra+'" no encontrado en Compras (se importa sin pedido)');
+            f.pedido_compra=null;  // lo blanqueo para que se importe sin pedido
+          }
+        }
+
+        f._status=f._errors.length>0?'error':f._warnings.length>0?'warning':'ok';
+        return f;
+      });
+
+      var validas=procesadas.filter(function(f){return f._status==='ok';}).length;
+      var conWarn=procesadas.filter(function(f){return f._status==='warning';}).length;
+      var conError=procesadas.filter(function(f){return f._status==='error';}).length;
+
+      stockImportPreview={filas:procesadas,validas:validas,conWarn:conWarn,conError:conError};
+      renderModalImportStock();
+    }catch(err){
+      console.error(err);
+      toast('Error parseando Excel: '+(err.message||err),'error');
+      if(status)status.innerHTML='<div style="margin-top:10px;color:var(--red);font-size:12px">❌ '+(err.message||err)+'</div>';
+    }
+  };
+  reader.onerror=function(){toast('Error leyendo el archivo','error');if(status)status.innerHTML='';};
+  reader.readAsArrayBuffer(file);
+}
+
+function confirmarImportStock(){
+  if(!stockImportPreview)return;
+  var aImportar=stockImportPreview.filas.filter(function(f){return f._status!=='error';}).map(function(f){
+    // Limpiar campos internos antes de mandar
+    var clean={
+      pn_fabrica:f.pn_fabrica,sku_leex:f.sku_leex,sn:f.sn,descripcion:f.descripcion,
+      marca:f.marca,modelo:f.modelo,ubicacion:f.ubicacion,tipo_producto:f.tipo_producto,
+      estado:f.estado,verificacion:f.verificacion,pedido_compra:f.pedido_compra,
+      observaciones:f.observaciones,fecha_alta:f.fecha_alta,responsable_alta:f.responsable_alta
+    };
+    return clean;
+  });
+
+  if(aImportar.length===0){toast('Nada para importar','error');return;}
+
+  toast('Importando '+aImportar.length+' items...','info');
+
+  // INSERT masivo (Supabase soporta array)
+  fetch(SB_URL+'/rest/v1/stock_items',{
+    method:'POST',
+    headers:Object.assign({'Prefer':'return=representation'},sbH()),
+    body:JSON.stringify(aImportar),
+    cache:'no-store'
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error('HTTP '+r.status+': '+t);});
+    return r.json();
+  }).then(function(res){
+    var n=Array.isArray(res)?res.length:0;
+    toast('✓ '+n+' items importados correctamente','success');
+    cerrarModalImportStock();
+    reload('stock');
+  }).catch(function(err){
+    console.error('Error import:',err);
+    toast('Error al importar: '+(err.message||err),'error');
   });
 }
 
