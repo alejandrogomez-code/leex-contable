@@ -3254,6 +3254,7 @@ function abrirModalCompra(id){
       '<div class="alert ainfo" style="margin-top:14px">💡 Una vez creada la compra vas a poder subir archivos adjuntos (PDF, Excel, imágenes) desde la columna 📎 de la tabla.</div>')+
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarCompra()">💾 '+(id===0?'Crear':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarCompra(true)" title="Crear y cargar otra">💾➕ Crear + Nuevo</button>':'')+
     (id>0?'<button class="btn bs" onclick="verAdjuntosCompra('+id+');cerrarModalCompra()">📎 Ver adjuntos</button>':'')+
     '<button class="btn bs" onclick="cerrarModalCompra()">Cancelar</button>'+
     '</div>'+
@@ -3276,7 +3277,7 @@ function calcImporteCompra(){
   document.getElementById('cmpTotal').value=total>0?'$'+fmtN(total):'';
 }
 
-function guardarCompra(){
+function guardarCompra(keepOpen){
   var fob=parseFloat(document.getElementById('cmpFob').value);
   var tc=parseFloat(document.getElementById('cmpTC').value);
   // Si son NaN, las dejo como null (no las mando) en vez de 0
@@ -3324,8 +3325,13 @@ function guardarCompra(){
       }
       if(Array.isArray(res)&&res.length===0){toast('⚠ No se creó la compra (respuesta vacía)','error');return;}
       toast('Compra creada','success');
-      cerrarModalCompra();
-      reload('compras');
+      if(keepOpen){
+        cerrarModalCompra();
+        loadAll().then(function(){abrirModalCompra(0);});
+      }else{
+        cerrarModalCompra();
+        reload('compras');
+      }
     }).catch(function(e){console.error('[guardarCompra] CREATE error:',e);toast('Error: '+(e.message||e),'error');});
   }else{
     console.log('[guardarCompra] UPDATE id='+editCompraId+' payload:', JSON.stringify(payload));
@@ -3884,6 +3890,7 @@ function abrirModalStockItem(id){
 
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarStockItem()">💾 '+(id===0?'Dar de alta':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarStockItem(true)" title="Dar de alta y cargar otro">💾➕ Alta + Nuevo</button>':'')+
     (id>0?'<button class="btn bs" onclick="verAdjuntosStock('+id+');cerrarModalStockItem()">📎 Adjuntos</button>':'')+
     '<button class="btn bs" onclick="cerrarModalStockItem()">Cancelar</button>'+
     '</div>'+
@@ -3900,7 +3907,7 @@ function cerrarModalStockItem(){
   editStockId=null;
 }
 
-function guardarStockItem(){
+function guardarStockItem(keepOpen){
   var enBaja=editStockId>0&&(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado==='Baja';
   var payload={
     pn_fabrica:document.getElementById('siPn').value.trim()||null,
@@ -4398,7 +4405,14 @@ function pgChile(){
     '<div class="tab'+(chileTab==='leex'?' active':'')+'" onclick="chileTab=\'leex\';go(\'chile\')">🛒 Caja Leex</div>'+
     '</div>';
   var contenido='';
-  if(chileTab==='oficina')contenido=renderCajaChile();
+  if(chileTab==='oficina'){
+    // Sub-tabs dentro de Caja Oficina: Lista vs Tabla Dinámica
+    var subTabs='<div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px">'+
+      '<button class="btn '+(cajaChileDinTab==='lista'?'bp':'bs')+' sm" onclick="cajaChileDinTab=\'lista\';go(\'chile\')">📋 Listado</button>'+
+      '<button class="btn '+(cajaChileDinTab==='dinamica'?'bp':'bs')+' sm" onclick="cajaChileDinTab=\'dinamica\';go(\'chile\')">📊 Tabla dinámica (Rubros × Meses)</button>'+
+      '</div>';
+    contenido=subTabs+(cajaChileDinTab==='dinamica'?renderTablaDinamicaChile():renderCajaChile());
+  }
   else if(chileTab==='deam')contenido=renderCajaDeam();
   else if(chileTab==='leex')contenido=renderCajaLeex();
   return ejGlobalBar()+
@@ -4988,6 +5002,7 @@ function abrirModalCaja(tipo,id){
       '<div class="alert ainfo" style="margin-top:14px">💡 Una vez guardada la fila vas a poder subir archivos (PDF, imagen, Excel) desde la columna 📎 de la tabla.</div>')+
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarCajaItem(\''+tipo+'\')">💾 '+(id===0?'Crear':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarCajaItem(\''+tipo+'\',true)" title="Crear y cargar otra">💾➕ Crear + Nuevo</button>':'')+
     (id>0?'<button class="btn bs" onclick="verAdjuntosCaja(\''+tipo+'\','+id+');cerrarModalCaja()">📎 Adjuntos</button>':'')+
     '<button class="btn bs" onclick="cerrarModalCaja()">Cancelar</button>'+
     '</div>'+
@@ -5010,7 +5025,7 @@ function calcDeamUsd(){
   document.getElementById('cjUsd').value=tc>0?fmtN(imp/tc):'';
 }
 
-function guardarCajaItem(tipo){
+function guardarCajaItem(tipo,keepOpen){
   var url=document.getElementById('cjUrl').value.trim();
   if(tipo==='chile'){
     var payload={
@@ -5035,8 +5050,13 @@ function guardarCajaItem(tipo){
       sbPost('caja_oficina_chile',payload).then(function(res){
         if(res&&res.code){toast('Error: '+res.message,'error');return;}
         toast('Fila creada','success');
-        cerrarModalCaja();
-        reload('chile');
+        if(keepOpen){
+          cerrarModalCaja();
+          loadAll().then(function(){abrirModalCaja('chile',0);});
+        }else{
+          cerrarModalCaja();
+          reload('chile');
+        }
       });
     }else{
       sbPatch('caja_oficina_chile',editingChile,payload).then(function(res){
@@ -5068,8 +5088,13 @@ function guardarCajaItem(tipo){
       sbPost('caja_deam',payload).then(function(res){
         if(res&&res.code){toast('Error: '+res.message,'error');return;}
         toast('Fila creada','success');
-        cerrarModalCaja();
-        reload('chile');
+        if(keepOpen){
+          cerrarModalCaja();
+          loadAll().then(function(){abrirModalCaja('deam',0);});
+        }else{
+          cerrarModalCaja();
+          reload('chile');
+        }
       });
     }else{
       sbPatch('caja_deam',editingDeam,payload).then(function(res){
@@ -5778,6 +5803,7 @@ function abrirModalCliente(id){
 
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarCliente()">💾 '+(id===0?'Crear cliente':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarCliente(true)" title="Crear y cargar otro">💾➕ Crear + Nuevo</button>':'')+
     '<button class="btn bs" onclick="cerrarModalCliente()">Cancelar</button>'+
     '</div>'+
     '</div></div>';
@@ -5792,7 +5818,7 @@ function cerrarModalCliente(){
   editClienteId=null;
 }
 
-function guardarCliente(){
+function guardarCliente(keepOpen){
   var payload={
     nombre_empresa:document.getElementById('clNombre').value.trim(),
     referente:document.getElementById('clRef').value.trim()||null,
@@ -5816,7 +5842,13 @@ function guardarCliente(){
   if(editClienteId===0){
     sbPost('clientes',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Cliente creado','success');cerrarModalCliente();reload('clientes');
+      toast('Cliente creado','success');
+      if(keepOpen){
+        cerrarModalCliente();
+        loadAll().then(function(){abrirModalCliente(0);});
+      }else{
+        cerrarModalCliente();reload('clientes');
+      }
     });
   }else{
     sbPatch('clientes',editClienteId,payload).then(function(res){
@@ -6036,6 +6068,7 @@ function abrirModalVenta(id){
 
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarVenta()">💾 '+(id===0?'Crear venta':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarVenta(true)" title="Crear y cargar otra">💾➕ Crear + Nueva</button>':'')+
     '<button class="btn bs" onclick="cerrarModalVenta()">Cancelar</button>'+
     '</div>'+
     '</div></div>';
@@ -6062,7 +6095,7 @@ function calcImporteUSDVenta(){
   else{tcInput.disabled=false;}
 }
 
-function guardarVenta(){
+function guardarVenta(keepOpen){
   var imp=parseFloat(document.getElementById('vImp').value)||0;
   var mon=document.getElementById('vMoneda').value;
   var tc=parseFloat(document.getElementById('vTC').value)||0;
@@ -6091,7 +6124,13 @@ function guardarVenta(){
   if(editVentaId===0){
     sbPost('ventas',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Venta creada','success');cerrarModalVenta();reload('clientes');
+      toast('Venta creada','success');
+      if(keepOpen){
+        cerrarModalVenta();
+        loadAll().then(function(){abrirModalVenta(0);});
+      }else{
+        cerrarModalVenta();reload('clientes');
+      }
     });
   }else{
     delete payload.estado_cobro;
@@ -6487,6 +6526,7 @@ function abrirModalCobro(id,opciones){
 
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarCobro()">💾 '+(id===0?'Crear cobro':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarCobro(true)" title="Crear y cargar otro">💾➕ Crear + Nuevo</button>':'')+
     '<button class="btn bs" onclick="cerrarModalCobro()">Cancelar</button>'+
     '</div>'+
     '</div></div>';
@@ -6613,7 +6653,7 @@ function setImputacionMonto(ventaId,monto,saldoMax){
   window._impDebounce=setTimeout(renderImputacionesEditor,300);
 }
 
-function guardarCobro(){
+function guardarCobro(keepOpen){
   var imp=parseFloat(document.getElementById('cImp').value)||0;
   var mon=document.getElementById('cMoneda').value;
   var tc=parseFloat(document.getElementById('cTC').value)||0;
@@ -6709,8 +6749,13 @@ function guardarCobro(){
     }).then(function(){
       toast('Cobro guardado · '+estado,'success');
       window._cobroAsientoPendiente=null;
-      cerrarModalCobro();
-      reload('clientes');
+      if(keepOpen){
+        cerrarModalCobro();
+        loadAll().then(function(){abrirModalCobro(0);});
+      }else{
+        cerrarModalCobro();
+        reload('clientes');
+      }
     }).catch(function(e){
       toast('Error guardando imputaciones: '+(e.message||e),'error');
     });
@@ -7028,7 +7073,7 @@ function renderModalImportStock(){
       '<li>Descargá la plantilla, completala con los items y subila acá.</li>'+
       '<li>Columnas mínimas: <strong>pn_fabrica</strong>, <strong>sku_leex</strong>, <strong>descripcion</strong>, <strong>ubicacion</strong>.</li>'+
       '<li>Valores de <strong>ubicación, tipo y estado</strong> deben existir en tus listas de configuración (sino la fila se rechaza).</li>'+
-      '<li>El SKU no puede estar repetido en el sistema.</li>'+
+      '<li>El SKU puede repetirse (incluyendo múltiples "Sin SKU").</li>'+
       '<li>El campo "pedido" se vincula con Compras si coincide; si no, se importa sin pedido.</li>'+
       '<li>Vas a ver un preview antes de confirmar la importación.</li>'+
       '</ul></div>'+
@@ -7203,14 +7248,19 @@ function procesarStockExcel(ev){
 
         // Validaciones críticas (error → no se importa)
         if(!f.pn_fabrica)f._errors.push('Falta pn_fabrica');
-        if(!f.sku_leex)f._errors.push('Falta sku_leex');
-        if(!f.descripcion)f._errors.push('Falta descripcion');
-        if(!f.ubicacion)f._errors.push('Falta ubicacion');
+        // sku_leex / descripcion / ubicacion AHORA son OPCIONALES
+        if(!f.sku_leex){
+          f.sku_leex='Sin SKU';
+          f._warnings.push('Sin SKU (se guarda como "Sin SKU")');
+        }
+        if(!f.descripcion)f._warnings.push('Sin descripción');
+        if(!f.ubicacion)f._warnings.push('Sin ubicación');
 
-        if(f.sku_leex){
+        // SKU duplicado: AHORA SE PERMITE — solo aviso informativo
+        if(f.sku_leex&&f.sku_leex!=='Sin SKU'){
           var skuL=f.sku_leex.toLowerCase();
-          if(skusExistentes[skuL])f._errors.push('SKU ya existe en stock');
-          if(skusEnImport[skuL])f._errors.push('SKU duplicado en este Excel');
+          if(skusExistentes[skuL])f._warnings.push('SKU ya existe en stock (se permite igual)');
+          if(skusEnImport[skuL])f._warnings.push('SKU repetido en este Excel (se permite igual)');
           else skusEnImport[skuL]=true;
         }
 
@@ -7289,6 +7339,243 @@ function confirmarImportStock(){
     console.error('Error import:',err);
     toast('Error al importar: '+(err.message||err),'error');
   });
+}
+
+</script>
+<script>
+// ============================================================
+// CAJA CHILE — TABLA DINÁMICA (Rubros × Meses)
+// ============================================================
+var cajaChileDinTab='lista';   // 'lista' | 'dinamica'
+var cajaChileDinAnio=null;     // año a mostrar (null = todos)
+var cajaChileDinAgrup='concepto'; // concepto | estado | proveedor
+var cajaChileDinMoneda='clp';  // 'clp' | 'usd' | 'ambos'
+
+function renderTablaDinamicaChile(){
+  var rows=(C.caja_oficina_chile||[]).slice();
+  var hoy_=new Date();
+  var anioActual=hoy_.getFullYear();
+
+  // Listas de años disponibles
+  var anios={};
+  rows.forEach(function(r){
+    if(r.fecha){
+      var a=parseInt(r.fecha.substring(0,4));
+      if(a)anios[a]=true;
+    }
+  });
+  var aniosArr=Object.keys(anios).sort().reverse();
+  if(aniosArr.length===0)aniosArr=[anioActual];
+  if(!cajaChileDinAnio)cajaChileDinAnio=parseInt(aniosArr[0]);
+
+  // Header: año + agrupador + moneda
+  var headerHTML=
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">📊 Tabla dinámica</span>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<span style="font-size:11px;color:var(--text2)">Año:</span>'+
+    '<select onchange="cajaChileDinAnio=parseInt(this.value);go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:11px;outline:none">'+
+    aniosArr.map(function(a){return '<option value="'+a+'"'+(parseInt(a)===cajaChileDinAnio?' selected':'')+'>'+a+'</option>';}).join('')+
+    '</select>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<span style="font-size:11px;color:var(--text2)">Agrupar por:</span>'+
+    '<select onchange="cajaChileDinAgrup=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:11px;outline:none">'+
+    '<option value="concepto"'+(cajaChileDinAgrup==='concepto'?' selected':'')+'>Concepto</option>'+
+    '<option value="estado"'+(cajaChileDinAgrup==='estado'?' selected':'')+'>Estado</option>'+
+    '<option value="proveedor"'+(cajaChileDinAgrup==='proveedor'?' selected':'')+'>Proveedor</option>'+
+    '</select>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:6px">'+
+    '<span style="font-size:11px;color:var(--text2)">Moneda:</span>'+
+    '<div style="display:flex;gap:4px">'+
+    '<button class="btn '+(cajaChileDinMoneda==='clp'?'bp':'bs')+' sm" onclick="cajaChileDinMoneda=\'clp\';go(\'chile\')">CLP</button>'+
+    '<button class="btn '+(cajaChileDinMoneda==='usd'?'bp':'bs')+' sm" onclick="cajaChileDinMoneda=\'usd\';go(\'chile\')">USD</button>'+
+    '<button class="btn '+(cajaChileDinMoneda==='ambos'?'bp':'bs')+' sm" onclick="cajaChileDinMoneda=\'ambos\';go(\'chile\')">Ambos</button>'+
+    '</div>'+
+    '</div>'+
+    '<button class="btn bs sm" onclick="exportTablaDinamicaChile()" style="margin-left:auto">⬇ Excel</button>'+
+    '</div>'+
+    '</div>';
+
+  // Si "ambos", renderizar dos tablas
+  if(cajaChileDinMoneda==='ambos'){
+    return headerHTML+
+      '<div style="margin-bottom:18px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💰 CLP (incluye IVA)</div>'+
+      renderPivotTabla(rows,'clp',aniosArr)+'</div>'+
+      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💵 USD</div>'+
+      renderPivotTabla(rows,'usd',aniosArr)+'</div>';
+  }
+
+  return headerHTML+renderPivotTabla(rows,cajaChileDinMoneda,aniosArr);
+}
+
+function renderPivotTabla(rows,moneda,aniosArr){
+  // Filtrar por año
+  var rowsAnio=rows.filter(function(r){
+    if(!r.fecha)return true;
+    return parseInt(r.fecha.substring(0,4))===cajaChileDinAnio;
+  });
+
+  // Función para obtener el importe según moneda
+  function getImporte(r){
+    if(moneda==='clp'){
+      return (parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
+    }else{
+      // USD: si la fila tiene importe_usd usarlo; si no, calcular CLP/tc
+      if(r.importe_usd)return parseFloat(r.importe_usd)||0;
+      var totCLP=(parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
+      var tc=parseFloat(r.tipo_cambio_usd)||0;
+      return tc>0?totCLP/tc:0;
+    }
+  }
+
+  var data={};
+  var totalesPorMes=[0,0,0,0,0,0,0,0,0,0,0,0];
+  var totalSinFecha=0;
+  var totalGeneral=0;
+
+  rowsAnio.forEach(function(r){
+    var totalRow=getImporte(r);
+    if(totalRow===0)return;
+
+    var clave=r[cajaChileDinAgrup]||'(sin '+cajaChileDinAgrup+')';
+    if(!data[clave]){
+      data[clave]={meses:[0,0,0,0,0,0,0,0,0,0,0,0],sinFecha:0,total:0};
+    }
+
+    if(r.fecha){
+      var m=parseInt(r.fecha.substring(5,7))-1;
+      if(m>=0&&m<12){
+        data[clave].meses[m]+=totalRow;
+        totalesPorMes[m]+=totalRow;
+      }
+    }else{
+      data[clave].sinFecha+=totalRow;
+      totalSinFecha+=totalRow;
+    }
+    data[clave].total+=totalRow;
+    totalGeneral+=totalRow;
+  });
+
+  var claves=Object.keys(data).sort();
+  var hayConSinFecha=totalSinFecha>0.01;
+  var nombresMes=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var simbolo=moneda==='clp'?'$':'US$';
+
+  // Build tabla
+  var thMeses=nombresMes.map(function(m){
+    return '<th style="text-align:right;padding:8px 6px;font-size:10px;color:var(--text2)">'+m+'</th>';
+  }).join('');
+
+  var rowsHTML='';
+  claves.forEach(function(clave){
+    var d=data[clave];
+    var mesesCells=d.meses.map(function(v){
+      return '<td style="text-align:right;padding:6px;font-variant-numeric:tabular-nums;font-size:11px;color:'+(v>0?'var(--text)':'var(--text2)')+'">'+(v>0?fmtN(v):'—')+'</td>';
+    }).join('');
+    rowsHTML+='<tr>'+
+      '<td style="padding:8px 10px;font-weight:600;font-size:11px;background:var(--bg3);position:sticky;left:0;border-right:1px solid var(--border)">'+escapeHtml(clave)+'</td>'+
+      mesesCells+
+      (hayConSinFecha?'<td style="text-align:right;padding:6px;font-variant-numeric:tabular-nums;font-size:11px;color:'+(d.sinFecha>0?'var(--yellow)':'var(--text2)')+'">'+(d.sinFecha>0?fmtN(d.sinFecha):'—')+'</td>':'')+
+      '<td style="text-align:right;padding:6px;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--cyan);background:var(--bg3);border-left:1px solid var(--border)">'+fmtN(d.total)+'</td>'+
+      '</tr>';
+  });
+
+  // Fila TOTAL
+  var thTotalMeses=totalesPorMes.map(function(v){
+    return '<td style="text-align:right;padding:8px 6px;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--cyan)">'+(v>0?fmtN(v):'—')+'</td>';
+  }).join('');
+  var filaTotalHTML='<tr style="background:var(--bg3);border-top:2px solid var(--cyan)">'+
+    '<td style="padding:10px;font-weight:600;font-size:12px;color:var(--cyan);position:sticky;left:0;border-right:1px solid var(--border)">TOTAL</td>'+
+    thTotalMeses+
+    (hayConSinFecha?'<td style="text-align:right;padding:8px 6px;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--yellow)">'+(totalSinFecha>0?fmtN(totalSinFecha):'—')+'</td>':'')+
+    '<td style="text-align:right;padding:8px 6px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:var(--cyan);background:var(--bg2);border-left:1px solid var(--border)">'+fmtN(totalGeneral)+'</td>'+
+    '</tr>';
+
+  // KPIs arriba
+  var cards='<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Año</div><div class="val">'+cajaChileDinAnio+'</div></div>'+
+    '<div class="card"><div class="lbl">'+cajaChileDinAgrup.charAt(0).toUpperCase()+cajaChileDinAgrup.slice(1)+'s</div><div class="val">'+claves.length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total '+moneda.toUpperCase()+'</div><div class="val cyan">'+simbolo+fmtN(totalGeneral)+'</div></div>'+
+    (hayConSinFecha?'<div class="card" style="border-color:var(--yellow)"><div class="lbl">Sin fecha</div><div class="val yellow">'+simbolo+fmtN(totalSinFecha)+'</div></div>':'')+
+    '</div>';
+
+  var nota=moneda==='usd'?'Importes en USD (usa importe_usd o calcula CLP/TC)':'Importes en CLP (incluye IVA)';
+
+  return cards+
+    '<div class="twrap" style="overflow-x:auto"><div class="thead2"><h3>📊 Pivot: '+cajaChileDinAgrup+' × meses ('+cajaChileDinAnio+') · '+moneda.toUpperCase()+'</h3>'+
+    '<span style="font-size:11px;color:var(--text2)">'+nota+'</span></div>'+
+    (claves.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">📭 Sin movimientos para '+cajaChileDinAnio+' en '+moneda.toUpperCase()+'</div>':
+      '<table style="min-width:'+(180+12*60+(hayConSinFecha?80:0)+100)+'px;font-size:11px">'+
+      '<thead><tr style="background:var(--bg)">'+
+      '<th style="padding:8px 10px;text-align:left;position:sticky;left:0;background:var(--bg);border-right:1px solid var(--border);min-width:180px">'+cajaChileDinAgrup.toUpperCase()+'</th>'+
+      thMeses+
+      (hayConSinFecha?'<th style="text-align:right;padding:8px 6px;font-size:10px;color:var(--yellow)">Sin fecha</th>':'')+
+      '<th style="text-align:right;padding:8px 10px;font-size:11px;color:var(--cyan);background:var(--bg);border-left:1px solid var(--border)">TOTAL</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rowsHTML+filaTotalHTML+'</tbody></table>')+
+    '</div>';
+}
+
+function exportTablaDinamicaChile(){
+  function getImporteFn(moneda){
+    return function(r){
+      if(moneda==='clp'){
+        return (parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
+      }
+      if(r.importe_usd)return parseFloat(r.importe_usd)||0;
+      var totCLP=(parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
+      var tc=parseFloat(r.tipo_cambio_usd)||0;
+      return tc>0?totCLP/tc:0;
+    };
+  }
+  function buildData(moneda){
+    var rows=(C.caja_oficina_chile||[]).filter(function(r){
+      if(!r.fecha)return false;
+      return parseInt(r.fecha.substring(0,4))===cajaChileDinAnio;
+    });
+    var getImp=getImporteFn(moneda);
+    var nombresMes=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var data={};
+    rows.forEach(function(r){
+      var total=getImp(r);
+      if(total===0)return;
+      var clave=r[cajaChileDinAgrup]||'(sin '+cajaChileDinAgrup+')';
+      if(!data[clave])data[clave]={meses:[0,0,0,0,0,0,0,0,0,0,0,0],total:0};
+      var m=parseInt(r.fecha.substring(5,7))-1;
+      if(m>=0&&m<12)data[clave].meses[m]+=total;
+      data[clave].total+=total;
+    });
+    var claves=Object.keys(data).sort();
+    return claves.map(function(c){
+      var row={};
+      row[cajaChileDinAgrup]=c;
+      nombresMes.forEach(function(m,i){row[m+'_'+moneda.toUpperCase()]=data[c].meses[i];});
+      row['TOTAL_'+moneda.toUpperCase()]=data[c].total;
+      return row;
+    });
+  }
+  if(cajaChileDinMoneda==='ambos'){
+    // Exportar las dos hojas
+    var wb=XLSX.utils.book_new();
+    var dataCLP=buildData('clp');
+    var dataUSD=buildData('usd');
+    if(dataCLP.length>0){
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dataCLP),'CLP');
+    }
+    if(dataUSD.length>0){
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dataUSD),'USD');
+    }
+    XLSX.writeFile(wb,'Pivot_Caja_Chile_'+cajaChileDinAnio+'_AMBOS.xlsx');
+  }else{
+    var data=buildData(cajaChileDinMoneda);
+    var nombresMes=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var headers=[cajaChileDinAgrup].concat(nombresMes.map(function(m){return m+'_'+cajaChileDinMoneda.toUpperCase();})).concat(['TOTAL_'+cajaChileDinMoneda.toUpperCase()]);
+    exportExcel(data,headers,'Pivot_Caja_Chile_'+cajaChileDinAnio+'_'+cajaChileDinMoneda.toUpperCase(),'Pivot');
+  }
 }
 
 </script>
