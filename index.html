@@ -7071,7 +7071,8 @@ function renderModalImportStock(){
       '<div class="alert ainfo" style="margin-bottom:14px">📋 Antes de importar:'+
       '<ul style="margin-top:6px;padding-left:20px;font-size:12px">'+
       '<li>Descargá la plantilla, completala con los items y subila acá.</li>'+
-      '<li>Columnas mínimas: <strong>pn_fabrica</strong>, <strong>sku_leex</strong>, <strong>descripcion</strong>, <strong>ubicacion</strong>.</li>'+
+      '<li>Columna obligatoria: <strong>pn_fabrica</strong>. El resto es opcional.</li>'+
+      '<li>Si SKU está vacío, se guarda como <strong>"Sin SKU"</strong>.</li>'+
       '<li>Valores de <strong>ubicación, tipo y estado</strong> deben existir en tus listas de configuración (sino la fila se rechaza).</li>'+
       '<li>El SKU puede repetirse (incluyendo múltiples "Sin SKU").</li>'+
       '<li>El campo "pedido" se vincula con Compras si coincide; si no, se importa sin pedido.</li>'+
