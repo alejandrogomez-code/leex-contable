@@ -658,7 +658,8 @@ var C={
   cobros:[],
   cobro_imputaciones:[],
   cliente_adjuntos:[],
-  usuario_permisos:[]
+  usuario_permisos:[],
+  saldo_banco_historial:[]
 };
 
 // === ESTADO UI ===
@@ -798,7 +799,8 @@ function loadAll(){
     sbGet('cobros','select=*&order=fecha.desc').catch(function(){return[];}),
     sbGet('cobro_imputaciones','select=*').catch(function(){return[];}),
     sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
-    sbGet('usuario_permisos','select=*').catch(function(){return[];})
+    sbGet('usuario_permisos','select=*').catch(function(){return[];}),
+    sbGet('saldo_banco_historial','select=*&order=fecha.asc,id.asc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -848,6 +850,7 @@ function loadAll(){
     C.cobro_imputaciones=Array.isArray(res[27])?res[27]:[];
     C.cliente_adjuntos=Array.isArray(res[28])?res[28]:[];
     C.usuario_permisos=Array.isArray(res[29])?res[29]:[];
+    C.saldo_banco_historial=Array.isArray(res[30])?res[30]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -1214,22 +1217,47 @@ function calcSaldoVigenteChile(){
 }
 
 function serieSaldoBanco6Meses(){
-  // Devuelve array de {label,saldo} para los últimos 6 meses (incluyendo el actual)
-  var hoy=new Date();
-  var pts=[];
-  for(var i=5;i>=0;i--){
-    var d=new Date(hoy.getFullYear(), hoy.getMonth()-i+1, 0); // último día del mes
-    var yy=d.getFullYear(), mm=d.getMonth()+1;
-    var fechaStr=yy+'-'+(mm<10?'0':'')+mm+'-'+(d.getDate()<10?'0':'')+d.getDate();
-    var saldo=saldoBanco(fechaStr);
-    var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    pts.push({label:meses[mm-1]+' '+String(yy).slice(-2), saldo:saldo, fecha:fechaStr});
+  // Construye una serie con la EVOLUCIÓN DEL SALDO REAL BANCO (manual)
+  // usando la tabla saldo_banco_historial.
+  // Estrategia: para cada uno de los últimos 6 meses, tomar el saldo manual
+  // más reciente cuya fecha sea <= último día del mes.
+  var hist=(C.saldo_banco_historial||[]).slice().sort(function(a,b){
+    return (a.fecha||'').localeCompare(b.fecha||'');
+  });
+  // Si no hay histórico, usar el saldo manual actual (si existe) como único punto
+  if(hist.length===0){
+    var actual=C.config.saldo_banco_manual;
+    if(actual===null||actual===undefined||isNaN(parseFloat(actual)))return [];
+    var fAct=C.config.saldo_banco_manual_fecha||hoy();
+    hist=[{fecha:fAct,saldo_usd:parseFloat(actual)}];
   }
+  var hoyD=new Date();
+  var pts=[];
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  for(var i=5;i>=0;i--){
+    var d=new Date(hoyD.getFullYear(), hoyD.getMonth()-i+1, 0); // último día del mes
+    var yy=d.getFullYear(), mm=d.getMonth()+1, dd=d.getDate();
+    var corte=yy+'-'+(mm<10?'0':'')+mm+'-'+(dd<10?'0':'')+dd;
+    // Buscar el último registro <= corte
+    var saldo=null;
+    for(var j=hist.length-1;j>=0;j--){
+      if((hist[j].fecha||'')<=corte){saldo=parseFloat(hist[j].saldo_usd)||0;break;}
+    }
+    pts.push({label:meses[mm-1]+' '+String(yy).slice(-2), saldo:saldo, fecha:corte});
+  }
+  // Si el último punto sigue siendo null, no hubo nunca un registro: serie vacía
+  var hayDato=pts.some(function(p){return p.saldo!==null;});
+  if(!hayDato)return [];
+  // Rellenar nulls iniciales con el primer valor disponible para que el gráfico no rompa
+  var primeroValido=null;
+  for(var k=0;k<pts.length;k++){if(pts[k].saldo!==null){primeroValido=pts[k].saldo;break;}}
+  pts.forEach(function(p){if(p.saldo===null)p.saldo=primeroValido!==null?primeroValido:0;});
   return pts;
 }
 
 function renderMiniChartSaldoBanco(serie){
-  if(!serie || serie.length===0) return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Banco</h3></div><div style="padding:24px;text-align:center;color:var(--text2)">Sin datos</div></div>';
+  if(!serie || serie.length===0) return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Real Banco</h3></div>'+
+    '<div style="padding:24px;text-align:center;color:var(--text2);font-size:13px">Sin historial de saldos manuales aún.<br/><span style="font-size:11px">Cada vez que actualices el Saldo Real en Movimientos Banco, se irá armando la curva.</span></div></div>';
   var W=560, H=180, PAD=36;
   var vals=serie.map(function(p){return p.saldo;});
   var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
@@ -1265,7 +1293,7 @@ function renderMiniChartSaldoBanco(serie){
     pts+
     xl+
     '</svg>';
-  return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Banco</h3><span style="font-size:11px;color:var(--text2)">Últimos 6 meses · contable</span></div>'+
+  return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Real Banco</h3><span style="font-size:11px;color:var(--text2)">Últimos 6 meses · saldo manual</span></div>'+
     '<div style="padding:14px 10px 6px">'+svg+'</div></div>';
 }
 
@@ -2544,6 +2572,13 @@ function guardarSaldoManual(){
     upsertCfg('saldo_banco_manual_fecha', fecha),
     upsertCfg('saldo_banco_manual_actualizado_at', now)
   ]).then(function(){
+    // Guardar también al histórico (si la tabla existe)
+    sbPost('saldo_banco_historial',{
+      fecha:fecha,
+      saldo_usd:monto,
+      created_by:CU?CU.u:null
+    }).then(function(){}).catch(function(){/* tabla puede no existir aún */});
+    auditLog('update','Saldo Banco Manual','USD '+monto+' al '+fecha);
     toast('Saldo guardado','success');
     cerrarModalSaldoManual();
     reload('banco');
