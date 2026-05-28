@@ -2651,21 +2651,42 @@ function generarAsientoMov(movId){abrirModalAsiento(movId);}
 function abrirModalMovManual(){
   var ro=!isAdmin();
   if(ro){toast('Solo administradores pueden crear movimientos manuales','error');return;}
+  var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
+  var ctaBancoNom='';
+  var cb=C.cuentas.find(function(c){return c.codigo===cuentaBanco;});
+  if(cb)ctaBancoNom=cb.codigo+' - '+cb.nombre;
   var modalContent =
-    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:560px;width:100%;box-shadow:var(--shadow-lg)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2">'+
     '<h3 style="font-size:15px;font-weight:600">➕ Movimiento Bancario Manual</h3>'+
     '<button class="rlbtn" onclick="cerrarModalMovManual()" style="font-size:20px">✕</button>'+
     '</div>'+
     '<div style="padding:20px">'+
-    '<div class="alert ainfo" style="margin-bottom:14px">Creá un movimiento bancario manual (por ejemplo, para registrar un ajuste o un movimiento que no figura en el extracto importado). Una vez creado podés generarle un asiento y conciliarlo para que impacte en el Saldo Conciliado.</div>'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Creá un movimiento bancario manual (ej: un ajuste o un movimiento que no figura en el extracto). Si elegís una contracuenta, se genera el asiento contable automáticamente y el movimiento impacta en el <strong>Saldo Contable</strong> además del Saldo Conciliado.</div>'+
     '<div class="fg2">'+
     '<div class="f"><label>Fecha *</label><input type="date" id="mmFecha" value="'+hoy()+'"/></div>'+
-    '<div class="f"><label>Monto USD * <span style="color:var(--text2);font-weight:400">(negativo = débito/salida)</span></label><input type="number" id="mmMonto" step="0.01" placeholder="-2236.87"/></div>'+
+    '<div class="f"><label>Monto USD * <span style="color:var(--text2);font-weight:400">(negativo = salida)</span></label><input type="number" id="mmMonto" step="0.01" placeholder="-2236.87"/></div>'+
     '</div>'+
     '<div class="f" style="margin-top:12px"><label>Descripción *</label><input type="text" id="mmDesc" placeholder="Ej: Ajuste de conciliación / Comisión no registrada"/></div>'+
+    '<div style="margin-top:16px;padding:14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+      '<input type="checkbox" id="mmGenAsiento" checked style="width:auto;margin:0" onchange="toggleAsientoMovManual(this.checked)"/>'+
+      '<label for="mmGenAsiento" style="margin:0;font-size:13px;cursor:pointer;font-weight:600">Generar asiento contable (impacta en Saldo Contable)</label>'+
+      '</div>'+
+      '<div id="mmAsientoFields">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--text2);margin-bottom:8px">'+
+        '<div>Cuenta banco (automática)</div><div>Contracuenta *</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">'+
+        '<input type="text" value="'+escapeHtml(ctaBancoNom||cuentaBanco)+'" readonly style="background:var(--bg);border:1px solid var(--border);color:var(--text2);padding:7px 10px;border-radius:7px;font-size:11px;outline:none"/>'+
+        '<select id="mmContra" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none"><option value="">— Elegí la contracuenta —</option>'+ctasOpts('')+'</select>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-top:8px">La contracuenta es la otra parte del asiento. Ej: si es una comisión bancaria → cuenta de gasto bancario; si es un ajuste → cuenta de ajustes.</div>'+
+      '<div class="f" style="margin-top:10px"><label style="font-size:11px">Categoría (opcional)</label><select id="mmCat"><option value="">— Sin categoría —</option>'+(C.cfg_listas.categoria_asiento||[]).map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join('')+'</select></div>'+
+      '</div>'+
+    '</div>'+
     '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
-    '<input type="checkbox" id="mmConciliar" style="width:auto;margin:0"/>'+
+    '<input type="checkbox" id="mmConciliar" checked style="width:auto;margin:0"/>'+
     '<label for="mmConciliar" style="margin:0;font-size:12px;cursor:pointer">Marcar como conciliado al crear (impacta directo en el Saldo Conciliado)</label>'+
     '</div>'+
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">'+
@@ -2679,6 +2700,11 @@ function abrirModalMovManual(){
   modal.style.display='flex';
 }
 
+function toggleAsientoMovManual(on){
+  var f=document.getElementById('mmAsientoFields');
+  if(f){f.style.opacity=on?'1':'.4';f.style.pointerEvents=on?'auto':'none';}
+}
+
 function cerrarModalMovManual(){
   var modal=document.getElementById('modalMovManual');
   if(modal){modal.style.display='none';modal.innerHTML='';}
@@ -2690,10 +2716,14 @@ function guardarMovManual(){
   var monto=parseFloat(document.getElementById('mmMonto').value);
   var desc=document.getElementById('mmDesc').value.trim();
   var conciliar=document.getElementById('mmConciliar').checked;
+  var genAsiento=document.getElementById('mmGenAsiento').checked;
+  var contra=genAsiento?document.getElementById('mmContra').value:'';
+  var cat=genAsiento?document.getElementById('mmCat').value:'';
 
   if(!fecha){unlockSubmit('guardarMovManual');toast('Ingresá la fecha','error');return;}
   if(isNaN(monto)||monto===0){unlockSubmit('guardarMovManual');toast('Ingresá un monto distinto de cero','error');return;}
   if(!desc){unlockSubmit('guardarMovManual');toast('Ingresá una descripción','error');return;}
+  if(genAsiento&&!contra){unlockSubmit('guardarMovManual');toast('Elegí la contracuenta para generar el asiento','error');return;}
 
   var año=getEjYear(fecha);
   if(!isEjercicioEditable(año)){unlockSubmit('guardarMovManual');toast('Ejercicio '+año+' cerrado, no se puede crear','error');return;}
@@ -2710,25 +2740,89 @@ function guardarMovManual(){
     payload.conciliado_por=CU?CU.u:null;
   }
 
-  sbPost('movimientos_banco',payload).then(function(res){
-    if(res&&res.code){
-      // Si falla por la columna origen_manual (no existe), reintentar sin ella
-      if(String(res.message||'').toLowerCase().indexOf('origen_manual')>-1){
-        delete payload.origen_manual;
-        return sbPost('movimientos_banco',payload).then(function(r2){
-          if(r2&&r2.code){toast('Error: '+r2.message,'error');return;}
-          finalizarMovManual(monto,conciliar);
-        });
+  // Crear movimiento (con fallback si origen_manual no existe)
+  function crearMov(pl){
+    return sbPost('movimientos_banco',pl).then(function(res){
+      if(res&&res.code){
+        if(String(res.message||'').toLowerCase().indexOf('origen_manual')>-1){
+          var pl2=Object.assign({},pl);delete pl2.origen_manual;
+          return sbPost('movimientos_banco',pl2);
+        }
+        throw new Error(res.message);
       }
-      toast('Error: '+res.message,'error');return;
+      return res;
+    });
+  }
+
+  crearMov(payload).then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarMovManual');return;}
+    var mov=Array.isArray(res)?res[0]:res;
+    if(!mov||!mov.id){toast('Error: no se pudo crear el movimiento','error');unlockSubmit('guardarMovManual');return;}
+    if(genAsiento){
+      generarAsientoDeMovManual(mov,monto,desc,contra,cat,conciliar);
+    }else{
+      finalizarMovManual(monto,conciliar,false);
     }
-    finalizarMovManual(monto,conciliar);
-  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');unlockSubmit('guardarMovManual');});
 }
 
-function finalizarMovManual(monto,conciliar){
-  auditLog('create','Mov. Banco Manual','USD '+monto+(conciliar?' (conciliado)':''));
-  toast(conciliar?'Movimiento creado y conciliado ✓':'Movimiento manual creado','success');
+function generarAsientoDeMovManual(mov,monto,desc,contra,cat,conciliar){
+  var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
+  var año=getEjYear(mov.fecha);
+  var numero=siguienteNumeroAsiento(año);
+  // Partida doble:
+  //  - monto > 0 (entrada): Debe Banco / Haber Contracuenta
+  //  - monto < 0 (salida):  Debe Contracuenta / Haber Banco
+  var abs=Math.abs(monto);
+  var lineas;
+  if(monto>0){
+    lineas=[
+      {cuenta_codigo:cuentaBanco,detalle:desc,debe:abs,haber:0,orden:1},
+      {cuenta_codigo:contra,detalle:desc,debe:0,haber:abs,orden:2}
+    ];
+  }else{
+    lineas=[
+      {cuenta_codigo:contra,detalle:desc,debe:abs,haber:0,orden:1},
+      {cuenta_codigo:cuentaBanco,detalle:desc,debe:0,haber:abs,orden:2}
+    ];
+  }
+  sbPost('asientos',{
+    fecha:mov.fecha,descripcion:desc,
+    referencia:'AST-'+año+'-'+String(numero).padStart(4,'0'),
+    origen:'banco',categoria:cat||null,
+    numero:numero,ejercicio_año:año,
+    movimiento_banco_id:mov.id
+  }).then(function(astRes){
+    var ast=Array.isArray(astRes)?astRes[0]:astRes;
+    if(!ast||!ast.id){toast('Movimiento creado, pero falló el asiento','error');finalizarMovManual(monto,conciliar,false);return;}
+    sbPost('asiento_lineas',lineas.map(function(l){return Object.assign({asiento_id:ast.id},l);})).then(function(linRes){
+      if(linRes&&linRes.code){
+        toast('Error en líneas del asiento: '+linRes.message,'error');
+        sbDelete('asientos',ast.id);
+        finalizarMovManual(monto,conciliar,false);return;
+      }
+      // Vincular asiento al movimiento (y conciliar si corresponde)
+      var updMov={asiento_id:ast.id};
+      if(conciliar){
+        updMov.conciliado=true;
+        updMov.conciliado_at=new Date().toISOString();
+        updMov.conciliado_por=CU?CU.u:null;
+      }
+      sbPatch('movimientos_banco',mov.id,updMov).then(function(){
+        finalizarMovManual(monto,conciliar,true);
+      });
+    });
+  }).catch(function(e){toast('Error creando asiento: '+(e.message||e),'error');finalizarMovManual(monto,conciliar,false);});
+}
+
+function finalizarMovManual(monto,conciliar,conAsiento){
+  auditLog('create','Mov. Banco Manual','USD '+monto+(conAsiento?' + asiento':'')+(conciliar?' (conciliado)':''));
+  var msg='Movimiento manual creado';
+  if(conAsiento&&conciliar)msg='Movimiento + asiento creados y conciliado ✓';
+  else if(conAsiento)msg='Movimiento + asiento contable creados ✓';
+  else if(conciliar)msg='Movimiento creado y conciliado ✓';
+  toast(msg,'success');
+  unlockSubmit('guardarMovManual');
   cerrarModalMovManual();
   reload('banco');
 }
