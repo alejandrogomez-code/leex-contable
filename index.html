@@ -2079,13 +2079,18 @@ function pgBanco(){
     '</div>'+
     ((bancoDesde||bancoHasta||bancoFiltro!=='todos')?'<button class="btn sm bd" onclick="bancoFiltro=\'todos\';bancoDesde=\'\';bancoHasta=\'\';go(\'banco\')">✕ Limpiar</button>':'')+
     '</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3><span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span></div>'+
+    '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-left:auto">'+
+    '<span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span>'+
+    (ro?'':'<button class="btn sm bp" onclick="abrirModalMovManual()" title="Crear un movimiento bancario manual (ej: para conciliar un ajuste)">➕ Movimiento manual</button>')+
+    '</div></div>'+
     (movsEj.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos en '+ejercicioActual+'. <a href="#" onclick="go(\'importar\');return false;" style="color:var(--cyan)">Importar extracto →</a></div>':
     filtrados.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
     '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th><th>📎</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>'+
     // Modal containers (ocultos por default)
     '<div id="modalAsiento" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>'+
+    '<div id="modalMovManual" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>'+
     '<div id="modalAdjuntos" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
 }
 
@@ -2534,6 +2539,94 @@ function delMov(id){
 }
 
 function generarAsientoMov(movId){abrirModalAsiento(movId);}
+
+// ============================================================
+// MODAL: MOVIMIENTO BANCARIO MANUAL
+// ============================================================
+function abrirModalMovManual(){
+  var ro=!isAdmin();
+  if(ro){toast('Solo administradores pueden crear movimientos manuales','error');return;}
+  var modalContent =
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:560px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<h3 style="font-size:15px;font-weight:600">➕ Movimiento Bancario Manual</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalMovManual()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Creá un movimiento bancario manual (por ejemplo, para registrar un ajuste o un movimiento que no figura en el extracto importado). Una vez creado podés generarle un asiento y conciliarlo para que impacte en el Saldo Conciliado.</div>'+
+    '<div class="fg2">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="mmFecha" value="'+hoy()+'"/></div>'+
+    '<div class="f"><label>Monto USD * <span style="color:var(--text2);font-weight:400">(negativo = débito/salida)</span></label><input type="number" id="mmMonto" step="0.01" placeholder="-2236.87"/></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:12px"><label>Descripción *</label><input type="text" id="mmDesc" placeholder="Ej: Ajuste de conciliación / Comisión no registrada"/></div>'+
+    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
+    '<input type="checkbox" id="mmConciliar" style="width:auto;margin:0"/>'+
+    '<label for="mmConciliar" style="margin:0;font-size:12px;cursor:pointer">Marcar como conciliado al crear (impacta directo en el Saldo Conciliado)</label>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">'+
+    '<button class="btn bs" onclick="cerrarModalMovManual()">Cancelar</button>'+
+    '<button class="btn bp" id="mmGuardar" onclick="guardarMovManual()">Crear movimiento</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalMovManual');
+  if(!modal)return;
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalMovManual(){
+  var modal=document.getElementById('modalMovManual');
+  if(modal){modal.style.display='none';modal.innerHTML='';}
+}
+
+function guardarMovManual(){
+  if(lockSubmit('guardarMovManual'))return;
+  var fecha=document.getElementById('mmFecha').value;
+  var monto=parseFloat(document.getElementById('mmMonto').value);
+  var desc=document.getElementById('mmDesc').value.trim();
+  var conciliar=document.getElementById('mmConciliar').checked;
+
+  if(!fecha){unlockSubmit('guardarMovManual');toast('Ingresá la fecha','error');return;}
+  if(isNaN(monto)||monto===0){unlockSubmit('guardarMovManual');toast('Ingresá un monto distinto de cero','error');return;}
+  if(!desc){unlockSubmit('guardarMovManual');toast('Ingresá una descripción','error');return;}
+
+  var año=getEjYear(fecha);
+  if(!isEjercicioEditable(año)){unlockSubmit('guardarMovManual');toast('Ejercicio '+año+' cerrado, no se puede crear','error');return;}
+
+  var payload={
+    fecha:fecha,
+    descripcion:desc,
+    monto:Math.round(monto*100)/100,
+    origen_manual:true
+  };
+  if(conciliar){
+    payload.conciliado=true;
+    payload.conciliado_at=new Date().toISOString();
+    payload.conciliado_por=CU?CU.u:null;
+  }
+
+  sbPost('movimientos_banco',payload).then(function(res){
+    if(res&&res.code){
+      // Si falla por la columna origen_manual (no existe), reintentar sin ella
+      if(String(res.message||'').toLowerCase().indexOf('origen_manual')>-1){
+        delete payload.origen_manual;
+        return sbPost('movimientos_banco',payload).then(function(r2){
+          if(r2&&r2.code){toast('Error: '+r2.message,'error');return;}
+          finalizarMovManual(monto,conciliar);
+        });
+      }
+      toast('Error: '+res.message,'error');return;
+    }
+    finalizarMovManual(monto,conciliar);
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+}
+
+function finalizarMovManual(monto,conciliar){
+  auditLog('create','Mov. Banco Manual','USD '+monto+(conciliar?' (conciliado)':''));
+  toast(conciliar?'Movimiento creado y conciliado ✓':'Movimiento manual creado','success');
+  cerrarModalMovManual();
+  reload('banco');
+}
 
 // ============================================================
 // MODAL: EDITAR SALDO BANCO REAL (manual)
