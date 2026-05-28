@@ -5846,7 +5846,7 @@ var modalAdjCajaTipo=null;  // 'chile' | 'deam'
 var modalAdjCajaId=null;
 
 function pgChile(){
-  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  if(!puedeVer('proyectos'))return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert aerr">No tenés acceso a esta sección.</div>';
   var tabs='<div class="tabs">'+
     '<div class="tab'+(chileTab==='oficina'?' active':'')+'" onclick="chileTab=\'oficina\';go(\'chile\')">💰 Caja Oficina Chile</div>'+
     '<div class="tab'+(chileTab==='deam'?' active':'')+'" onclick="chileTab=\'deam\';go(\'chile\')">🇦🇷 Caja DEAM</div>'+
@@ -5875,6 +5875,7 @@ function pgChile(){
 // CAJA OFICINA CHILE
 // ============================================================
 function renderCajaChile(){
+  var ro=!puedeEditar('proyectos');
   var F=cajaChileFiltros;
   var S=cajaChileSort;
   var conceptos=C.cfg_listas.concepto_caja||[];
@@ -5926,7 +5927,7 @@ function renderCajaChile(){
     '<select onchange="cajaChileFiltros.concepto=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(conceptos,F.concepto)+'</select>'+
     '<select onchange="cajaChileFiltros.estado=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select>'+
     (hayFiltros?'<button class="btn sm bd" onclick="cajaChileFiltros={busqueda:\'\',fecha:\'\',proveedor:\'\',concepto:\'\',estado:\'\'};go(\'chile\')">✕</button>':'')+
-    '<button class="btn bp sm" onclick="abrirModalCaja(\'chile\',0)">+ Nueva fila</button>'+
+    (ro?'':'<button class="btn bp sm" onclick="abrirModalCaja(\'chile\',0)">+ Nueva fila</button>')+
     '<button class="btn bs sm" onclick="exportCajaChile()">⬇ Excel</button>'+
     '</div>';
 
@@ -5950,10 +5951,10 @@ function renderCajaChile(){
       '<td>'+estBadge+'</td>'+
       '<td>'+adjCell+'</td>'+
       '<td>'+urlCell+'</td>'+
-      '<td style="white-space:nowrap">'+
+      (ro?'':'<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalCaja(\'chile\','+r.id+')" title="Editar">✏</button> '+
         '<button class="miniBtn" style="color:var(--red)" onclick="deleteCajaItem(\'chile\','+r.id+')" title="Eliminar">🗑</button>'+
-      '</td>'+
+      '</td>')+
       '</tr>';
   });
 
@@ -5967,9 +5968,9 @@ function renderCajaChile(){
       '<th style="text-align:right">'+sortBtn('importe_clp','Importe $')+'</th>'+
       '<th style="text-align:right">'+sortBtn('importe_iva_clp','IVA $')+'</th>'+
       '<th>'+sortBtn('estado','Estado')+'</th>'+
-      '<th>📎</th><th>URL</th><th></th>'+
+      '<th>📎</th><th>URL</th>'+(ro?'':'<th></th>')+
       '</tr></thead><tbody>'+
-      (rows||'<tr><td colspan="11" style="text-align:center;color:var(--text2);padding:20px">Sin registros. <a href="#" onclick="abrirModalCaja(\'chile\',0);return false;" style="color:var(--cyan)">Agregar primero →</a></td></tr>')+
+      (rows||'<tr><td colspan="'+(ro?10:11)+'" style="text-align:center;color:var(--text2);padding:20px">Sin registros.'+(ro?'':' <a href="#" onclick="abrirModalCaja(\'chile\',0);return false;" style="color:var(--cyan)">Agregar primero →</a>')+'</td></tr>')+
       '</tbody></table></div></div>';
 
   // === Totales ===
