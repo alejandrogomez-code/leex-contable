@@ -1689,12 +1689,30 @@ function parsePDFPage(page){
       if(!found)lines[item.y]=[item];
     });
 
+    // === DETECTAR COLUMNAS POR HEADER ===
+    // Buscamos la fila de encabezados (DÉBITOS / CRÉDITOS / SALDO / BALANCE)
+    // para saber a qué columna pertenece cada monto según su X.
+    var colDebito=null, colCredito=null, colSaldo=null;
+    Object.keys(lines).forEach(function(yKey){
+      lines[yKey].forEach(function(it){
+        var t=it.text.toUpperCase().replace(/[ÉÈÊ]/g,'E').replace(/[ÁÀÂ]/g,'A').replace(/[ÍÌ]/g,'I').replace(/[ÓÒÔ]/g,'O').replace(/[ÚÙ]/g,'U');
+        if(/^D[EÉ]BITO/.test(t)||t==='DEBITS'||t==='DEBIT'||t==='CARGOS'||t==='RETIROS')colDebito=it.x;
+        else if(/^CR[EÉ]DITO/.test(t)||t==='CREDITS'||t==='CREDIT'||t==='ABONOS'||t==='DEPOSITOS')colCredito=it.x;
+        else if(/^SALDO/.test(t)||t==='BALANCE'||t==='SALDO')colSaldo=it.x;
+      });
+    });
+    // Si detectamos headers, sabemos si hay columna de saldo o no
+    var hayColSaldo=(colSaldo!==null);
+
     // Procesar cada línea
     var rawRows=[];
     Object.keys(lines).forEach(function(yKey){
       var lineItems=lines[yKey].sort(function(a,b){return a.x-b.x;});
       var dateText=lineItems.find(function(item){return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(item.text);});
       if(!dateText)return;
+      // Saltar fila de Totales aunque tuviera fecha
+      var esTotales=lineItems.some(function(it){return /^totales?$/i.test(it.text)||/^transactions?:/i.test(it.text);});
+      if(esTotales)return;
 
       // Recolectar TODOS los montos con su posición X
       var montos=[]; // {valor, esNegativo, x}
@@ -1710,34 +1728,48 @@ function parsePDFPage(page){
             montos.push({valor:val,esNegativo:esNeg,x:item.x});
           }
         }else{
-          // No es monto = parte de la descripción
           descParts.push({text:item.text,x:item.x});
         }
       });
 
-      // Ordenar montos por X (de izquierda a derecha)
       montos.sort(function(a,b){return a.x-b.x;});
-
       if(montos.length===0)return; // fila sin montos = encabezado o texto suelto
 
-      // En este formato: DÉBITOS | CRÉDITOS | SALDO
-      // El ÚLTIMO monto siempre es el SALDO → descartarlo
-      // De los restantes: si tiene "-" es débito, sino crédito
-      var saldoX=montos[montos.length-1].x;
-      var saldoRow=montos[montos.length-1].valor;
-      var movMontos=montos.slice(0,-1);
-
-      // Reconstruir descripción: solo los items a la izquierda del primer monto (no saldo)
-      var primerMontoX=movMontos.length>0?movMontos[0].x:saldoX;
-      var desc=descParts.filter(function(d){return d.x<primerMontoX;}).map(function(d){return d.text;}).join(' ').trim();
-
-      if(!desc||movMontos.length===0)return;
-
-      // Sumar todos los montos del movimiento (puede haber solo uno: débito O crédito)
       var monto=0;
-      movMontos.forEach(function(m){
-        monto+=m.esNegativo?-m.valor:m.valor;
-      });
+      var saldoRow=null;
+      var primerMontoX;
+
+      if(colDebito!==null||colCredito!==null){
+        // === MODO COLUMNAS (preferido): clasificar cada monto por cercanía de X al header ===
+        montos.forEach(function(m){
+          // Distancia a cada columna conocida
+          var dD=colDebito!==null?Math.abs(m.x-colDebito):1e9;
+          var dC=colCredito!==null?Math.abs(m.x-colCredito):1e9;
+          var dS=colSaldo!==null?Math.abs(m.x-colSaldo):1e9;
+          var min=Math.min(dD,dC,dS);
+          if(min===dS&&colSaldo!==null){
+            saldoRow=m.valor; // es la columna saldo → no suma al movimiento
+          }else if(min===dD){
+            monto-=m.valor; // débito siempre resta (haya o no traído el signo)
+          }else{
+            monto+=m.valor; // crédito suma
+          }
+        });
+        primerMontoX=montos[0].x;
+      }else{
+        // === MODO LEGACY (sin headers detectados): asumir última col = saldo ===
+        var saldoX=montos[montos.length-1].x;
+        saldoRow=montos[montos.length-1].valor;
+        var movMontos=montos.slice(0,-1);
+        primerMontoX=movMontos.length>0?movMontos[0].x:saldoX;
+        if(movMontos.length===0)return;
+        movMontos.forEach(function(m){monto+=m.esNegativo?-m.valor:m.valor;});
+      }
+
+      // Reconstruir descripción: items a la izquierda del primer monto
+      var desc=descParts.filter(function(d){return d.x<primerMontoX;}).map(function(d){return d.text;}).join(' ').trim();
+      if(!desc)desc=descParts.map(function(d){return d.text;}).join(' ').trim();
+      if(!desc||monto===0)return;
 
       // Normalizar fecha
       var p=dateText.text.split('/');
@@ -1752,40 +1784,33 @@ function parsePDFPage(page){
       });
     });
 
-    // === VALIDACIÓN: verificar que los saldos cuadren ===
-    // Ordenar por Y descendente (en PDF, Y mayor = arriba; este PDF arranca con la fila más reciente)
-    // Pero el orden cronológico real es por FECHA ascendente.
-    // Para validar, ordenamos por fecha asc y verificamos saldo[i-1] + monto[i] ≈ saldo[i]
+    // === VALIDACIÓN DE SALDOS (solo si el extracto trae columna de saldo) ===
     var sortedByDate=rawRows.slice().sort(function(a,b){
       if(a.fecha!==b.fecha)return a.fecha.localeCompare(b.fecha);
-      return a.y-b.y; // dentro del mismo día, mantener orden visual (Y desc = orden del PDF)
+      return a.y-b.y;
     });
 
     var validatedRows=[];
-    var saldoPrev=null;
-    var inconsistencias=0;
-    sortedByDate.forEach(function(r){
-      var ok=true;
-      if(saldoPrev!==null){
-        var esperado=saldoPrev+r.monto;
-        if(Math.abs(esperado-r.saldoRow)>0.05){
-          ok=false;
-          inconsistencias++;
-          console.warn('Saldo no cuadra en fila '+r.fecha+' '+r.desc+': esperado '+esperado.toFixed(2)+' vs saldo PDF '+r.saldoRow.toFixed(2));
+    if(hayColSaldo){
+      var saldoPrev=null;
+      var inconsistencias=0;
+      sortedByDate.forEach(function(r){
+        if(saldoPrev!==null && r.saldoRow!==null){
+          var esperado=saldoPrev+r.monto;
+          if(Math.abs(esperado-r.saldoRow)>0.05){
+            inconsistencias++;
+            console.warn('Saldo no cuadra en fila '+r.fecha+' '+r.desc+': esperado '+esperado.toFixed(2)+' vs saldo PDF '+r.saldoRow.toFixed(2));
+          }
         }
-      }
-      saldoPrev=r.saldoRow;
-      // Incluir TODAS las filas, aunque no cuadren el saldo
-      // (el usuario decide si descartarlas)
-      validatedRows.push({
-        fecha:r.fecha,
-        desc:r.desc,
-        monto:r.monto
+        if(r.saldoRow!==null)saldoPrev=r.saldoRow;
+        validatedRows.push({fecha:r.fecha,desc:r.desc,monto:r.monto});
       });
-    });
-
-    if(inconsistencias>0){
-      console.warn('PDF parser: '+inconsistencias+' filas con saldo inconsistente. Revisar.');
+      if(inconsistencias>0)console.warn('PDF parser: '+inconsistencias+' filas con saldo inconsistente.');
+    }else{
+      // Sin columna de saldo: importar todas las filas tal cual
+      sortedByDate.forEach(function(r){
+        validatedRows.push({fecha:r.fecha,desc:r.desc,monto:r.monto});
+      });
     }
 
     return validatedRows;
