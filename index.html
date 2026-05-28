@@ -274,6 +274,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .cfVal{color:var(--text);text-align:right;max-width:60%;word-break:break-word;font-family:monospace;font-size:11px}
 .cfActions{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3)}
 
+/* SELECTOR DE PERMISOS */
+.permSeg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
+.permOpt{background:var(--bg3);color:var(--text2);border:none;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit;border-left:1px solid var(--border);transition:all .12s}
+.permOpt:first-child{border-left:none}
+.permOpt:hover{background:var(--bg)}
+.permOpt.active{background:var(--cyan);color:#fff;font-weight:600}
+.permOpt[data-val="none"].active{background:var(--text2);color:#fff}
+.permOpt[data-val="view"].active{background:var(--yellow);color:#1a2332}
+.permOpt[data-val="edit"].active{background:var(--green);color:#1a2332}
+
 </style>
 </head>
 <body>
@@ -408,6 +418,47 @@ var USERS=[
   {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'}
 ];
 var CU=null;
+
+// === SECCIONES PERMISABLES (coinciden con data-sec del sidebar) ===
+var SECCIONES=[
+  {key:'contabilidad',label:'Operación + Contabilidad',desc:'Dashboard, banco, gastos, libros, balance, resultados'},
+  {key:'admin',label:'Administración',desc:'Ejercicios, plan de cuentas, reglas'},
+  {key:'logistica',label:'Compras - Logística',desc:'Compras y Stock'},
+  {key:'proyectos',label:'Proyectos',desc:'Chile'},
+  {key:'clientes',label:'Comercial',desc:'Clientes, ventas, cobros'},
+  {key:'sistema',label:'Sistema',desc:'Configuración y auditoría (la gestión de usuarios siempre es solo-admin)'}
+];
+// Mapa página -> sección (para enforcement en go())
+var PAGE_SEC={
+  dashboard:'contabilidad',importar:'contabilidad',banco:'contabilidad',gastos:'contabilidad',
+  libro:'contabilidad',mayor:'contabilidad',nuevoAst:'contabilidad',balance:'contabilidad',resultados:'contabilidad',
+  ejercicios:'admin',cuentas:'admin',reglas:'admin',
+  compras:'logistica',stock:'logistica',
+  chile:'proyectos',
+  clientes:'clientes',
+  config:'sistema',auditoria:'sistema',usuarios:'sistema'
+};
+
+// Permisos del usuario actual: {seccion: 'none'|'view'|'edit'}
+// Admin tiene 'edit' implícito en todo. Si no hay permisos definidos, se usa el rol legacy.
+function permNivel(seccion){
+  if(!CU)return 'none';
+  if(CU.role==='admin')return 'edit';
+  // Si el usuario tiene permisos explícitos (nuevo sistema)
+  if(CU.permisos&&typeof CU.permisos==='object'){
+    return CU.permisos[seccion]||'none';
+  }
+  // Fallback al rol legacy
+  if(CU.role==='logistica')return seccion==='logistica'?'edit':'none';
+  if(CU.role==='reader')return 'view'; // lectores ven todo, sin editar
+  return 'none';
+}
+function puedeVer(seccion){return permNivel(seccion)!=='none';}
+function puedeEditar(seccion){return permNivel(seccion)==='edit';}
+// Para una página concreta
+function puedeVerPagina(page){var s=PAGE_SEC[page];return s?puedeVer(s):true;}
+function puedeEditarPagina(page){var s=PAGE_SEC[page];return s?puedeEditar(s):false;}
+
 
 // === THEME SYSTEM ===
 function applyTheme(t){
@@ -659,7 +710,8 @@ var C={
   cobro_imputaciones:[],
   cliente_adjuntos:[],
   usuario_permisos:[],
-  saldo_banco_historial:[]
+  saldo_banco_historial:[],
+  app_usuarios:[]
 };
 
 // === ESTADO UI ===
@@ -729,37 +781,80 @@ var _origGo=null;
 function login(){
   var u=document.getElementById('lu').value.trim().toLowerCase();
   var p=document.getElementById('lp').value.trim();
+  document.getElementById('lerr').style.display='none';
+  // 1) Intentar contra Supabase (tabla app_usuarios)
+  sbGet('app_usuarios','select=*&activo=eq.true&usuario=eq.'+encodeURIComponent(u)).then(function(res){
+    var dbUser=(Array.isArray(res)&&res.length>0)?res[0]:null;
+    if(dbUser && String(dbUser.password)===p){
+      var user={
+        id:dbUser.id,u:dbUser.usuario,name:dbUser.nombre||dbUser.usuario,
+        role:dbUser.role||'custom',
+        ini:(dbUser.nombre||dbUser.usuario||'U').trim().slice(0,2).toUpperCase(),
+        permisos:dbUser.permisos||null
+      };
+      iniciarSesion(user);
+      return;
+    }
+    // 2) Fallback a usuarios hardcoded (compatibilidad)
+    loginLegacy(u,p);
+  }).catch(function(){
+    // Tabla no existe o error de red → fallback
+    loginLegacy(u,p);
+  });
+}
+function loginLegacy(u,p){
   var user=null;
   for(var i=0;i<USERS.length;i++){if(USERS[i].u===u&&USERS[i].p===p){user=USERS[i];break;}}
   if(!user){document.getElementById('lerr').style.display='block';return;}
-  document.getElementById('lerr').style.display='none';
+  iniciarSesion(user);
+}
+function iniciarSesion(user){
   CU=user;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
   initTheme();
   document.getElementById('uav').textContent=user.ini;
   document.getElementById('uname').textContent=user.name;
-  document.getElementById('urole').textContent=user.role==='admin'?'Administrador':'Solo Lectura';
-  if(user.role!=='admin'){document.getElementById('niAdmin').style.display='none';var ax=document.getElementById('niAudit');if(ax)ax.style.display='none';}
-  // Si es logística, ocultar todo lo que no sea Compras-Logística
-  if(user.role==='logistica'){
-    document.querySelectorAll('[data-sec]').forEach(function(el){
-      if(el.getAttribute('data-sec')!=='logistica')el.style.display='none';
-    });
-    // Mostrar urole en color especial
-    document.getElementById('urole').textContent='Logística';
-    document.getElementById('urole').style.color='var(--lime)';
-  }
+  document.getElementById('urole').textContent=
+    user.role==='admin'?'Administrador':
+    user.role==='logistica'?'Logística':
+    user.role==='reader'?'Solo Lectura':'Personalizado';
+  if(user.role==='logistica')document.getElementById('urole').style.color='var(--lime)';
+  // Aplicar visibilidad de secciones según permisos
+  aplicarVisibilidadSecciones();
   loadAll().then(function(){
     loadFiltros();
-    // Setear ejercicio actual = año en curso, si existe (sólo si no se restauró de localStorage)
     var thisYear=new Date().getFullYear();
     if(!C.ejercicios.find(function(e){return e.año===ejercicioActual;})){
       if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
       else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
     }
-    go(CU&&CU.role==='logistica'?'compras':'dashboard');
+    // Ir a la primera sección visible
+    go(primeraPaginaVisible());
   });
+}
+// Oculta secciones del sidebar sin acceso
+function aplicarVisibilidadSecciones(){
+  // Gestión de usuarios y auditoría: solo admin
+  var niAdmin=document.getElementById('niAdmin');if(niAdmin)niAdmin.style.display=isAdmin()?'':'none';
+  var niAudit=document.getElementById('niAudit');if(niAudit)niAudit.style.display=isAdmin()?'':'none';
+  // Recorrer secciones permisables
+  SECCIONES.forEach(function(s){
+    var visible=puedeVer(s.key);
+    document.querySelectorAll('[data-sec="'+s.key+'"]').forEach(function(el){
+      // No re-ocultar niAdmin/niAudit que ya manejamos arriba
+      if(el.id==='niAdmin'||el.id==='niAudit')return;
+      el.style.display=visible?'':'none';
+    });
+  });
+}
+function primeraPaginaVisible(){
+  var orden=['dashboard','compras','chile','clientes','config'];
+  for(var i=0;i<orden.length;i++){if(puedeVerPagina(orden[i]))return orden[i];}
+  // Buscar cualquier página visible
+  var paginas=Object.keys(PAGE_SEC);
+  for(var j=0;j<paginas.length;j++){if(puedeVerPagina(paginas[j]))return paginas[j];}
+  return 'dashboard';
 }
 function logout(){CU=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none';}
 function isAdmin(){return CU&&CU.role==='admin';}
@@ -800,7 +895,8 @@ function loadAll(){
     sbGet('cobro_imputaciones','select=*').catch(function(){return[];}),
     sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
     sbGet('usuario_permisos','select=*').catch(function(){return[];}),
-    sbGet('saldo_banco_historial','select=*&order=fecha.asc,id.asc').catch(function(){return[];})
+    sbGet('saldo_banco_historial','select=*&order=fecha.asc,id.asc').catch(function(){return[];}),
+    sbGet('app_usuarios','select=*&order=id').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -851,6 +947,7 @@ function loadAll(){
     C.cliente_adjuntos=Array.isArray(res[28])?res[28]:[];
     C.usuario_permisos=Array.isArray(res[29])?res[29]:[];
     C.saldo_banco_historial=Array.isArray(res[30])?res[30]:[];
+    C.app_usuarios=Array.isArray(res[31])?res[31]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -862,9 +959,17 @@ function loadAll(){
 // ============================================================
 function go(page){
   try{
-    // Bloqueo: logistica solo accede a compras y stock
-    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'){
-      page='compras';
+    // Enforcement de permisos: si no puede ver la página, redirigir a la primera visible
+    if(CU && !puedeVerPagina(page)){
+      var destino=primeraPaginaVisible();
+      if(destino!==page){
+        toast('No tenés acceso a esa sección','error');
+        page=destino;
+      }
+    }
+    // Gestión de usuarios y auditoría: solo admin
+    if((page==='usuarios'||page==='auditoria') && !isAdmin()){
+      page=primeraPaginaVisible();
     }
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
     var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
@@ -1376,7 +1481,7 @@ function exportDashboardSnapshot(){
 // PÁGINA: IMPORTAR EXTRACTO
 // ============================================================
 function pgImportar(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Importar Extracto</div><div class="alert ainfo">Solo administradores pueden importar extractos.</div>';
 
   var ej=getEjercicio(ejercicioActual);
@@ -1923,7 +2028,7 @@ function generarAsientoDesdeMov(mov,cuentaContrapartida,descripcion,categoria,re
 // PÁGINA: MOVIMIENTOS BANCO  (con sistema de adjuntos)
 // ============================================================
 function pgBanco(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   var filtrados=C.movs.filter(function(m){
     var y=getEjYear(m.fecha);
     if(y!==ejercicioActual)return false;
@@ -2308,7 +2413,7 @@ function cerrarModalAdjuntos(){
 function renderModalAdjuntos(){
   var m=C.movs.find(function(x){return x.id===modalAdjMovId;});
   if(!m)return;
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   var adjs=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===modalAdjMovId;});
 
   var listaHTML='';
@@ -2791,7 +2896,7 @@ function cerrarModalSinMov(){
 // PÁGINA: GASTOS (wizard que genera asiento)
 // ============================================================
 function pgGastos(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   // Listar asientos cuya línea de DEBE sea una cuenta de tipo Gasto, en el ejercicio actual
   var gastosVista=[];
   C.asientos.forEach(function(a){
@@ -2889,7 +2994,7 @@ function registrarGastoRapido(){
 // PÁGINA: REGLAS AUTOMÁTICAS
 // ============================================================
 function pgReglas(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('admin');
   var rows='';
   C.reglas.forEach(function(r){
     var cta=getCta(r.cuenta_contrapartida);
@@ -2955,7 +3060,7 @@ function saveRegla(){
 // PÁGINA: LIBRO DIARIO
 // ============================================================
 function pgLibro(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   var fil=C.asientos.filter(function(a){
     if(a.ejercicio_año!==ejercicioActual)return false;
     if(!aBusca)return true;
@@ -3102,7 +3207,7 @@ function pgMayor(){
 // PÁGINA: NUEVO ASIENTO MANUAL
 // ============================================================
 function pgNuevoAsiento(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('contabilidad');
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Nuevo Asiento</div><div class="alert ainfo">Solo administradores</div>';
   var ej=getEjercicio(ejercicioActual);
   if(ej&&ej.estado==='cerrado'){
@@ -3356,7 +3461,7 @@ function pgResultados(){
 // PÁGINA: EJERCICIOS (gestión de cierres)
 // ============================================================
 function pgEjercicios(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('admin');
   var rows='';
   C.ejercicios.forEach(function(e){
     var nAsientos=C.asientos.filter(function(a){return a.ejercicio_año===e.año;}).length;
@@ -3555,7 +3660,7 @@ function reCerrarEjercicio(año){
 // PÁGINA: PLAN DE CUENTAS
 // ============================================================
 function pgCuentas(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('admin');
   var filtroTipo=window._cuentasFiltro||'';
   var fil=C.cuentas.filter(function(c){return !filtroTipo||c.tipo===filtroTipo;});
   var rows='';
@@ -3630,7 +3735,7 @@ function deleteCuenta(id,cod){
 // PÁGINA: PROYECTOS / COMEX (gestión, no contabilidad)
 // ============================================================
 function pgProyectos(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('proyectos');
   var proy=C.proyectos.find(function(p){return p.id===selProyId;})||null;
   var cards='';
   C.proyectos.forEach(function(p){
@@ -3817,7 +3922,7 @@ function delProyGas(id){if(!confirm('¿Eliminar?'))return;sbDelete('proy_gastos'
 // PÁGINA: CONFIGURACIÓN (catálogos en Supabase)
 // ============================================================
 function pgConfig(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('sistema');
   function secCfg(label,tipo,color){
     var items=C.cfg_listas[tipo]||[];
     var rows=items.map(function(v){return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="badge '+(color||'bb')+'" style="flex:1">'+escapeHtml(v)+'</span>'+(!ro?'<button class="btn sm bd" onclick="removeCfg(\''+tipo+'\',\''+escapeHtml(v).replace(/'/g,"\\'")+'\')">✕</button>':'')+'</div>';}).join('');
@@ -3834,6 +3939,12 @@ function pgConfig(){
     '<div class="factions"><button class="btn bp sm" onclick="guardarBanco()">Guardar</button></div></div>':'';
   return ejGlobalBar()+
     '<div class="pageTitle">⚙ Configuración</div>'+
+    (isAdmin()?
+      '<div class="panel" style="border-color:var(--cyan);margin-bottom:14px">'+
+      '<h3>👤 Usuarios y Permisos</h3>'+
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Creá usuarios con login y contraseña, y asigná qué secciones puede ver o editar cada uno.</div>'+
+      '<button class="btn bp sm" onclick="go(\'usuarios\')">Gestionar usuarios →</button>'+
+      '</div>':'')+
     cfgBanco+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div>'+
@@ -3967,22 +4078,215 @@ function exportAuditLog(){
 }
 
 function pgUsuarios(){
-  var rows='';
-  USERS.forEach(function(u){rows+='<tr><td style="font-family:monospace">'+u.u+'</td><td>'+u.name+'</td><td><span class="badge '+(u.role==='admin'?'bb':'by')+'">'+(u.role==='admin'?'Admin':'Lectura')+'</span></td><td style="font-family:monospace;color:var(--text2)">'+u.p+'</td></tr>';});
+  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">🔒 Acceso restringido</div><div class="alert aerr">Solo administradores pueden gestionar usuarios.</div>';
+
+  // Usuarios de Supabase (nuevos)
+  var dbUsers=C.app_usuarios||[];
+  var rowsDb='';
+  dbUsers.forEach(function(u){
+    var permResumen=resumirPermisos(u.role,u.permisos);
+    var roleBadge=u.role==='admin'?'<span class="badge bb">Admin</span>':'<span class="badge by">Personalizado</span>';
+    rowsDb+='<tr>'+
+      '<td style="font-family:monospace">'+escapeHtml(u.usuario)+'</td>'+
+      '<td>'+escapeHtml(u.nombre||'')+'</td>'+
+      '<td>'+roleBadge+'</td>'+
+      '<td style="font-size:11px;color:var(--text2);max-width:320px">'+permResumen+'</td>'+
+      '<td>'+(u.activo===false?'<span class="badge bgr">Inactivo</span>':'<span class="badge bg">Activo</span>')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalUsuario('+u.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="eliminarUsuario('+u.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+    '</tr>';
+  });
+
+  // Usuarios hardcoded (legacy) — solo informativo
+  var rowsLegacy='';
+  USERS.forEach(function(u){
+    rowsLegacy+='<tr style="opacity:.7">'+
+      '<td style="font-family:monospace">'+u.u+'</td>'+
+      '<td>'+u.name+'</td>'+
+      '<td><span class="badge bgr">'+u.role+'</span></td>'+
+      '<td style="font-family:monospace;color:var(--text2)">'+u.p+'</td>'+
+    '</tr>';
+  });
+
   return ejGlobalBar()+
-    '<div class="pageTitle">👤 Usuarios</div>'+
-    '<div class="alert awarn">⚠️ Los usuarios y contraseñas están hardcodeados en el código HTML. Cualquiera con acceso al archivo puede verlos. Para cambiarlos hay que editar el código.</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Usuarios del Sistema</h3></div>'+
+    '<div class="pageTitle">👤 Gestión de Usuarios</div>'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Los usuarios creados acá se guardan en Supabase y pueden iniciar sesión. Asigná permisos por sección: <strong>Sin acceso</strong>, <strong>Ver</strong> (solo lectura) o <strong>Editar</strong> (lectura + escritura). El rol <strong>Admin</strong> tiene acceso total automáticamente.</div>'+
+    '<div class="alert awarn" style="margin-bottom:14px">🔒 <strong>Nota de seguridad:</strong> este control de acceso organiza qué ve cada miembro del equipo, pero al ser una app sin backend las contraseñas no están protegidas criptográficamente. No lo uses como barrera contra accesos malintencionados.</div>'+
+    '<div style="margin-bottom:14px"><button class="btn bp" onclick="abrirModalUsuario(0)">➕ Nuevo usuario</button></div>'+
+    '<div class="twrap" style="margin-bottom:24px"><div class="thead2"><h3>Usuarios del Sistema (Supabase)</h3><span style="font-size:12px;color:var(--text2)">'+dbUsers.length+'</span></div>'+
+    (dbUsers.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin usuarios creados todavía. <a href="#" onclick="abrirModalUsuario(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
+      '<div style="overflow-x:auto"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Permisos</th><th>Estado</th><th>Acc.</th></tr></thead><tbody>'+rowsDb+'</tbody></table></div>')+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Usuarios de respaldo (hardcoded)</h3></div>'+
+    '<div style="padding:8px 16px;font-size:11px;color:var(--text2)">Estos usuarios están en el código como respaldo de emergencia. Funcionan aunque la tabla de Supabase falle. Para cambiarlos hay que editar el HTML.</div>'+
     '<table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Contraseña</th></tr></thead>'+
-    '<tbody>'+rows+'</tbody></table></div>';
+    '<tbody>'+rowsLegacy+'</tbody></table></div>';
 }
+
+function resumirPermisos(role,permisos){
+  if(role==='admin')return '<span style="color:var(--cyan)">Acceso total (admin)</span>';
+  if(!permisos||typeof permisos!=='object')return '<span style="color:var(--text2)">Sin permisos definidos</span>';
+  var parts=[];
+  SECCIONES.forEach(function(s){
+    var n=permisos[s.key]||'none';
+    if(n==='edit')parts.push(s.label+': <span style="color:var(--green)">Editar</span>');
+    else if(n==='view')parts.push(s.label+': <span style="color:var(--yellow)">Ver</span>');
+  });
+  return parts.length?parts.join(' · '):'<span style="color:var(--text2)">Sin accesos</span>';
+}
+
+// === MODAL CREAR / EDITAR USUARIO ===
+var editUsuarioId=null;
+function abrirModalUsuario(id){
+  if(!isAdmin()){toast('Solo admin','error');return;}
+  editUsuarioId=id;
+  var u=id?(C.app_usuarios||[]).find(function(x){return x.id===id;}):null;
+  var permisos=(u&&u.permisos)?u.permisos:{};
+  var esAdmin=u?(u.role==='admin'):false;
+
+  var permRows=SECCIONES.map(function(s){
+    var n=esAdmin?'edit':(permisos[s.key]||'none');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)">'+
+      '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+escapeHtml(s.label)+'</div><div style="font-size:11px;color:var(--text2)">'+escapeHtml(s.desc)+'</div></div>'+
+      '<div class="permSeg" data-sec="'+s.key+'">'+
+        '<button type="button" class="permOpt'+(n==='none'?' active':'')+'" data-val="none" onclick="setPerm(\''+s.key+'\',\'none\')">Sin acceso</button>'+
+        '<button type="button" class="permOpt'+(n==='view'?' active':'')+'" data-val="view" onclick="setPerm(\''+s.key+'\',\'view\')">Ver</button>'+
+        '<button type="button" class="permOpt'+(n==='edit'?' active':'')+'" data-val="edit" onclick="setPerm(\''+s.key+'\',\'edit\')">Editar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2">'+
+    '<h3 style="font-size:15px;font-weight:600">'+(id?'✏ Editar':'➕ Nuevo')+' usuario</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalUsuario()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="fg2">'+
+    '<div class="f"><label>Usuario (login) *</label><input type="text" id="usrLogin" value="'+(u?escapeHtml(u.usuario):'')+'" placeholder="jperez" '+(id?'readonly style="opacity:.6"':'')+'/></div>'+
+    '<div class="f"><label>Nombre *</label><input type="text" id="usrNombre" value="'+(u?escapeHtml(u.nombre||''):'')+'" placeholder="Juan Pérez"/></div>'+
+    '</div>'+
+    '<div class="f" style="margin-top:12px"><label>Contraseña '+(id?'(dejar vacío para no cambiar)':'*')+'</label><input type="text" id="usrPass" value="" placeholder="'+(id?'••••••':'Contraseña')+'"/></div>'+
+    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
+      '<input type="checkbox" id="usrAdmin" '+(esAdmin?'checked':'')+' style="width:auto;margin:0" onchange="toggleAdminPerms(this.checked)"/>'+
+      '<label for="usrAdmin" style="margin:0;font-size:13px;cursor:pointer;font-weight:600">Es Administrador (acceso total)</label>'+
+    '</div>'+
+    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
+      '<input type="checkbox" id="usrActivo" '+(u&&u.activo===false?'':'checked')+' style="width:auto;margin:0"/>'+
+      '<label for="usrActivo" style="margin:0;font-size:13px;cursor:pointer">Usuario activo (puede iniciar sesión)</label>'+
+    '</div>'+
+    '<div id="permSection" style="margin-top:18px'+(esAdmin?';opacity:.4;pointer-events:none':'')+'">'+
+      '<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Permisos por sección</div>'+
+      permRows+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px">'+
+    '<button class="btn bs" onclick="cerrarModalUsuario()">Cancelar</button>'+
+    '<button class="btn bp" onclick="guardarUsuario()">'+(id?'Guardar cambios':'Crear usuario')+'</button>'+
+    '</div>'+
+    '</div></div>';
+  var modal=document.getElementById('modalUsuario');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modalUsuario';
+    modal.style.cssText='display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(modal);
+  }
+  // Estado temporal de permisos
+  window._permTmp={};
+  SECCIONES.forEach(function(s){window._permTmp[s.key]=esAdmin?'edit':(permisos[s.key]||'none');});
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+function cerrarModalUsuario(){
+  var modal=document.getElementById('modalUsuario');
+  if(modal){modal.style.display='none';modal.innerHTML='';}
+}
+function setPerm(sec,val){
+  if(!window._permTmp)window._permTmp={};
+  window._permTmp[sec]=val;
+  // Actualizar UI del segmento
+  var seg=document.querySelector('.permSeg[data-sec="'+sec+'"]');
+  if(seg){
+    seg.querySelectorAll('.permOpt').forEach(function(b){
+      b.classList.toggle('active',b.getAttribute('data-val')===val);
+    });
+  }
+}
+function toggleAdminPerms(isAdminChk){
+  var sec=document.getElementById('permSection');
+  if(sec){sec.style.opacity=isAdminChk?'.4':'1';sec.style.pointerEvents=isAdminChk?'none':'auto';}
+}
+function guardarUsuario(){
+  if(lockSubmit('guardarUsuario'))return;
+  var login=document.getElementById('usrLogin').value.trim().toLowerCase();
+  var nombre=document.getElementById('usrNombre').value.trim();
+  var pass=document.getElementById('usrPass').value.trim();
+  var esAdmin=document.getElementById('usrAdmin').checked;
+  var activo=document.getElementById('usrActivo').checked;
+
+  if(!login){unlockSubmit('guardarUsuario');toast('Ingresá el usuario (login)','error');return;}
+  if(!nombre){unlockSubmit('guardarUsuario');toast('Ingresá el nombre','error');return;}
+  if(!editUsuarioId&&!pass){unlockSubmit('guardarUsuario');toast('Ingresá una contraseña','error');return;}
+
+  var permisos=esAdmin?null:(window._permTmp||{});
+  var payload={
+    usuario:login,
+    nombre:nombre,
+    role:esAdmin?'admin':'custom',
+    permisos:permisos,
+    activo:activo
+  };
+  if(pass)payload.password=pass;
+
+  if(editUsuarioId===0){
+    // Verificar que no exista
+    var existe=(C.app_usuarios||[]).some(function(x){return (x.usuario||'').toLowerCase()===login;});
+    if(existe){unlockSubmit('guardarUsuario');toast('Ya existe un usuario con ese login','error');return;}
+    sbPost('app_usuarios',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message+' (¿creaste la tabla app_usuarios?)','error');return;}
+      auditLog('create','Usuario',login+' · '+(esAdmin?'admin':'custom'));
+      toast('Usuario creado','success');
+      cerrarModalUsuario();reload('usuarios');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }else{
+    sbPatch('app_usuarios',editUsuarioId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');return;}
+      auditLog('update','Usuario',login);
+      toast('Usuario actualizado','success');
+      cerrarModalUsuario();reload('usuarios');
+    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
+  }
+}
+function eliminarUsuario(id){
+  var u=(C.app_usuarios||[]).find(function(x){return x.id===id;});
+  if(!u)return;
+  if(CU&&CU.u===u.usuario){toast('No podés eliminar tu propio usuario','error');return;}
+  confirmAction({
+    title:'Eliminar usuario',
+    message:'El usuario no podrá iniciar sesión nunca más. Si solo querés suspenderlo temporalmente, editalo y desmarcá "activo".',
+    details:[{label:'Usuario',value:u.usuario},{label:'Nombre',value:u.nombre||'—'}],
+    danger:true,
+    okText:'Sí, eliminar',
+    onOk:function(){
+      sbDelete('app_usuarios',id).then(function(){
+        auditLog('delete','Usuario',u.usuario);
+        toast('Usuario eliminado','success');reload('usuarios');
+      });
+    }
+  });
+}
+
 </script>
 <script>
 // ============================================================
 // PÁGINA: COMPRAS / LOGÍSTICA  (gestión, no contabilidad)
 // ============================================================
 function pgCompras(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar('logistica');
   var F=comprasFiltros;
   var fil=C.compras.filter(function(c){
     if(F.fechaDesde&&(!c.fecha_compra||c.fecha_compra<F.fechaDesde))return false;
@@ -4429,7 +4733,7 @@ function cerrarModalAdjCompra(){
 function renderModalAdjCompra(){
   var c=C.compras.find(function(x){return x.id===modalAdjCompraId;});
   if(!c)return;
-  var ro=!isAdmin();
+  var ro=!puedeEditar('logistica');
   var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===modalAdjCompraId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -4591,7 +4895,7 @@ function pgStock(){
 // TAB: STOCK GENERAL
 // ============================================================
 function renderStockGeneral(){
-  var ro=!isAdminOrLog();
+  var ro=!puedeEditar('logistica');
   var F=stockFiltros;
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
@@ -4732,7 +5036,7 @@ function fInput(label,type,valueOrOptions,onchange){
 // TAB: ALTA DE STOCK
 // ============================================================
 function renderStockAlta(){
-  var ro=!isAdminOrLog();
+  var ro=!puedeEditar('logistica');
   var F=altaFiltros;
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
@@ -4992,7 +5296,7 @@ function deleteStockItem(id){
 // TAB: BAJA DE STOCK
 // ============================================================
 function renderStockBaja(){
-  var ro=!isAdminOrLog();
+  var ro=!puedeEditar('logistica');
   // Filtros para la tabla de VIGENTES (la de arriba, para seleccionar items a dar de baja)
   if(!window.bajaVigFiltros)window.bajaVigFiltros={sku:'',pn:'',modelo:'',sn:'',ubicacion:'',pedido:''};
   var FV=window.bajaVigFiltros;
@@ -5297,7 +5601,7 @@ function cerrarModalAdjStock(){
 function renderModalAdjStock(){
   var it=C.stock_items.find(function(x){return x.id===modalAdjStockId;});
   if(!it)return;
-  var ro=!isAdminOrLog();
+  var ro=!puedeEditar('logistica');
   var adjs=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===modalAdjStockId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -6077,6 +6381,7 @@ function calcDeamUsd(){
 
 function guardarCajaItem(tipo,keepOpen){
   if(lockSubmit('guardarCajaItem_'+tipo))return;
+  if(!puedeEditar('proyectos')){unlockSubmit('guardarCajaItem_'+tipo);toast('No tenés permiso de edición en Proyectos','error');return;}
   var url=document.getElementById('cjUrl').value.trim();
   if(tipo==='chile'){
     var payload={
@@ -6283,6 +6588,7 @@ function abrirModalAporte(id){
 
 function guardarAporte(){
   if(lockSubmit('guardarAporte'))return;
+  if(!puedeEditar('proyectos')){unlockSubmit('guardarAporte');toast('No tenés permiso de edición en Proyectos','error');return;}
   var f=document.getElementById('apF').value;
   var imp=parseFloat(document.getElementById('apImp').value);
   var desc=document.getElementById('apDesc').value.trim();
@@ -6561,11 +6867,11 @@ var editCobroId=null;
 var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
 function pgClientes(){
-  // Solo admin tiene acceso por ahora
-  if(!isAdmin()){
+  if(!puedeVer('clientes')){
     return ejGlobalBar()+'<div class="pageTitle">👥 Clientes</div>'+
-      '<div class="alert ainfo">Solo administradores. Pronto sistema de permisos por usuario.</div>';
+      '<div class="alert aerr">No tenés acceso a esta sección.</div>';
   }
+  var ro=!puedeEditar('clientes');
   var tabs='<div class="tabs">'+
     '<div class="tab'+(clientesTab==='datos'?' active':'')+'" onclick="clientesTab=\'datos\';go(\'clientes\')">👥 Datos</div>'+
     '<div class="tab'+(clientesTab==='ventas'?' active':'')+'" onclick="clientesTab=\'ventas\';go(\'clientes\')">📤 Ventas</div>'+
