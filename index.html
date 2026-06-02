@@ -4045,10 +4045,12 @@ function pgConfig(){
     secCfg('Categorías de Asientos','categoria_asiento','bb')+
     secCfg('Tipos de Operación COMEX','tipo_op','bb')+
     secCfg('Conceptos de Gasto (proyectos)','concepto_gasto','br')+
+    secCfg('Motivos de Baja de Stock','motivo_baja_stock','by')+
     '</div>'+
     '<div>'+
     secCfg('Estados de Gasto (proyectos)','estado_gasto','by')+
     secCfg('Quien Pagó (proyectos)','quien_pago','bg')+
+    secCfg('Estados Iniciales (Alta de Stock)','estado_inicial_stock','bg')+
     '</div>'+
     '</div>';
 }
@@ -4994,7 +4996,10 @@ function renderStockGeneral(){
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Baja'];
+  var ESTADOS_VIG=(C.cfg_listas.estado_inicial_stock&&C.cfg_listas.estado_inicial_stock.length>0)
+    ?C.cfg_listas.estado_inicial_stock
+    :['Disponible','Reservado','En demo','No conforme'];
+  var ESTADOS=ESTADOS_VIG.concat(['Baja']);
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items.filter(function(it){
@@ -5235,7 +5240,9 @@ function abrirModalStockItem(id){
 
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
-  var ESTADOS_VIGENTES=['Disponible','Reservado','En demo','No conforme'];
+  var ESTADOS_VIGENTES=(C.cfg_listas.estado_inicial_stock&&C.cfg_listas.estado_inicial_stock.length>0)
+    ?C.cfg_listas.estado_inicial_stock
+    :['Disponible','Reservado','En demo','No conforme'];
   var VERIFS=['Sí','No','Pendiente'];
 
   // Pedidos de compra disponibles (dropdown)
@@ -5542,7 +5549,7 @@ function limpiarFiltrosBaja(){
 // ============================================================
 function abrirModalStockBaja(){
   if(bajaSelectedIds.length===0){toast('Seleccioná al menos un producto','error');return;}
-  var motivos=C.cfg_listas.motivo_baja_stock||['Venta','Demo','No Conforme','Ajuste de Stock'];
+  var motivos=C.cfg_listas.motivo_baja_stock||['Venta','Demo','Reservado','No Conforme','Ajuste de Stock'];
   var seleccionados=C.stock_items.filter(function(it){return bajaSelectedIds.indexOf(it.id)>-1;});
 
   var listaSel='';
