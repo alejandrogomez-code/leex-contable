@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
-:root,[data-theme="oscuro"]{
+:root{
 --bg:#1e2a3a;--bg2:#263548;--bg3:#2f4158;--border:#3d5268;
 --text:#e8eef5;--text2:#95a7bd;
 --cyan:#00b4d8;--cyan-hover:#0099bb;--cyan-soft:rgba(0,180,216,0.12);
@@ -17,56 +17,6 @@
 --red:#ef5a6f;--red-soft:rgba(239,90,111,0.15);
 --yellow:#f4b942;--yellow-soft:rgba(244,185,66,0.15);
 --shadow:0 2px 8px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.35);
-}
-[data-theme="slate"]{
---bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--border:#475569;
---text:#f1f5f9;--text2:#94a3b8;
---cyan:#38bdf8;--cyan-hover:#0ea5e9;--cyan-soft:rgba(56,189,248,0.12);
---lime:#a3e635;--green:#86efac;--lime-hover:#84cc16;--lime-soft:rgba(163,230,53,0.15);
---deep-blue:#1e3a8a;
---red:#f87171;--red-soft:rgba(248,113,113,0.15);
---yellow:#fbbf24;--yellow-soft:rgba(251,191,36,0.15);
---shadow:0 2px 8px rgba(0,0,0,0.35);--shadow-lg:0 8px 24px rgba(0,0,0,0.45);
-}
-[data-theme="carbon"]{
---bg:#161618;--bg2:#1f1f23;--bg3:#2a2a2f;--border:#3a3a42;
---text:#ececec;--text2:#9a9aa6;
---cyan:#22d3ee;--cyan-hover:#06b6d4;--cyan-soft:rgba(34,211,238,0.12);
---lime:#bef264;--green:#86efac;--lime-hover:#a3e635;--lime-soft:rgba(190,242,100,0.15);
---deep-blue:#1e293b;
---red:#fb7185;--red-soft:rgba(251,113,133,0.15);
---yellow:#facc15;--yellow-soft:rgba(250,204,21,0.15);
---shadow:0 2px 8px rgba(0,0,0,0.5);--shadow-lg:0 8px 24px rgba(0,0,0,0.6);
-}
-[data-theme="claro"]{
---bg:#f4f6fa;--bg2:#ffffff;--bg3:#eef2f7;--border:#d6dde6;
---text:#1a2332;--text2:#5b6b80;
---cyan:#0284c7;--cyan-hover:#0369a1;--cyan-soft:rgba(2,132,199,0.10);
---lime:#65a30d;--green:#16a34a;--lime-hover:#4d7c0f;--lime-soft:rgba(101,163,13,0.12);
---deep-blue:#1e3a8a;
---red:#dc2626;--red-soft:rgba(220,38,38,0.10);
---yellow:#ca8a04;--yellow-soft:rgba(202,138,4,0.12);
---shadow:0 2px 6px rgba(15,23,42,0.06);--shadow-lg:0 8px 24px rgba(15,23,42,0.10);
-}
-[data-theme="sepia"]{
---bg:#f5efe2;--bg2:#fbf6e9;--bg3:#ede4cf;--border:#d6c9a8;
---text:#3b2f1c;--text2:#7a6a4e;
---cyan:#0e7490;--cyan-hover:#155e75;--cyan-soft:rgba(14,116,144,0.10);
---lime:#65a30d;--green:#15803d;--lime-hover:#4d7c0f;--lime-soft:rgba(101,163,13,0.12);
---deep-blue:#1e40af;
---red:#b91c1c;--red-soft:rgba(185,28,28,0.10);
---yellow:#a16207;--yellow-soft:rgba(161,98,7,0.12);
---shadow:0 2px 6px rgba(59,47,28,0.08);--shadow-lg:0 8px 24px rgba(59,47,28,0.14);
-}
-[data-theme="oceanico"]{
---bg:#e8f1f8;--bg2:#ffffff;--bg3:#dbe8f2;--border:#b6c9d9;
---text:#0c1e2e;--text2:#516a82;
---cyan:#0891b2;--cyan-hover:#0e7490;--cyan-soft:rgba(8,145,178,0.10);
---lime:#0d9488;--green:#0f766e;--lime-hover:#115e59;--lime-soft:rgba(13,148,136,0.12);
---deep-blue:#1e40af;
---red:#e11d48;--red-soft:rgba(225,29,72,0.10);
---yellow:#d97706;--yellow-soft:rgba(217,119,6,0.12);
---shadow:0 2px 6px rgba(12,30,46,0.08);--shadow-lg:0 8px 24px rgba(12,30,46,0.14);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
@@ -208,82 +158,39 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .toast.error{border-left:3px solid var(--red)}
 .toast.info{border-left:3px solid var(--cyan)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-/* THEME PICKER */
-.themePicker{padding:8px 6px 10px;border-top:1px solid var(--border);margin-bottom:6px}
-.themePickerLabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:6px;padding:0 6px}
-.themeSwatches{display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap}
-.themeSwatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid var(--border);transition:transform .15s,border-color .15s}
-.themeSwatch:hover{transform:scale(1.15)}
-.themeSwatch.active{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan-soft)}
-/* DASHBOARD */
-.cards-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px}
-.card-xl{padding:20px;transition:transform .15s,border-color .15s}
-.card-xl:hover{transform:translateY(-2px);border-color:var(--cyan)}
-.card-xl .val{font-size:28px;font-weight:700;margin-top:4px}
-.card-xl .lbl{font-size:12px}
-.quickActions{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
-.qaBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:14px 10px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s}
-.qaBtn:hover{border-color:var(--cyan);background:var(--bg3);color:var(--cyan)}
-.qaIco{font-size:22px}
-.pendList{padding:4px 0}
-.pendRow{display:flex;align-items:center;gap:10px;padding:11px 16px;border-top:1px solid var(--border);cursor:pointer;transition:background .15s}
-.pendRow:first-child{border-top:none}
-.pendRow:hover{background:var(--bg3)}
-.pendIco{font-size:18px;flex-shrink:0}
-.pendTxt{flex:1;font-size:13px}
-.pendNum{font-size:14px;font-weight:700;min-width:32px;text-align:center;padding:2px 8px;border-radius:99px;background:var(--bg3)}
-.pendArrow{color:var(--text2);font-size:18px;font-weight:300}
-@media(max-width:900px){.dashGrid{grid-template-columns:1fr !important}}
 
-/* GLOBAL SEARCH (Ctrl+K) */
-.gsBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;padding-top:90px;backdrop-filter:blur(4px)}
-.gsBackdrop.open{display:block}
-.gsBox{max-width:640px;margin:0 auto;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden}
-.gsHeader{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
-.gsIco{font-size:18px}
-.gsHeader input{flex:1;background:transparent;border:none;color:var(--text);font-size:15px;outline:none;font-family:inherit}
-.gsKbd{font-size:10px;color:var(--text2);background:var(--bg3);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
-.gsResults{max-height:420px;overflow-y:auto}
-.gsResult{display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;border-top:1px solid var(--border)}
-.gsResult:first-child{border-top:none}
-.gsResult:hover,.gsResult.active{background:var(--bg3)}
-.gsResIco{font-size:16px;width:24px;text-align:center;flex-shrink:0}
-.gsResMain{flex:1;min-width:0}
-.gsResTitle{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gsResSub{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gsResType{font-size:10px;color:var(--cyan);background:var(--cyan-soft);padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
-.gsFoot{display:flex;gap:14px;padding:8px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--text2);background:var(--bg3)}
-.gsFoot kbd{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-family:inherit;font-size:10px}
-.gsEmpty{padding:30px 18px;text-align:center;color:var(--text2);font-size:13px}
+/* === IMPRESIÓN / PDF — Dashboard Chile === */
+@media print {
+  /* Limpiar la página */
+  body{background:#fff !important;color:#000 !important}
+  .sidebar,.ejGlobal,.pageTitle,.tabs,.toastWrap,.no-print{display:none !important}
+  .main{margin-left:0 !important;padding:0 !important}
+  /* Forzar tema claro para que imprima legible */
+  :root{
+    --bg:#fff;--bg2:#fff;--bg3:#f5f5f5;--border:#ccc;
+    --text:#000;--text2:#555;
+    --cyan:#0284c7;--green:#15803d;--yellow:#ca8a04;--red:#b91c1c;--lime:#65a30d;
+    --shadow:none;--shadow-lg:none;
+  }
+  #chileDashboardPrint{padding:10px;font-size:11pt;color:#000}
+  #chileDashboardPrint *{color:#000 !important}
+  #chileDashboardPrint [style*="color:var(--cyan)"]{color:#0284c7 !important}
+  #chileDashboardPrint [style*="color:var(--green)"]{color:#15803d !important}
+  #chileDashboardPrint [style*="color:var(--red)"]{color:#b91c1c !important}
+  #chileDashboardPrint [style*="color:var(--yellow)"]{color:#ca8a04 !important}
+  /* Que cada bloque grande no se corte feo */
+  #chileDashboardPrint > div{break-inside:avoid;page-break-inside:avoid}
+  /* Pisar fondo oscuro a blanco para fondos de cards */
+  #chileDashboardPrint [style*="background:var(--bg2)"]{background:#fff !important;border:1px solid #ccc !important}
+  #chileDashboardPrint [style*="background:var(--bg3)"]{background:#f5f5f5 !important}
+  @page{size:A4;margin:1cm}
+}
 
-/* CONFIRM CON DETALLE */
-.cfBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1100;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
-.cfBackdrop.open{display:flex}
-.cfBox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);max-width:480px;width:100%;overflow:hidden}
-.cfHeader{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--border)}
-.cfHeader.red{background:var(--red-soft)}
-.cfHeader.cyan{background:var(--cyan-soft)}
-.cfHeader h3{font-size:15px;font-weight:600;margin:0;color:var(--text)}
-.cfIco{font-size:22px}
-.cfBody{padding:18px 20px}
-.cfMsg{font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.5}
-.cfDetails{background:var(--bg3);border-radius:8px;padding:10px 14px;font-size:12px}
-.cfRow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid var(--border)}
-.cfRow:first-child{border-top:none}
-.cfLbl{color:var(--text2);font-weight:600}
-.cfVal{color:var(--text);text-align:right;max-width:60%;word-break:break-word;font-family:monospace;font-size:11px}
-.cfActions{display:flex;gap:8px;justify-content:flex-end;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3)}
-
-/* SELECTOR DE PERMISOS */
-.permSeg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex-shrink:0}
-.permOpt{background:var(--bg3);color:var(--text2);border:none;padding:6px 12px;font-size:11px;cursor:pointer;font-family:inherit;border-left:1px solid var(--border);transition:all .12s}
-.permOpt:first-child{border-left:none}
-.permOpt:hover{background:var(--bg)}
-.permOpt.active{background:var(--cyan);color:#fff;font-weight:600}
-.permOpt[data-val="none"].active{background:var(--text2);color:#fff}
-.permOpt[data-val="view"].active{background:var(--yellow);color:#1a2332}
-.permOpt[data-val="edit"].active{background:var(--green);color:#1a2332}
-
+/* Responsivo del dashboard Chile */
+@media (max-width: 768px){
+  .dashChileGrid{grid-template-columns:1fr !important}
+  .dashChileGrid4{grid-template-columns:1fr 1fr !important}
+}
 </style>
 </head>
 <body>
@@ -350,21 +257,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="divider" data-sec="sistema"></div>
     <div class="sbSection" data-sec="sistema">Sistema</div>
     <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
-    <div class="ni" data-sec="sistema" data-page="auditoria" id="niAudit" onclick="go('auditoria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Auditoría</div>
     <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
 
     <div class="sbFoot">
-      <div class="themePicker" id="themePicker">
-        <div class="themePickerLabel">Tema</div>
-        <div class="themeSwatches">
-          <div class="themeSwatch" data-th="oscuro"  title="Oscuro"   style="background:linear-gradient(135deg,#1e2a3a 50%,#00b4d8 50%)"></div>
-          <div class="themeSwatch" data-th="slate"   title="Slate"    style="background:linear-gradient(135deg,#0f172a 50%,#38bdf8 50%)"></div>
-          <div class="themeSwatch" data-th="carbon"  title="Carbón"   style="background:linear-gradient(135deg,#161618 50%,#22d3ee 50%)"></div>
-          <div class="themeSwatch" data-th="claro"   title="Claro"    style="background:linear-gradient(135deg,#ffffff 50%,#0284c7 50%);border-color:#d6dde6"></div>
-          <div class="themeSwatch" data-th="sepia"   title="Sepia"    style="background:linear-gradient(135deg,#fbf6e9 50%,#a16207 50%);border-color:#d6c9a8"></div>
-          <div class="themeSwatch" data-th="oceanico" title="Oceánico" style="background:linear-gradient(135deg,#e8f1f8 50%,#0891b2 50%);border-color:#b6c9d9"></div>
-        </div>
-      </div>
       <div class="ubadge">
         <div class="uav" id="uav">AD</div>
         <div><div id="uname" style="font-size:12px;font-weight:600">Admin</div><div id="urole" style="font-size:10px;color:var(--cyan)">Administrador</div></div>
@@ -373,23 +268,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
     </div>
   </div>
   <div class="main" id="main"></div>
-</div>
-
-<!-- BÚSQUEDA GLOBAL (Ctrl+K) -->
-<div id="globalSearch" class="gsBackdrop" onclick="if(event.target===this)closeGlobalSearch()">
-  <div class="gsBox">
-    <div class="gsHeader">
-      <span class="gsIco">🔍</span>
-      <input id="gsInp" type="text" placeholder="Buscar compras, clientes, stock, asientos, proveedores..." autocomplete="off"/>
-      <span class="gsKbd">Esc</span>
-    </div>
-    <div id="gsResults" class="gsResults"></div>
-    <div class="gsFoot">
-      <span><kbd>↑↓</kbd> navegar</span>
-      <span><kbd>Enter</kbd> abrir</span>
-      <span><kbd>Esc</kbd> cerrar</span>
-    </div>
-  </div>
 </div>
 
 <div class="toastWrap" id="toastWrap"></div>
@@ -418,260 +296,6 @@ var USERS=[
   {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'}
 ];
 var CU=null;
-
-// === SECCIONES PERMISABLES (coinciden con data-sec del sidebar) ===
-var SECCIONES=[
-  {key:'contabilidad',label:'Operación + Contabilidad',desc:'Dashboard, banco, gastos, libros, balance, resultados'},
-  {key:'admin',label:'Administración',desc:'Ejercicios, plan de cuentas, reglas'},
-  {key:'logistica',label:'Compras - Logística',desc:'Compras y Stock'},
-  {key:'proyectos',label:'Proyectos',desc:'Chile'},
-  {key:'clientes',label:'Comercial',desc:'Clientes, ventas, cobros'},
-  {key:'sistema',label:'Sistema',desc:'Configuración y auditoría (la gestión de usuarios siempre es solo-admin)'}
-];
-// Mapa página -> sección (para enforcement en go())
-var PAGE_SEC={
-  dashboard:'contabilidad',importar:'contabilidad',banco:'contabilidad',gastos:'contabilidad',
-  libro:'contabilidad',mayor:'contabilidad',nuevoAst:'contabilidad',balance:'contabilidad',resultados:'contabilidad',
-  ejercicios:'admin',cuentas:'admin',reglas:'admin',
-  compras:'logistica',stock:'logistica',
-  chile:'proyectos',
-  clientes:'clientes',
-  config:'sistema',auditoria:'sistema',usuarios:'sistema'
-};
-
-// Permisos del usuario actual: {seccion: 'none'|'view'|'edit'}
-// Admin tiene 'edit' implícito en todo. Si no hay permisos definidos, se usa el rol legacy.
-function permNivel(seccion){
-  if(!CU)return 'none';
-  if(CU.role==='admin')return 'edit';
-  // Si el usuario tiene permisos explícitos (nuevo sistema)
-  if(CU.permisos&&typeof CU.permisos==='object'){
-    return CU.permisos[seccion]||'none';
-  }
-  // Fallback al rol legacy
-  if(CU.role==='logistica')return seccion==='logistica'?'edit':'none';
-  if(CU.role==='reader')return 'view'; // lectores ven todo, sin editar
-  return 'none';
-}
-function puedeVer(seccion){return permNivel(seccion)!=='none';}
-function puedeEditar(seccion){return permNivel(seccion)==='edit';}
-// Para una página concreta
-function puedeVerPagina(page){var s=PAGE_SEC[page];return s?puedeVer(s):true;}
-function puedeEditarPagina(page){var s=PAGE_SEC[page];return s?puedeEditar(s):false;}
-
-
-// === THEME SYSTEM ===
-function applyTheme(t){
-  if(!t)t='oscuro';
-  document.documentElement.setAttribute('data-theme',t);
-  try{localStorage.setItem('leex_theme',t);}catch(e){}
-  // Marcar swatch activo
-  var sw=document.querySelectorAll('.themeSwatch');
-  for(var i=0;i<sw.length;i++){
-    if(sw[i].getAttribute('data-th')===t)sw[i].classList.add('active');
-    else sw[i].classList.remove('active');
-  }
-}
-function initTheme(){
-  var saved='oscuro';
-  try{saved=localStorage.getItem('leex_theme')||'oscuro';}catch(e){}
-  applyTheme(saved);
-  // Listeners
-  document.querySelectorAll('.themeSwatch').forEach(function(el){
-    el.onclick=function(){applyTheme(this.getAttribute('data-th'));};
-  });
-}
-// Aplicar tema apenas se pueda (antes de que monte la UI)
-document.addEventListener('DOMContentLoaded',function(){
-  var saved='oscuro';
-  try{saved=localStorage.getItem('leex_theme')||'oscuro';}catch(e){}
-  document.documentElement.setAttribute('data-theme',saved);
-});
-
-// === CONFIRMACIÓN CON DETALLE ===
-// Uso: confirmAction({title, message, details:[{label,value}], danger:true, onOk:fn})
-function confirmAction(opts){
-  opts=opts||{};
-  // Crear backdrop si no existe
-  var bd=document.getElementById('confirmBackdrop');
-  if(!bd){
-    bd=document.createElement('div');
-    bd.id='confirmBackdrop';
-    bd.className='cfBackdrop';
-    document.body.appendChild(bd);
-  }
-  var detailsHtml='';
-  if(opts.details&&opts.details.length){
-    detailsHtml='<div class="cfDetails">';
-    opts.details.forEach(function(d){
-      detailsHtml+='<div class="cfRow"><span class="cfLbl">'+escapeHtml(d.label)+'</span><span class="cfVal">'+escapeHtml(d.value||'—')+'</span></div>';
-    });
-    detailsHtml+='</div>';
-  }
-  var color=opts.danger?'red':'cyan';
-  var icoTxt=opts.danger?'⚠️':'❓';
-  bd.innerHTML='<div class="cfBox">'+
-    '<div class="cfHeader '+color+'"><span class="cfIco">'+icoTxt+'</span><h3>'+escapeHtml(opts.title||'Confirmar')+'</h3></div>'+
-    '<div class="cfBody">'+
-      (opts.message?'<div class="cfMsg">'+escapeHtml(opts.message)+'</div>':'')+
-      detailsHtml+
-    '</div>'+
-    '<div class="cfActions">'+
-      '<button class="btn bs" onclick="cfClose()">Cancelar</button>'+
-      '<button class="btn '+(opts.danger?'bd':'bp')+'" id="cfOk">'+(opts.okText||(opts.danger?'Sí, eliminar':'Confirmar'))+'</button>'+
-    '</div>'+
-  '</div>';
-  bd.classList.add('open');
-  document.getElementById('cfOk').onclick=function(){
-    var btn=this;btn.disabled=true;btn.style.opacity='.5';btn.textContent='Procesando...';
-    try{if(opts.onOk)opts.onOk();}catch(e){console.error(e);}
-    cfClose();
-  };
-}
-function cfClose(){
-  var bd=document.getElementById('confirmBackdrop');
-  if(bd){bd.classList.remove('open');setTimeout(function(){bd.innerHTML='';},150);}
-}
-// Esc cierra el confirm
-document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){
-    var bd=document.getElementById('confirmBackdrop');
-    if(bd&&bd.classList.contains('open'))cfClose();
-  }
-});
-
-var gsSelIdx=0;
-var gsCurResults=[];
-function openGlobalSearch(){
-  var el=document.getElementById('globalSearch');
-  if(!el)return;
-  el.classList.add('open');
-  var inp=document.getElementById('gsInp');
-  inp.value='';
-  gsSelIdx=0;
-  gsCurResults=[];
-  document.getElementById('gsResults').innerHTML='<div class="gsEmpty">Empezá a escribir para buscar...</div>';
-  setTimeout(function(){inp.focus();},30);
-}
-function closeGlobalSearch(){
-  var el=document.getElementById('globalSearch');
-  if(el)el.classList.remove('open');
-}
-function globalSearch(q){
-  q=(q||'').trim().toLowerCase();
-  var box=document.getElementById('gsResults');
-  if(!q){box.innerHTML='<div class="gsEmpty">Empezá a escribir para buscar...</div>';gsCurResults=[];return;}
-  var res=[];
-  (C.compras||[]).forEach(function(c){
-    var hay=((c.pedido||'')+' '+(c.lote||'')+' '+(c.proveedor||'')+' '+(c.descripcion||'')+' '+(c.tipo_operacion||'')).toLowerCase();
-    if(hay.indexOf(q)>-1){
-      res.push({
-        ico:'🛒',type:'Compra',
-        title:(c.pedido||'Sin pedido')+' · '+(c.proveedor||''),
-        sub:(c.tipo_operacion||'')+' · '+(c.estado_pago||'')+' · USD '+fmtN(c.usd_fob||0)+' · '+fmtD(c.fecha_compra),
-        action:function(){closeGlobalSearch();comprasFiltros.pedido=c.pedido||'';saveFiltros();go('compras');}
-      });
-    }
-  });
-  (C.stock_items||[]).forEach(function(it){
-    var hay=((it.sku_leex||'')+' '+(it.pn_fabrica||'')+' '+(it.sn||'')+' '+(it.modelo||'')+' '+(it.ubicacion||'')+' '+(it.pedido_compra||'')).toLowerCase();
-    if(hay.indexOf(q)>-1){
-      res.push({
-        ico:'📦',type:'Stock',
-        title:(it.sku_leex||'')+' · '+(it.modelo||''),
-        sub:'SN '+(it.sn||'—')+' · '+(it.ubicacion||'')+' · '+(it.estado||''),
-        action:function(){closeGlobalSearch();go('stock');}
-      });
-    }
-  });
-  (C.clientes||[]).forEach(function(cl){
-    var hay=((cl.razon_social||'')+' '+(cl.cuit||'')+' '+(cl.email||'')+' '+(cl.pais||'')+' '+(cl.ciudad||'')).toLowerCase();
-    if(hay.indexOf(q)>-1){
-      res.push({
-        ico:'👤',type:'Cliente',
-        title:cl.razon_social||'',
-        sub:(cl.pais||'')+' '+(cl.ciudad||'')+' · '+(cl.email||''),
-        action:function(){closeGlobalSearch();go('clientes');}
-      });
-    }
-  });
-  (C.asientos||[]).forEach(function(a){
-    var hay=((a.descripcion||'')+' '+(a.categoria||'')+' '+(a.numero||'')).toLowerCase();
-    if(hay.indexOf(q)>-1){
-      res.push({
-        ico:'📒',type:'Asiento',
-        title:(a.numero?'#'+a.numero+' · ':'')+(a.descripcion||''),
-        sub:fmtD(a.fecha)+' · '+(a.categoria||''),
-        action:function(){closeGlobalSearch();go('libro');}
-      });
-    }
-  });
-  (C.caja_oficina_chile||[]).forEach(function(r){
-    var hay=((r.proveedor||'')+' '+(r.concepto||'')+' '+(r.detalle||'')).toLowerCase();
-    if(hay.indexOf(q)>-1){
-      res.push({
-        ico:'🇨🇱',type:'Caja Chile',
-        title:(r.proveedor||'—')+' · '+(r.concepto||''),
-        sub:fmtD(r.fecha)+' · $'+fmtN(r.importe_clp||0)+' · '+(r.estado||''),
-        action:function(){closeGlobalSearch();go('chile');}
-      });
-    }
-  });
-  res=res.slice(0,30);
-  gsCurResults=res;
-  gsSelIdx=0;
-  if(res.length===0){
-    box.innerHTML='<div class="gsEmpty">Sin resultados para "'+escapeHtml(q)+'"</div>';
-    return;
-  }
-  var html='';
-  res.forEach(function(r,i){
-    html+='<div class="gsResult'+(i===0?' active':'')+'" data-idx="'+i+'" onmouseenter="gsHover('+i+')" onclick="gsExec('+i+')">'+
-      '<div class="gsResIco">'+r.ico+'</div>'+
-      '<div class="gsResMain">'+
-        '<div class="gsResTitle">'+escapeHtml(r.title)+'</div>'+
-        '<div class="gsResSub">'+escapeHtml(r.sub)+'</div>'+
-      '</div>'+
-      '<div class="gsResType">'+r.type+'</div>'+
-    '</div>';
-  });
-  box.innerHTML=html;
-}
-function gsHover(i){
-  gsSelIdx=i;
-  var rs=document.querySelectorAll('.gsResult');
-  rs.forEach(function(el,idx){el.classList.toggle('active',idx===i);});
-}
-function gsExec(i){
-  if(gsCurResults[i])gsCurResults[i].action();
-}
-document.addEventListener('keydown',function(e){
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
-    e.preventDefault();
-    if(CU)openGlobalSearch();
-    return;
-  }
-  var gs=document.getElementById('globalSearch');
-  if(gs&&gs.classList.contains('open')){
-    if(e.key==='Escape'){closeGlobalSearch();return;}
-    if(e.key==='ArrowDown'){e.preventDefault();gsSelIdx=Math.min(gsSelIdx+1,gsCurResults.length-1);gsHover(gsSelIdx);scrollGsActive();}
-    else if(e.key==='ArrowUp'){e.preventDefault();gsSelIdx=Math.max(gsSelIdx-1,0);gsHover(gsSelIdx);scrollGsActive();}
-    else if(e.key==='Enter'){e.preventDefault();gsExec(gsSelIdx);}
-  }
-});
-function scrollGsActive(){
-  var ac=document.querySelector('.gsResult.active');
-  if(ac)ac.scrollIntoView({block:'nearest'});
-}
-document.addEventListener('DOMContentLoaded',function(){
-  setTimeout(function(){
-    var inp=document.getElementById('gsInp');
-    if(inp)inp.addEventListener('input',function(){
-      clearTimeout(window._gsT);
-      window._gsT=setTimeout(function(){globalSearch(inp.value);},150);
-    });
-  },100);
-});
 
 // === STORE GLOBAL ===
 var C={
@@ -709,9 +333,7 @@ var C={
   cobros:[],
   cobro_imputaciones:[],
   cliente_adjuntos:[],
-  usuario_permisos:[],
-  saldo_banco_historial:[],
-  app_usuarios:[]
+  usuario_permisos:[]
 };
 
 // === ESTADO UI ===
@@ -733,128 +355,39 @@ var importPreview=null;  // {filas:[{...}], importacion_id, archivo}
 var comprasFiltros={fechaDesde:'',fechaHasta:'',tipoOp:'',proveedor:'',estadoPago:'',pedido:'',lote:''};
 var editCompraId=null;
 
-// === PERSISTENCIA DE FILTROS Y EJERCICIO EN LOCALSTORAGE ===
-function saveFiltros(){
-  try{
-    var snap={
-      ejercicioActual:ejercicioActual,
-      comprasFiltros:comprasFiltros,
-      stockFiltros:typeof stockFiltros!=='undefined'?stockFiltros:null,
-      bajaFiltros:typeof bajaFiltros!=='undefined'?bajaFiltros:null,
-      altaFiltros:typeof altaFiltros!=='undefined'?altaFiltros:null,
-      cajaChileFiltros:typeof cajaChileFiltros!=='undefined'?cajaChileFiltros:null,
-      cajaDeamFiltros:typeof cajaDeamFiltros!=='undefined'?cajaDeamFiltros:null,
-      cajaLeexFiltros:typeof cajaLeexFiltros!=='undefined'?cajaLeexFiltros:null,
-      saldoFiltros:typeof saldoFiltros!=='undefined'?saldoFiltros:null,
-      clientesFiltros:typeof clientesFiltros!=='undefined'?clientesFiltros:null,
-      ventasFiltros:typeof ventasFiltros!=='undefined'?ventasFiltros:null,
-      cobrosFiltros:typeof cobrosFiltros!=='undefined'?cobrosFiltros:null
-    };
-    localStorage.setItem('leex_filtros_'+(CU?CU.u:'anon'),JSON.stringify(snap));
-  }catch(e){}
-}
-function loadFiltros(){
-  try{
-    var raw=localStorage.getItem('leex_filtros_'+(CU?CU.u:'anon'));
-    if(!raw)return;
-    var s=JSON.parse(raw);
-    if(s.ejercicioActual)ejercicioActual=s.ejercicioActual;
-    if(s.comprasFiltros)comprasFiltros=Object.assign(comprasFiltros,s.comprasFiltros);
-    if(s.stockFiltros&&typeof stockFiltros!=='undefined')stockFiltros=Object.assign(stockFiltros,s.stockFiltros);
-    if(s.bajaFiltros&&typeof bajaFiltros!=='undefined')bajaFiltros=Object.assign(bajaFiltros,s.bajaFiltros);
-    if(s.altaFiltros&&typeof altaFiltros!=='undefined')altaFiltros=Object.assign(altaFiltros,s.altaFiltros);
-    if(s.cajaChileFiltros&&typeof cajaChileFiltros!=='undefined')cajaChileFiltros=Object.assign(cajaChileFiltros,s.cajaChileFiltros);
-    if(s.cajaDeamFiltros&&typeof cajaDeamFiltros!=='undefined')cajaDeamFiltros=Object.assign(cajaDeamFiltros,s.cajaDeamFiltros);
-    if(s.cajaLeexFiltros&&typeof cajaLeexFiltros!=='undefined')cajaLeexFiltros=Object.assign(cajaLeexFiltros,s.cajaLeexFiltros);
-    if(s.saldoFiltros&&typeof saldoFiltros!=='undefined')saldoFiltros=Object.assign(saldoFiltros,s.saldoFiltros);
-    if(s.clientesFiltros&&typeof clientesFiltros!=='undefined')clientesFiltros=Object.assign(clientesFiltros,s.clientesFiltros);
-    if(s.ventasFiltros&&typeof ventasFiltros!=='undefined')ventasFiltros=Object.assign(ventasFiltros,s.ventasFiltros);
-    if(s.cobrosFiltros&&typeof cobrosFiltros!=='undefined')cobrosFiltros=Object.assign(cobrosFiltros,s.cobrosFiltros);
-  }catch(e){}
-}
-// Auto-save: cada vez que se navega
-var _origGo=null;
-
 // ============================================================
 // LOGIN / LOGOUT
 // ============================================================
 function login(){
   var u=document.getElementById('lu').value.trim().toLowerCase();
   var p=document.getElementById('lp').value.trim();
-  document.getElementById('lerr').style.display='none';
-  // 1) Intentar contra Supabase (tabla app_usuarios)
-  sbGet('app_usuarios','select=*&activo=eq.true&usuario=eq.'+encodeURIComponent(u)).then(function(res){
-    var dbUser=(Array.isArray(res)&&res.length>0)?res[0]:null;
-    if(dbUser && String(dbUser.password)===p){
-      var user={
-        id:dbUser.id,u:dbUser.usuario,name:dbUser.nombre||dbUser.usuario,
-        role:dbUser.role||'custom',
-        ini:(dbUser.nombre||dbUser.usuario||'U').trim().slice(0,2).toUpperCase(),
-        permisos:dbUser.permisos||null
-      };
-      iniciarSesion(user);
-      return;
-    }
-    // 2) Fallback a usuarios hardcoded (compatibilidad)
-    loginLegacy(u,p);
-  }).catch(function(){
-    // Tabla no existe o error de red → fallback
-    loginLegacy(u,p);
-  });
-}
-function loginLegacy(u,p){
   var user=null;
   for(var i=0;i<USERS.length;i++){if(USERS[i].u===u&&USERS[i].p===p){user=USERS[i];break;}}
   if(!user){document.getElementById('lerr').style.display='block';return;}
-  iniciarSesion(user);
-}
-function iniciarSesion(user){
+  document.getElementById('lerr').style.display='none';
   CU=user;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
-  initTheme();
   document.getElementById('uav').textContent=user.ini;
   document.getElementById('uname').textContent=user.name;
-  document.getElementById('urole').textContent=
-    user.role==='admin'?'Administrador':
-    user.role==='logistica'?'Logística':
-    user.role==='reader'?'Solo Lectura':'Personalizado';
-  if(user.role==='logistica')document.getElementById('urole').style.color='var(--lime)';
-  // Aplicar visibilidad de secciones según permisos
-  aplicarVisibilidadSecciones();
-  loadAll().then(function(){
-    loadFiltros();
-    var thisYear=new Date().getFullYear();
-    if(!C.ejercicios.find(function(e){return e.año===ejercicioActual;})){
-      if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
-      else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
-    }
-    // Ir a la primera sección visible
-    go(primeraPaginaVisible());
-  });
-}
-// Oculta secciones del sidebar sin acceso
-function aplicarVisibilidadSecciones(){
-  // Gestión de usuarios y auditoría: solo admin
-  var niAdmin=document.getElementById('niAdmin');if(niAdmin)niAdmin.style.display=isAdmin()?'':'none';
-  var niAudit=document.getElementById('niAudit');if(niAudit)niAudit.style.display=isAdmin()?'':'none';
-  // Recorrer secciones permisables
-  SECCIONES.forEach(function(s){
-    var visible=puedeVer(s.key);
-    document.querySelectorAll('[data-sec="'+s.key+'"]').forEach(function(el){
-      // No re-ocultar niAdmin/niAudit que ya manejamos arriba
-      if(el.id==='niAdmin'||el.id==='niAudit')return;
-      el.style.display=visible?'':'none';
+  document.getElementById('urole').textContent=user.role==='admin'?'Administrador':'Solo Lectura';
+  if(user.role!=='admin')document.getElementById('niAdmin').style.display='none';
+  // Si es logística, ocultar todo lo que no sea Compras-Logística
+  if(user.role==='logistica'){
+    document.querySelectorAll('[data-sec]').forEach(function(el){
+      if(el.getAttribute('data-sec')!=='logistica')el.style.display='none';
     });
+    // Mostrar urole en color especial
+    document.getElementById('urole').textContent='Logística';
+    document.getElementById('urole').style.color='var(--lime)';
+  }
+  loadAll().then(function(){
+    // Setear ejercicio actual = año en curso, si existe
+    var thisYear=new Date().getFullYear();
+    if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
+    else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
+    go(CU&&CU.role==='logistica'?'compras':'dashboard');
   });
-}
-function primeraPaginaVisible(){
-  var orden=['dashboard','compras','chile','clientes','config'];
-  for(var i=0;i<orden.length;i++){if(puedeVerPagina(orden[i]))return orden[i];}
-  // Buscar cualquier página visible
-  var paginas=Object.keys(PAGE_SEC);
-  for(var j=0;j<paginas.length;j++){if(puedeVerPagina(paginas[j]))return paginas[j];}
-  return 'dashboard';
 }
 function logout(){CU=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none';}
 function isAdmin(){return CU&&CU.role==='admin';}
@@ -894,9 +427,7 @@ function loadAll(){
     sbGet('cobros','select=*&order=fecha.desc').catch(function(){return[];}),
     sbGet('cobro_imputaciones','select=*').catch(function(){return[];}),
     sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
-    sbGet('usuario_permisos','select=*').catch(function(){return[];}),
-    sbGet('saldo_banco_historial','select=*&order=fecha.asc,id.asc').catch(function(){return[];}),
-    sbGet('app_usuarios','select=*&order=id').catch(function(){return[];})
+    sbGet('usuario_permisos','select=*').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -946,8 +477,6 @@ function loadAll(){
     C.cobro_imputaciones=Array.isArray(res[27])?res[27]:[];
     C.cliente_adjuntos=Array.isArray(res[28])?res[28]:[];
     C.usuario_permisos=Array.isArray(res[29])?res[29]:[];
-    C.saldo_banco_historial=Array.isArray(res[30])?res[30]:[];
-    C.app_usuarios=Array.isArray(res[31])?res[31]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -959,17 +488,9 @@ function loadAll(){
 // ============================================================
 function go(page){
   try{
-    // Enforcement de permisos: si no puede ver la página, redirigir a la primera visible
-    if(CU && !puedeVerPagina(page)){
-      var destino=primeraPaginaVisible();
-      if(destino!==page){
-        toast('No tenés acceso a esa sección','error');
-        page=destino;
-      }
-    }
-    // Gestión de usuarios y auditoría: solo admin
-    if((page==='usuarios'||page==='auditoria') && !isAdmin()){
-      page=primeraPaginaVisible();
+    // Bloqueo: logistica solo accede a compras y stock
+    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'){
+      page='compras';
     }
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
     var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
@@ -993,11 +514,9 @@ function go(page){
       chile:pgChile,
       clientes:pgClientes,
       config:pgConfig,
-      auditoria:pgAuditoria,
       usuarios:pgUsuarios
     };
     document.getElementById('main').innerHTML=pages[page]?pages[page]():'<p>En construcción</p>';
-    saveFiltros();
   }catch(err){
     console.error('Error en go('+page+'):',err);
     document.getElementById('main').innerHTML='<div class="alert aerr"><strong>Error al cargar la página "'+page+'"</strong><br><code style="font-size:11px;white-space:pre-wrap">'+(err.message||err)+'</code><br><small>Revisá la consola (F12).</small></div>';
@@ -1020,20 +539,6 @@ function fmtD(d){return d?d.split('-').reverse().join('/'):''}
 function fmtN(v){return(parseFloat(v)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function hoy(){return new Date().toISOString().split('T')[0];}
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-
-// === BLOQUEO DOBLE-SUBMIT ===
-// Devuelve true si la acción ya está en curso (en cuyo caso no hay que continuar).
-// La llave se libera con unlockSubmit(key) o automáticamente después de 8s.
-var _submitLocks={};
-function lockSubmit(key){
-  if(_submitLocks[key])return true;
-  _submitLocks[key]=Date.now();
-  // Auto-release de seguridad por si falla algo y nunca se llama unlock
-  setTimeout(function(){delete _submitLocks[key];},8000);
-  return false;
-}
-function unlockSubmit(key){delete _submitLocks[key];}
-
 
 function getCta(cod){for(var i=0;i<C.cuentas.length;i++)if(C.cuentas[i].codigo===cod)return C.cuentas[i];return null;}
 function ctasOpts(sel,filtroTipo){var h='';C.cuentas.forEach(function(c){if(c.activa===false)return;if(filtroTipo&&c.tipo!==filtroTipo)return;h+='<option value="'+c.codigo+'"'+(c.codigo===sel?' selected':'')+'>'+c.codigo+' - '+escapeHtml(c.nombre)+' ('+c.tipo+')</option>';});return h;}
@@ -1173,315 +678,49 @@ function saldoBanco(hastaFecha){
 // ============================================================
 function pgDashboard(){
   var año=ejercicioActual;
-
-  // === SALDO REAL BANCO (manual) ===
-  var saldoRealBanco = C.config.saldo_banco_manual!==null ? parseFloat(C.config.saldo_banco_manual) : null;
-  var saldoBancoFecha = C.config.saldo_banco_manual_fecha;
-  var saldoBancoContable = saldoBanco(); // calculado contablemente, para comparar
-
-  // === COMPRAS PENDIENTES DE PAGO ===
-  var estadosPend = ['Pendiente','Enviado a Pagar','En Revisión'];
-  var fobGeneral=0, cntGeneral=0;
-  var fobChile=0, cntChile=0;
-  C.compras.forEach(function(c){
-    if(estadosPend.indexOf(c.estado_pago)===-1)return;
-    var fob = parseFloat(c.usd_fob)||0;
-    if(c.tipo_operacion==='Chile'){fobChile+=fob;cntChile++;}
-    else{fobGeneral+=fob;cntGeneral++;}
+  var totIng=0,totGas=0;
+  C.cuentas.forEach(function(c){
+    if(c.tipo==='Ingreso'){var m=movimientosEjercicio(c.codigo,año);totIng+=m.haber-m.debe;}
+    else if(c.tipo==='Gasto'){var m=movimientosEjercicio(c.codigo,año);totGas+=m.debe-m.haber;}
   });
+  var resultado=totIng-totGas;
+  var saldoBancoActual=saldoBanco();  // sin filtro de fecha = saldo actual
+  var saldoBancoCierre=saldoBanco(año+'-12-31');
 
-  // === SALDO VIGENTE USD CHILE ===
-  var saldoChileUsd = calcSaldoVigenteChile();
+  var movsSinAsiento=C.movs.filter(function(m){return !m.asiento_id;}).length;
+  var asEnEj=C.asientos.filter(function(a){return a.ejercicio_año===año;}).length;
 
-  // === EVOLUCIÓN MENSUAL DEL SALDO BANCO (últimos 6 meses, contable) ===
-  var serie = serieSaldoBanco6Meses();
-
-  // === PENDIENTES PARA VOS ===
-  var movsSinAst = C.movs.filter(function(m){return !m.asiento_id;}).length;
-  var compRevision = C.compras.filter(function(c){return c.estado_pago==='En Revisión';}).length;
-  var compEnviadas = C.compras.filter(function(c){return c.estado_pago==='Enviado a Pagar';}).length;
-  // Vencimientos: compras "Enviado a Pagar" hace >7 días sin pasar a Pagado
-  var hoyDate = new Date();
-  var compVencidas = C.compras.filter(function(c){
-    if(c.estado_pago!=='Enviado a Pagar')return false;
-    var f = c.fecha_envio_pago || c.fecha_compra;
-    if(!f)return false;
-    var d = new Date(f);
-    var diff = (hoyDate - d)/(1000*60*60*24);
-    return diff>=7;
+  // Últimos asientos
+  var ultimosAst=C.asientos.filter(function(a){return a.ejercicio_año===año;}).slice(-5).reverse();
+  var rowsAst='';
+  ultimosAst.forEach(function(a){
+    var ls=lineasDeAsiento(a.id),d=0;
+    ls.forEach(function(l){d+=parseFloat(l.debe);});
+    rowsAst+='<tr><td>'+refAsiento(a)+'</td><td>'+fmtD(a.fecha)+'</td><td>'+escapeHtml(a.descripcion)+'</td><td>'+fmt(d)+'</td></tr>';
   });
-  var itemsSinSn = C.stock_items.filter(function(it){return it.estado!=='Baja' && !it.sn;}).length;
-
-  // Card saldo real banco
-  var cardSaldoBanco;
-  if(saldoRealBanco!==null){
-    var dif = saldoRealBanco - saldoBancoContable;
-    var difColor = Math.abs(dif)<0.01 ? 'green' : (Math.abs(dif)<100?'yellow':'red');
-    cardSaldoBanco =
-      '<div class="card card-xl" onclick="go(\'banco\')" style="cursor:pointer">'+
-      '<div class="lbl">💵 Saldo Real Banco</div>'+
-      '<div class="val cyan">'+fmtS(saldoRealBanco)+'</div>'+
-      '<div class="sub">Al '+fmtD(saldoBancoFecha||hoy())+' · '+escapeHtml(C.config.banco_nombre||'Banco')+'</div>'+
-      '<div class="sub" style="margin-top:4px">Contable: '+fmtS(saldoBancoContable)+
-      ' <span class="'+difColor+'">('+(dif>=0?'+':'')+fmtS(dif).replace(/^[-+]?\$/, '$')+')</span></div>'+
-      '</div>';
-  } else {
-    cardSaldoBanco =
-      '<div class="card card-xl" onclick="go(\'banco\')" style="cursor:pointer;border-color:var(--yellow)">'+
-      '<div class="lbl">💵 Saldo Real Banco</div>'+
-      '<div class="val yellow" style="font-size:14px">Sin definir</div>'+
-      '<div class="sub">Configurarlo en Movimientos Banco</div>'+
-      '</div>';
-  }
-
-  // 4 tarjetas principales
-  var cards =
-    '<div class="cards cards-hero">'+
-      cardSaldoBanco+
-      '<div class="card card-xl" onclick="dashGoCompras(\'general\')" style="cursor:pointer">'+
-        '<div class="lbl">📦 USD FOB Pendientes — General</div>'+
-        '<div class="val yellow">'+fmtS(fobGeneral)+'</div>'+
-        '<div class="sub">'+cntGeneral+' compra'+(cntGeneral===1?'':'s')+' · sin Chile</div>'+
-      '</div>'+
-      '<div class="card card-xl" onclick="dashGoCompras(\'chile\')" style="cursor:pointer">'+
-        '<div class="lbl">🇨🇱 USD FOB Pendientes — Chile</div>'+
-        '<div class="val yellow">'+fmtS(fobChile)+'</div>'+
-        '<div class="sub">'+cntChile+' compra'+(cntChile===1?'':'s')+'</div>'+
-      '</div>'+
-      '<div class="card card-xl" onclick="go(\'chile\')" style="cursor:pointer">'+
-        '<div class="lbl">💰 Saldo Vigente USD Chile</div>'+
-        '<div class="val '+(saldoChileUsd>=0?'green':'red')+'">'+fmtS(saldoChileUsd)+'</div>'+
-        '<div class="sub">Caja Oficina Chile · acumulado</div>'+
-      '</div>'+
-    '</div>';
-
-  // Atajos rápidos
-  var atajos = !isAdmin() ? '' :
-    '<div class="quickActions">'+
-      '<button class="qaBtn" onclick="go(\'importar\')"><div class="qaIco">📥</div><div>Importar Extracto</div></button>'+
-      '<button class="qaBtn" onclick="abrirModalCompra(0)"><div class="qaIco">🛒</div><div>Nueva Compra</div></button>'+
-      '<button class="qaBtn" onclick="go(\'gastos\')"><div class="qaIco">💸</div><div>Registrar Gasto</div></button>'+
-      '<button class="qaBtn" onclick="exportDashboardSnapshot()"><div class="qaIco">📊</div><div>Snapshot Excel</div></button>'+
-    '</div>';
-
-  // Gráfico de saldo banco
-  var grafico = renderMiniChartSaldoBanco(serie);
-
-  // Pendientes para vos
-  var pendItems = [];
-  if(movsSinAst>0) pendItems.push({n:movsSinAst,txt:'Movimientos bancarios sin asentar',go:"go('importar')",ico:'⚠️',color:'yellow'});
-  if(compRevision>0) pendItems.push({n:compRevision,txt:'Compras en Revisión',go:"dashGoCompras('revision')",ico:'🔍',color:'cyan'});
-  if(compVencidas.length>0) pendItems.push({n:compVencidas.length,txt:'Compras Enviadas a Pagar hace +7 días',go:"dashGoCompras('vencidas')",ico:'⏰',color:'red'});
-  if(itemsSinSn>0) pendItems.push({n:itemsSinSn,txt:'Items en stock sin N° de serie',go:"go('stock')",ico:'📋',color:'yellow'});
-  if(saldoRealBanco===null) pendItems.push({n:'!',txt:'Saldo Real Banco sin configurar',go:"go('banco')",ico:'💵',color:'yellow'});
-
-  var pendHtml = '';
-  if(pendItems.length>0){
-    var prows='';
-    pendItems.forEach(function(p){
-      prows+='<div class="pendRow" onclick="'+p.go+'">'+
-        '<div class="pendIco">'+p.ico+'</div>'+
-        '<div class="pendTxt">'+escapeHtml(p.txt)+'</div>'+
-        '<div class="pendNum '+p.color+'">'+p.n+'</div>'+
-        '<div class="pendArrow">›</div>'+
-      '</div>';
-    });
-    pendHtml = '<div class="twrap"><div class="thead2"><h3>📌 Pendientes para vos</h3><span style="font-size:11px;color:var(--text2)">'+pendItems.length+' '+(pendItems.length===1?'item':'items')+'</span></div>'+
-      '<div class="pendList">'+prows+'</div></div>';
-  } else {
-    pendHtml = '<div class="twrap"><div class="thead2"><h3>📌 Pendientes para vos</h3></div>'+
-      '<div style="padding:24px;text-align:center;color:var(--text2)">✅ Todo al día, no hay pendientes</div></div>';
-  }
 
   return ejGlobalBar()+
     '<div class="pageTitle">Dashboard — Ejercicio '+año+'</div>'+
-    cards+
-    atajos+
-    '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-top:14px" class="dashGrid">'+
-      grafico+
-      pendHtml+
-    '</div>';
+    '<div class="cards">'+
+    '<div class="card"><div class="lbl">Ingresos del Ejercicio</div><div class="val green">'+fmt(totIng)+'</div><div class="sub">USD · solo movs normales</div></div>'+
+    '<div class="card"><div class="lbl">Gastos del Ejercicio</div><div class="val red">'+fmt(totGas)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Resultado</div><div class="val '+(resultado>=0?'green':'red')+'">'+fmtS(resultado)+'</div><div class="sub">'+(resultado>=0?'Ganancia':'Pérdida')+'</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Banco (Actual)</div><div class="val cyan">'+fmtS(saldoBancoActual)+'</div><div class="sub">'+escapeHtml(C.config.banco_nombre||'')+'</div></div>'+
+    '<div class="card"><div class="lbl">Banco al 31/12/'+año+'</div><div class="val cyan">'+fmtS(saldoBancoCierre)+'</div><div class="sub">Histórico</div></div>'+
+    '<div class="card"><div class="lbl">Movs sin asentar</div><div class="val yellow">'+movsSinAsiento+'</div><div class="sub">de '+C.movs.length+' total</div></div>'+
+    '<div class="card"><div class="lbl">Asientos '+año+'</div><div class="val">'+asEnEj+'</div></div>'+
+    '<div class="card"><div class="lbl">Reglas activas</div><div class="val">'+C.reglas.filter(function(r){return r.activa;}).length+'</div></div>'+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Últimos asientos del ejercicio</h3></div>'+
+    '<table><thead><tr><th>Ref.</th><th>Fecha</th><th>Descripción</th><th>Monto</th></tr></thead>'+
+    '<tbody>'+(rowsAst||'<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:16px">Sin asientos en '+año+'</td></tr>')+'</tbody></table></div>';
 }
-
-// === HELPERS DASHBOARD ===
-function calcSaldoVigenteChile(){
-  var saldoInicial=(C.caja_chile_aportes||[]).find(function(a){return a.es_saldo_inicial;});
-  var saldo=saldoInicial?(parseFloat(saldoInicial.importe_usd)||0):0;
-  // Restar gastos
-  C.caja_oficina_chile.forEach(function(r){
-    var imp=parseFloat(r.importe_clp)||0;
-    var tc=parseFloat(r.tipo_cambio_usd)||0;
-    if(tc>0) saldo-=imp/tc;
-  });
-  // Sumar aportes no iniciales
-  (C.caja_chile_aportes||[]).forEach(function(a){
-    if(a.es_saldo_inicial)return;
-    saldo+=parseFloat(a.importe_usd)||0;
-  });
-  return saldo;
-}
-
-function serieSaldoBanco6Meses(){
-  // Construye una serie con la EVOLUCIÓN DEL SALDO REAL BANCO (manual)
-  // usando la tabla saldo_banco_historial.
-  // Estrategia: para cada uno de los últimos 6 meses, tomar el saldo manual
-  // más reciente cuya fecha sea <= último día del mes.
-  var hist=(C.saldo_banco_historial||[]).slice().sort(function(a,b){
-    return (a.fecha||'').localeCompare(b.fecha||'');
-  });
-  // Si no hay histórico, usar el saldo manual actual (si existe) como único punto
-  if(hist.length===0){
-    var actual=C.config.saldo_banco_manual;
-    if(actual===null||actual===undefined||isNaN(parseFloat(actual)))return [];
-    var fAct=C.config.saldo_banco_manual_fecha||hoy();
-    hist=[{fecha:fAct,saldo_usd:parseFloat(actual)}];
-  }
-  var hoyD=new Date();
-  var pts=[];
-  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  for(var i=5;i>=0;i--){
-    var d=new Date(hoyD.getFullYear(), hoyD.getMonth()-i+1, 0); // último día del mes
-    var yy=d.getFullYear(), mm=d.getMonth()+1, dd=d.getDate();
-    var corte=yy+'-'+(mm<10?'0':'')+mm+'-'+(dd<10?'0':'')+dd;
-    // Buscar el último registro <= corte
-    var saldo=null;
-    for(var j=hist.length-1;j>=0;j--){
-      if((hist[j].fecha||'')<=corte){saldo=parseFloat(hist[j].saldo_usd)||0;break;}
-    }
-    pts.push({label:meses[mm-1]+' '+String(yy).slice(-2), saldo:saldo, fecha:corte});
-  }
-  // Si el último punto sigue siendo null, no hubo nunca un registro: serie vacía
-  var hayDato=pts.some(function(p){return p.saldo!==null;});
-  if(!hayDato)return [];
-  // Rellenar nulls iniciales con el primer valor disponible para que el gráfico no rompa
-  var primeroValido=null;
-  for(var k=0;k<pts.length;k++){if(pts[k].saldo!==null){primeroValido=pts[k].saldo;break;}}
-  pts.forEach(function(p){if(p.saldo===null)p.saldo=primeroValido!==null?primeroValido:0;});
-  return pts;
-}
-
-function renderMiniChartSaldoBanco(serie){
-  if(!serie || serie.length===0) return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Real Banco</h3></div>'+
-    '<div style="padding:24px;text-align:center;color:var(--text2);font-size:13px">Sin historial de saldos manuales aún.<br/><span style="font-size:11px">Cada vez que actualices el Saldo Real en Movimientos Banco, se irá armando la curva.</span></div></div>';
-  var W=560, H=180, PAD=36;
-  var vals=serie.map(function(p){return p.saldo;});
-  var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
-  if(mn===mx){mn-=1;mx+=1;}
-  var pad=(mx-mn)*0.12; mn-=pad; mx+=pad;
-  var stepX=(W-2*PAD)/(serie.length-1||1);
-  function sx(i){return PAD+i*stepX;}
-  function sy(v){return H-PAD-((v-mn)/(mx-mn))*(H-2*PAD);}
-  var path='', area='', pts='';
-  serie.forEach(function(p,i){
-    var x=sx(i), y=sy(p.saldo);
-    path+=(i===0?'M':'L')+x.toFixed(1)+' '+y.toFixed(1)+' ';
-    pts+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3.5" fill="var(--cyan)"><title>'+p.label+': '+fmtS(p.saldo)+'</title></circle>';
-  });
-  area='M'+sx(0).toFixed(1)+' '+(H-PAD)+' '+path.replace('M','L').slice(0)+'L'+sx(serie.length-1).toFixed(1)+' '+(H-PAD)+' Z';
-  // gridlines
-  var gl='';
-  for(var k=0;k<=3;k++){
-    var gy=PAD+(H-2*PAD)*k/3;
-    gl+='<line x1="'+PAD+'" y1="'+gy.toFixed(1)+'" x2="'+(W-10)+'" y2="'+gy.toFixed(1)+'" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="2,3"/>';
-    var valY = mx - (mx-mn)*k/3;
-    gl+='<text x="'+(PAD-6)+'" y="'+(gy+3).toFixed(1)+'" fill="var(--text2)" font-size="9" text-anchor="end">'+Math.round(valY/1000)+'k</text>';
-  }
-  // x labels
-  var xl='';
-  serie.forEach(function(p,i){
-    xl+='<text x="'+sx(i).toFixed(1)+'" y="'+(H-PAD+14)+'" fill="var(--text2)" font-size="10" text-anchor="middle">'+p.label+'</text>';
-  });
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block">'+
-    gl+
-    '<path d="'+area+'" fill="var(--cyan-soft)"/>'+
-    '<path d="'+path+'" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-    pts+
-    xl+
-    '</svg>';
-  return '<div class="twrap"><div class="thead2"><h3>📈 Evolución Saldo Real Banco</h3><span style="font-size:11px;color:var(--text2)">Últimos 6 meses · saldo manual</span></div>'+
-    '<div style="padding:14px 10px 6px">'+svg+'</div></div>';
-}
-
-function dashGoCompras(tipo){
-  // Setear filtros y navegar
-  comprasFiltros={fechaDesde:'',fechaHasta:'',tipoOp:'',proveedor:'',estadoPago:'',pedido:'',lote:''};
-  if(tipo==='general'){comprasFiltros.estadoPago='Pendiente';}
-  else if(tipo==='chile'){comprasFiltros.tipoOp='Chile';comprasFiltros.estadoPago='Pendiente';}
-  else if(tipo==='revision'){comprasFiltros.estadoPago='En Revisión';}
-  else if(tipo==='vencidas'){comprasFiltros.estadoPago='Enviado a Pagar';}
-  saveFiltros();
-  go('compras');
-}
-
-function exportDashboardSnapshot(){
-  // Snapshot completo del estado del negocio
-  var wb=XLSX.utils.book_new();
-  var hoyStr=hoy();
-
-  // 1) Resumen
-  var saldoRealBanco=C.config.saldo_banco_manual!==null?parseFloat(C.config.saldo_banco_manual):null;
-  var saldoChile=calcSaldoVigenteChile();
-  var estadosPend=['Pendiente','Enviado a Pagar','En Revisión'];
-  var fobGen=0,fobCl=0;
-  C.compras.forEach(function(c){
-    if(estadosPend.indexOf(c.estado_pago)===-1)return;
-    var f=parseFloat(c.usd_fob)||0;
-    if(c.tipo_operacion==='Chile')fobCl+=f;else fobGen+=f;
-  });
-  var resumen=[
-    {Indicador:'Fecha snapshot',Valor:hoyStr},
-    {Indicador:'Ejercicio',Valor:ejercicioActual},
-    {Indicador:'Saldo Real Banco (USD)',Valor:saldoRealBanco!==null?saldoRealBanco.toFixed(2):'Sin definir'},
-    {Indicador:'Saldo Contable Banco (USD)',Valor:saldoBanco().toFixed(2)},
-    {Indicador:'USD FOB Pendientes General (sin Chile)',Valor:fobGen.toFixed(2)},
-    {Indicador:'USD FOB Pendientes Chile',Valor:fobCl.toFixed(2)},
-    {Indicador:'Saldo Vigente USD Proyecto Chile',Valor:saldoChile.toFixed(2)}
-  ];
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(resumen),'Resumen');
-
-  // 2) Compras pendientes detalladas (general y Chile)
-  var detalle=C.compras.filter(function(c){return estadosPend.indexOf(c.estado_pago)>-1;}).map(function(c){
-    return{
-      Fecha:c.fecha_compra,
-      Pedido:c.pedido||'',
-      Proveedor:c.proveedor||'',
-      'Tipo Op':c.tipo_operacion||'',
-      'USD FOB':parseFloat(c.usd_fob)||0,
-      'Estado Pago':c.estado_pago||'',
-      Vencimiento:c.vencimiento_prov||'',
-      Notas:c.notas||''
-    };
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detalle),'Pendientes Detalle');
-
-  // 3) Movimientos Caja Chile
-  var chile=(C.caja_oficina_chile||[]).map(function(r){
-    var tc=parseFloat(r.tipo_cambio_usd)||0;
-    var imp=parseFloat(r.importe_clp)||0;
-    return{
-      Fecha:r.fecha,
-      Numero:r.numero||'',
-      Proveedor:r.proveedor||'',
-      Concepto:r.concepto||'',
-      'Importe CLP':imp,
-      'IVA CLP':parseFloat(r.importe_iva_clp)||0,
-      'TC USD':tc,
-      'USD':tc>0?(imp/tc).toFixed(2):'',
-      Estado:r.estado||''
-    };
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(chile),'Caja Chile');
-
-  XLSX.writeFile(wb,'LEEX_Snapshot_'+hoyStr+'.xlsx');
-  toast('Snapshot exportado','success');
-}
-
 
 // ============================================================
 // PÁGINA: IMPORTAR EXTRACTO
 // ============================================================
 function pgImportar(){
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Importar Extracto</div><div class="alert ainfo">Solo administradores pueden importar extractos.</div>';
 
   var ej=getEjercicio(ejercicioActual);
@@ -1794,30 +1033,12 @@ function parsePDFPage(page){
       if(!found)lines[item.y]=[item];
     });
 
-    // === DETECTAR COLUMNAS POR HEADER ===
-    // Buscamos la fila de encabezados (DÉBITOS / CRÉDITOS / SALDO / BALANCE)
-    // para saber a qué columna pertenece cada monto según su X.
-    var colDebito=null, colCredito=null, colSaldo=null;
-    Object.keys(lines).forEach(function(yKey){
-      lines[yKey].forEach(function(it){
-        var t=it.text.toUpperCase().replace(/[ÉÈÊ]/g,'E').replace(/[ÁÀÂ]/g,'A').replace(/[ÍÌ]/g,'I').replace(/[ÓÒÔ]/g,'O').replace(/[ÚÙ]/g,'U');
-        if(/^D[EÉ]BITO/.test(t)||t==='DEBITS'||t==='DEBIT'||t==='CARGOS'||t==='RETIROS')colDebito=it.x;
-        else if(/^CR[EÉ]DITO/.test(t)||t==='CREDITS'||t==='CREDIT'||t==='ABONOS'||t==='DEPOSITOS')colCredito=it.x;
-        else if(/^SALDO/.test(t)||t==='BALANCE'||t==='SALDO')colSaldo=it.x;
-      });
-    });
-    // Si detectamos headers, sabemos si hay columna de saldo o no
-    var hayColSaldo=(colSaldo!==null);
-
     // Procesar cada línea
     var rawRows=[];
     Object.keys(lines).forEach(function(yKey){
       var lineItems=lines[yKey].sort(function(a,b){return a.x-b.x;});
       var dateText=lineItems.find(function(item){return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(item.text);});
       if(!dateText)return;
-      // Saltar fila de Totales aunque tuviera fecha
-      var esTotales=lineItems.some(function(it){return /^totales?$/i.test(it.text)||/^transactions?:/i.test(it.text);});
-      if(esTotales)return;
 
       // Recolectar TODOS los montos con su posición X
       var montos=[]; // {valor, esNegativo, x}
@@ -1833,48 +1054,34 @@ function parsePDFPage(page){
             montos.push({valor:val,esNegativo:esNeg,x:item.x});
           }
         }else{
+          // No es monto = parte de la descripción
           descParts.push({text:item.text,x:item.x});
         }
       });
 
+      // Ordenar montos por X (de izquierda a derecha)
       montos.sort(function(a,b){return a.x-b.x;});
+
       if(montos.length===0)return; // fila sin montos = encabezado o texto suelto
 
-      var monto=0;
-      var saldoRow=null;
-      var primerMontoX;
+      // En este formato: DÉBITOS | CRÉDITOS | SALDO
+      // El ÚLTIMO monto siempre es el SALDO → descartarlo
+      // De los restantes: si tiene "-" es débito, sino crédito
+      var saldoX=montos[montos.length-1].x;
+      var saldoRow=montos[montos.length-1].valor;
+      var movMontos=montos.slice(0,-1);
 
-      if(colDebito!==null||colCredito!==null){
-        // === MODO COLUMNAS (preferido): clasificar cada monto por cercanía de X al header ===
-        montos.forEach(function(m){
-          // Distancia a cada columna conocida
-          var dD=colDebito!==null?Math.abs(m.x-colDebito):1e9;
-          var dC=colCredito!==null?Math.abs(m.x-colCredito):1e9;
-          var dS=colSaldo!==null?Math.abs(m.x-colSaldo):1e9;
-          var min=Math.min(dD,dC,dS);
-          if(min===dS&&colSaldo!==null){
-            saldoRow=m.valor; // es la columna saldo → no suma al movimiento
-          }else if(min===dD){
-            monto-=m.valor; // débito siempre resta (haya o no traído el signo)
-          }else{
-            monto+=m.valor; // crédito suma
-          }
-        });
-        primerMontoX=montos[0].x;
-      }else{
-        // === MODO LEGACY (sin headers detectados): asumir última col = saldo ===
-        var saldoX=montos[montos.length-1].x;
-        saldoRow=montos[montos.length-1].valor;
-        var movMontos=montos.slice(0,-1);
-        primerMontoX=movMontos.length>0?movMontos[0].x:saldoX;
-        if(movMontos.length===0)return;
-        movMontos.forEach(function(m){monto+=m.esNegativo?-m.valor:m.valor;});
-      }
-
-      // Reconstruir descripción: items a la izquierda del primer monto
+      // Reconstruir descripción: solo los items a la izquierda del primer monto (no saldo)
+      var primerMontoX=movMontos.length>0?movMontos[0].x:saldoX;
       var desc=descParts.filter(function(d){return d.x<primerMontoX;}).map(function(d){return d.text;}).join(' ').trim();
-      if(!desc)desc=descParts.map(function(d){return d.text;}).join(' ').trim();
-      if(!desc||monto===0)return;
+
+      if(!desc||movMontos.length===0)return;
+
+      // Sumar todos los montos del movimiento (puede haber solo uno: débito O crédito)
+      var monto=0;
+      movMontos.forEach(function(m){
+        monto+=m.esNegativo?-m.valor:m.valor;
+      });
 
       // Normalizar fecha
       var p=dateText.text.split('/');
@@ -1889,33 +1096,40 @@ function parsePDFPage(page){
       });
     });
 
-    // === VALIDACIÓN DE SALDOS (solo si el extracto trae columna de saldo) ===
+    // === VALIDACIÓN: verificar que los saldos cuadren ===
+    // Ordenar por Y descendente (en PDF, Y mayor = arriba; este PDF arranca con la fila más reciente)
+    // Pero el orden cronológico real es por FECHA ascendente.
+    // Para validar, ordenamos por fecha asc y verificamos saldo[i-1] + monto[i] ≈ saldo[i]
     var sortedByDate=rawRows.slice().sort(function(a,b){
       if(a.fecha!==b.fecha)return a.fecha.localeCompare(b.fecha);
-      return a.y-b.y;
+      return a.y-b.y; // dentro del mismo día, mantener orden visual (Y desc = orden del PDF)
     });
 
     var validatedRows=[];
-    if(hayColSaldo){
-      var saldoPrev=null;
-      var inconsistencias=0;
-      sortedByDate.forEach(function(r){
-        if(saldoPrev!==null && r.saldoRow!==null){
-          var esperado=saldoPrev+r.monto;
-          if(Math.abs(esperado-r.saldoRow)>0.05){
-            inconsistencias++;
-            console.warn('Saldo no cuadra en fila '+r.fecha+' '+r.desc+': esperado '+esperado.toFixed(2)+' vs saldo PDF '+r.saldoRow.toFixed(2));
-          }
+    var saldoPrev=null;
+    var inconsistencias=0;
+    sortedByDate.forEach(function(r){
+      var ok=true;
+      if(saldoPrev!==null){
+        var esperado=saldoPrev+r.monto;
+        if(Math.abs(esperado-r.saldoRow)>0.05){
+          ok=false;
+          inconsistencias++;
+          console.warn('Saldo no cuadra en fila '+r.fecha+' '+r.desc+': esperado '+esperado.toFixed(2)+' vs saldo PDF '+r.saldoRow.toFixed(2));
         }
-        if(r.saldoRow!==null)saldoPrev=r.saldoRow;
-        validatedRows.push({fecha:r.fecha,desc:r.desc,monto:r.monto});
+      }
+      saldoPrev=r.saldoRow;
+      // Incluir TODAS las filas, aunque no cuadren el saldo
+      // (el usuario decide si descartarlas)
+      validatedRows.push({
+        fecha:r.fecha,
+        desc:r.desc,
+        monto:r.monto
       });
-      if(inconsistencias>0)console.warn('PDF parser: '+inconsistencias+' filas con saldo inconsistente.');
-    }else{
-      // Sin columna de saldo: importar todas las filas tal cual
-      sortedByDate.forEach(function(r){
-        validatedRows.push({fecha:r.fecha,desc:r.desc,monto:r.monto});
-      });
+    });
+
+    if(inconsistencias>0){
+      console.warn('PDF parser: '+inconsistencias+' filas con saldo inconsistente. Revisar.');
     }
 
     return validatedRows;
@@ -2028,7 +1242,7 @@ function generarAsientoDesdeMov(mov,cuentaContrapartida,descripcion,categoria,re
 // PÁGINA: MOVIMIENTOS BANCO  (con sistema de adjuntos)
 // ============================================================
 function pgBanco(){
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   var filtrados=C.movs.filter(function(m){
     var y=getEjYear(m.fecha);
     if(y!==ejercicioActual)return false;
@@ -2184,18 +1398,13 @@ function pgBanco(){
     '</div>'+
     ((bancoDesde||bancoHasta||bancoFiltro!=='todos')?'<button class="btn sm bd" onclick="bancoFiltro=\'todos\';bancoDesde=\'\';bancoHasta=\'\';go(\'banco\')">✕ Limpiar</button>':'')+
     '</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3>'+
-    '<div style="display:flex;align-items:center;gap:10px;margin-left:auto">'+
-    '<span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span>'+
-    (ro?'':'<button class="btn sm bp" onclick="abrirModalMovManual()" title="Crear un movimiento bancario manual (ej: para conciliar un ajuste)">➕ Movimiento manual</button>')+
-    '</div></div>'+
+    '<div class="twrap"><div class="thead2"><h3>Movimientos — '+ejercicioActual+'</h3><span style="font-size:12px;color:var(--text2)">'+filtrados.length+' de '+movsEj.length+'</span></div>'+
     (movsEj.length===0?'<div style="padding:30px;text-align:center;color:var(--text2)">🏦 Sin movimientos en '+ejercicioActual+'. <a href="#" onclick="go(\'importar\');return false;" style="color:var(--cyan)">Importar extracto →</a></div>':
     filtrados.length===0?'<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
     '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th><th>Saldo</th><th>Estado</th><th>📎</th>'+(ro?'':'<th>Acciones</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>'+
     // Modal containers (ocultos por default)
     '<div id="modalAsiento" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>'+
-    '<div id="modalMovManual" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>'+
     '<div id="modalAdjuntos" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
 }
 
@@ -2413,7 +1622,7 @@ function cerrarModalAdjuntos(){
 function renderModalAdjuntos(){
   var m=C.movs.find(function(x){return x.id===modalAdjMovId;});
   if(!m)return;
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   var adjs=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===modalAdjMovId;});
 
   var listaHTML='';
@@ -2646,188 +1855,6 @@ function delMov(id){
 function generarAsientoMov(movId){abrirModalAsiento(movId);}
 
 // ============================================================
-// MODAL: MOVIMIENTO BANCARIO MANUAL
-// ============================================================
-function abrirModalMovManual(){
-  var ro=!isAdmin();
-  if(ro){toast('Solo administradores pueden crear movimientos manuales','error');return;}
-  var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
-  var ctaBancoNom='';
-  var cb=C.cuentas.find(function(c){return c.codigo===cuentaBanco;});
-  if(cb)ctaBancoNom=cb.codigo+' - '+cb.nombre;
-  var modalContent =
-    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:580px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2">'+
-    '<h3 style="font-size:15px;font-weight:600">➕ Movimiento Bancario Manual</h3>'+
-    '<button class="rlbtn" onclick="cerrarModalMovManual()" style="font-size:20px">✕</button>'+
-    '</div>'+
-    '<div style="padding:20px">'+
-    '<div class="alert ainfo" style="margin-bottom:14px">Creá un movimiento bancario manual (ej: un ajuste o un movimiento que no figura en el extracto). Si elegís una contracuenta, se genera el asiento contable automáticamente y el movimiento impacta en el <strong>Saldo Contable</strong> además del Saldo Conciliado.</div>'+
-    '<div class="fg2">'+
-    '<div class="f"><label>Fecha *</label><input type="date" id="mmFecha" value="'+hoy()+'"/></div>'+
-    '<div class="f"><label>Monto USD * <span style="color:var(--text2);font-weight:400">(negativo = salida)</span></label><input type="number" id="mmMonto" step="0.01" placeholder="-2236.87"/></div>'+
-    '</div>'+
-    '<div class="f" style="margin-top:12px"><label>Descripción *</label><input type="text" id="mmDesc" placeholder="Ej: Ajuste de conciliación / Comisión no registrada"/></div>'+
-    '<div style="margin-top:16px;padding:14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">'+
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
-      '<input type="checkbox" id="mmGenAsiento" checked style="width:auto;margin:0" onchange="toggleAsientoMovManual(this.checked)"/>'+
-      '<label for="mmGenAsiento" style="margin:0;font-size:13px;cursor:pointer;font-weight:600">Generar asiento contable (impacta en Saldo Contable)</label>'+
-      '</div>'+
-      '<div id="mmAsientoFields">'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:var(--text2);margin-bottom:8px">'+
-        '<div>Cuenta banco (automática)</div><div>Contracuenta *</div>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center">'+
-        '<input type="text" value="'+escapeHtml(ctaBancoNom||cuentaBanco)+'" readonly style="background:var(--bg);border:1px solid var(--border);color:var(--text2);padding:7px 10px;border-radius:7px;font-size:11px;outline:none"/>'+
-        '<select id="mmContra" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none"><option value="">— Elegí la contracuenta —</option>'+ctasOpts('')+'</select>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--text2);margin-top:8px">La contracuenta es la otra parte del asiento. Ej: si es una comisión bancaria → cuenta de gasto bancario; si es un ajuste → cuenta de ajustes.</div>'+
-      '<div class="f" style="margin-top:10px"><label style="font-size:11px">Categoría (opcional)</label><select id="mmCat"><option value="">— Sin categoría —</option>'+(C.cfg_listas.categoria_asiento||[]).map(function(c){return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';}).join('')+'</select></div>'+
-      '</div>'+
-    '</div>'+
-    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
-    '<input type="checkbox" id="mmConciliar" checked style="width:auto;margin:0"/>'+
-    '<label for="mmConciliar" style="margin:0;font-size:12px;cursor:pointer">Marcar como conciliado al crear (impacta directo en el Saldo Conciliado)</label>'+
-    '</div>'+
-    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">'+
-    '<button class="btn bs" onclick="cerrarModalMovManual()">Cancelar</button>'+
-    '<button class="btn bp" id="mmGuardar" onclick="guardarMovManual()">Crear movimiento</button>'+
-    '</div>'+
-    '</div></div>';
-  var modal=document.getElementById('modalMovManual');
-  if(!modal)return;
-  modal.innerHTML=modalContent;
-  modal.style.display='flex';
-}
-
-function toggleAsientoMovManual(on){
-  var f=document.getElementById('mmAsientoFields');
-  if(f){f.style.opacity=on?'1':'.4';f.style.pointerEvents=on?'auto':'none';}
-}
-
-function cerrarModalMovManual(){
-  var modal=document.getElementById('modalMovManual');
-  if(modal){modal.style.display='none';modal.innerHTML='';}
-}
-
-function guardarMovManual(){
-  if(lockSubmit('guardarMovManual'))return;
-  var fecha=document.getElementById('mmFecha').value;
-  var monto=parseFloat(document.getElementById('mmMonto').value);
-  var desc=document.getElementById('mmDesc').value.trim();
-  var conciliar=document.getElementById('mmConciliar').checked;
-  var genAsiento=document.getElementById('mmGenAsiento').checked;
-  var contra=genAsiento?document.getElementById('mmContra').value:'';
-  var cat=genAsiento?document.getElementById('mmCat').value:'';
-
-  if(!fecha){unlockSubmit('guardarMovManual');toast('Ingresá la fecha','error');return;}
-  if(isNaN(monto)||monto===0){unlockSubmit('guardarMovManual');toast('Ingresá un monto distinto de cero','error');return;}
-  if(!desc){unlockSubmit('guardarMovManual');toast('Ingresá una descripción','error');return;}
-  if(genAsiento&&!contra){unlockSubmit('guardarMovManual');toast('Elegí la contracuenta para generar el asiento','error');return;}
-
-  var año=getEjYear(fecha);
-  if(!isEjercicioEditable(año)){unlockSubmit('guardarMovManual');toast('Ejercicio '+año+' cerrado, no se puede crear','error');return;}
-
-  var payload={
-    fecha:fecha,
-    descripcion:desc,
-    monto:Math.round(monto*100)/100,
-    origen_manual:true
-  };
-  if(conciliar){
-    payload.conciliado=true;
-    payload.conciliado_at=new Date().toISOString();
-    payload.conciliado_por=CU?CU.u:null;
-  }
-
-  // Crear movimiento (con fallback si origen_manual no existe)
-  function crearMov(pl){
-    return sbPost('movimientos_banco',pl).then(function(res){
-      if(res&&res.code){
-        if(String(res.message||'').toLowerCase().indexOf('origen_manual')>-1){
-          var pl2=Object.assign({},pl);delete pl2.origen_manual;
-          return sbPost('movimientos_banco',pl2);
-        }
-        throw new Error(res.message);
-      }
-      return res;
-    });
-  }
-
-  crearMov(payload).then(function(res){
-    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarMovManual');return;}
-    var mov=Array.isArray(res)?res[0]:res;
-    if(!mov||!mov.id){toast('Error: no se pudo crear el movimiento','error');unlockSubmit('guardarMovManual');return;}
-    if(genAsiento){
-      generarAsientoDeMovManual(mov,monto,desc,contra,cat,conciliar);
-    }else{
-      finalizarMovManual(monto,conciliar,false);
-    }
-  }).catch(function(e){toast('Error: '+(e.message||e),'error');unlockSubmit('guardarMovManual');});
-}
-
-function generarAsientoDeMovManual(mov,monto,desc,contra,cat,conciliar){
-  var cuentaBanco=C.cuentas_sistema.banco_default||'1.1.01';
-  var año=getEjYear(mov.fecha);
-  var numero=siguienteNumeroAsiento(año);
-  // Partida doble:
-  //  - monto > 0 (entrada): Debe Banco / Haber Contracuenta
-  //  - monto < 0 (salida):  Debe Contracuenta / Haber Banco
-  var abs=Math.abs(monto);
-  var lineas;
-  if(monto>0){
-    lineas=[
-      {cuenta_codigo:cuentaBanco,detalle:desc,debe:abs,haber:0,orden:1},
-      {cuenta_codigo:contra,detalle:desc,debe:0,haber:abs,orden:2}
-    ];
-  }else{
-    lineas=[
-      {cuenta_codigo:contra,detalle:desc,debe:abs,haber:0,orden:1},
-      {cuenta_codigo:cuentaBanco,detalle:desc,debe:0,haber:abs,orden:2}
-    ];
-  }
-  sbPost('asientos',{
-    fecha:mov.fecha,descripcion:desc,
-    referencia:'AST-'+año+'-'+String(numero).padStart(4,'0'),
-    origen:'banco',categoria:cat||null,
-    numero:numero,ejercicio_año:año,
-    movimiento_banco_id:mov.id
-  }).then(function(astRes){
-    var ast=Array.isArray(astRes)?astRes[0]:astRes;
-    if(!ast||!ast.id){toast('Movimiento creado, pero falló el asiento','error');finalizarMovManual(monto,conciliar,false);return;}
-    sbPost('asiento_lineas',lineas.map(function(l){return Object.assign({asiento_id:ast.id},l);})).then(function(linRes){
-      if(linRes&&linRes.code){
-        toast('Error en líneas del asiento: '+linRes.message,'error');
-        sbDelete('asientos',ast.id);
-        finalizarMovManual(monto,conciliar,false);return;
-      }
-      // Vincular asiento al movimiento (y conciliar si corresponde)
-      var updMov={asiento_id:ast.id};
-      if(conciliar){
-        updMov.conciliado=true;
-        updMov.conciliado_at=new Date().toISOString();
-        updMov.conciliado_por=CU?CU.u:null;
-      }
-      sbPatch('movimientos_banco',mov.id,updMov).then(function(){
-        finalizarMovManual(monto,conciliar,true);
-      });
-    });
-  }).catch(function(e){toast('Error creando asiento: '+(e.message||e),'error');finalizarMovManual(monto,conciliar,false);});
-}
-
-function finalizarMovManual(monto,conciliar,conAsiento){
-  auditLog('create','Mov. Banco Manual','USD '+monto+(conAsiento?' + asiento':'')+(conciliar?' (conciliado)':''));
-  var msg='Movimiento manual creado';
-  if(conAsiento&&conciliar)msg='Movimiento + asiento creados y conciliado ✓';
-  else if(conAsiento)msg='Movimiento + asiento contable creados ✓';
-  else if(conciliar)msg='Movimiento creado y conciliado ✓';
-  toast(msg,'success');
-  unlockSubmit('guardarMovManual');
-  cerrarModalMovManual();
-  reload('banco');
-}
-
-// ============================================================
 // MODAL: EDITAR SALDO BANCO REAL (manual)
 // ============================================================
 function abrirModalSaldoManual(){
@@ -2889,13 +1916,6 @@ function guardarSaldoManual(){
     upsertCfg('saldo_banco_manual_fecha', fecha),
     upsertCfg('saldo_banco_manual_actualizado_at', now)
   ]).then(function(){
-    // Guardar también al histórico (si la tabla existe)
-    sbPost('saldo_banco_historial',{
-      fecha:fecha,
-      saldo_usd:monto,
-      created_by:CU?CU.u:null
-    }).then(function(){}).catch(function(){/* tabla puede no existir aún */});
-    auditLog('update','Saldo Banco Manual','USD '+monto+' al '+fecha);
     toast('Saldo guardado','success');
     cerrarModalSaldoManual();
     reload('banco');
@@ -2990,7 +2010,7 @@ function cerrarModalSinMov(){
 // PÁGINA: GASTOS (wizard que genera asiento)
 // ============================================================
 function pgGastos(){
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   // Listar asientos cuya línea de DEBE sea una cuenta de tipo Gasto, en el ejercicio actual
   var gastosVista=[];
   C.asientos.forEach(function(a){
@@ -3088,7 +2108,7 @@ function registrarGastoRapido(){
 // PÁGINA: REGLAS AUTOMÁTICAS
 // ============================================================
 function pgReglas(){
-  var ro=!puedeEditar('admin');
+  var ro=!isAdmin();
   var rows='';
   C.reglas.forEach(function(r){
     var cta=getCta(r.cuenta_contrapartida);
@@ -3154,7 +2174,7 @@ function saveRegla(){
 // PÁGINA: LIBRO DIARIO
 // ============================================================
 function pgLibro(){
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   var fil=C.asientos.filter(function(a){
     if(a.ejercicio_año!==ejercicioActual)return false;
     if(!aBusca)return true;
@@ -3216,7 +2236,7 @@ function deleteAsiento(id){
   var p=movVinc?sbPatch('movimientos_banco',movVinc.id,{asiento_id:null}):Promise.resolve();
   p.then(function(){
     sbDeleteWhere('asiento_lineas','asiento_id',id).then(function(){
-      sbDelete('asientos',id).then(function(){auditLog('delete','Asiento','ID '+id+' · '+(a?refAsiento(a):'')+' · '+(a&&a.descripcion?a.descripcion:''));toast('Asiento eliminado','success');reload('libro');});
+      sbDelete('asientos',id).then(function(){toast('Asiento eliminado','success');reload('libro');});
     });
   });
 }
@@ -3301,7 +2321,7 @@ function pgMayor(){
 // PÁGINA: NUEVO ASIENTO MANUAL
 // ============================================================
 function pgNuevoAsiento(){
-  var ro=!puedeEditar('contabilidad');
+  var ro=!isAdmin();
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Nuevo Asiento</div><div class="alert ainfo">Solo administradores</div>';
   var ej=getEjercicio(ejercicioActual);
   if(ej&&ej.estado==='cerrado'){
@@ -3555,7 +2575,7 @@ function pgResultados(){
 // PÁGINA: EJERCICIOS (gestión de cierres)
 // ============================================================
 function pgEjercicios(){
-  var ro=!puedeEditar('admin');
+  var ro=!isAdmin();
   var rows='';
   C.ejercicios.forEach(function(e){
     var nAsientos=C.asientos.filter(function(a){return a.ejercicio_año===e.año;}).length;
@@ -3754,7 +2774,7 @@ function reCerrarEjercicio(año){
 // PÁGINA: PLAN DE CUENTAS
 // ============================================================
 function pgCuentas(){
-  var ro=!puedeEditar('admin');
+  var ro=!isAdmin();
   var filtroTipo=window._cuentasFiltro||'';
   var fil=C.cuentas.filter(function(c){return !filtroTipo||c.tipo===filtroTipo;});
   var rows='';
@@ -3829,7 +2849,7 @@ function deleteCuenta(id,cod){
 // PÁGINA: PROYECTOS / COMEX (gestión, no contabilidad)
 // ============================================================
 function pgProyectos(){
-  var ro=!puedeEditar('proyectos');
+  var ro=!isAdmin();
   var proy=C.proyectos.find(function(p){return p.id===selProyId;})||null;
   var cards='';
   C.proyectos.forEach(function(p){
@@ -4016,7 +3036,7 @@ function delProyGas(id){if(!confirm('¿Eliminar?'))return;sbDelete('proy_gastos'
 // PÁGINA: CONFIGURACIÓN (catálogos en Supabase)
 // ============================================================
 function pgConfig(){
-  var ro=!puedeEditar('sistema');
+  var ro=!isAdmin();
   function secCfg(label,tipo,color){
     var items=C.cfg_listas[tipo]||[];
     var rows=items.map(function(v){return'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span class="badge '+(color||'bb')+'" style="flex:1">'+escapeHtml(v)+'</span>'+(!ro?'<button class="btn sm bd" onclick="removeCfg(\''+tipo+'\',\''+escapeHtml(v).replace(/'/g,"\\'")+'\')">✕</button>':'')+'</div>';}).join('');
@@ -4033,24 +3053,16 @@ function pgConfig(){
     '<div class="factions"><button class="btn bp sm" onclick="guardarBanco()">Guardar</button></div></div>':'';
   return ejGlobalBar()+
     '<div class="pageTitle">⚙ Configuración</div>'+
-    (isAdmin()?
-      '<div class="panel" style="border-color:var(--cyan);margin-bottom:14px">'+
-      '<h3>👤 Usuarios y Permisos</h3>'+
-      '<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Creá usuarios con login y contraseña, y asigná qué secciones puede ver o editar cada uno.</div>'+
-      '<button class="btn bp sm" onclick="go(\'usuarios\')">Gestionar usuarios →</button>'+
-      '</div>':'')+
     cfgBanco+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div>'+
     secCfg('Categorías de Asientos','categoria_asiento','bb')+
     secCfg('Tipos de Operación COMEX','tipo_op','bb')+
     secCfg('Conceptos de Gasto (proyectos)','concepto_gasto','br')+
-    secCfg('Motivos de Baja de Stock','motivo_baja_stock','by')+
     '</div>'+
     '<div>'+
     secCfg('Estados de Gasto (proyectos)','estado_gasto','by')+
     secCfg('Quien Pagó (proyectos)','quien_pago','bg')+
-    secCfg('Estados Iniciales (Alta de Stock)','estado_inicial_stock','bg')+
     '</div>'+
     '</div>';
 }
@@ -4078,311 +3090,23 @@ function removeCfg(tipo,val){
 // ============================================================
 // PÁGINA: USUARIOS
 // ============================================================
-// ============================================================
-// PÁGINA: AUDITORÍA (solo admin)
-// ============================================================
-function auditLog(accion,entidad,detalle){
-  if(!CU)return;
-  try{
-    var key='leex_audit';
-    var arr=JSON.parse(localStorage.getItem(key)||'[]');
-    arr.push({
-      ts:new Date().toISOString(),
-      user:CU.u,
-      userName:CU.name,
-      accion:accion,
-      entidad:entidad,
-      detalle:detalle||''
-    });
-    // Limito a las últimas 500 entradas para no llenar localStorage
-    if(arr.length>500)arr=arr.slice(-500);
-    localStorage.setItem(key,JSON.stringify(arr));
-  }catch(e){}
-}
-
-function pgAuditoria(){
-  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">🔒 Acceso restringido</div><div class="alert aerr">Solo administradores pueden ver la auditoría.</div>';
-  var logs=[];
-  try{logs=JSON.parse(localStorage.getItem('leex_audit')||'[]');}catch(e){}
-  // Más reciente primero
-  logs=logs.slice().reverse();
-  if(!window.auditFiltros)window.auditFiltros={user:'',accion:'',entidad:'',busqueda:''};
-  var F=window.auditFiltros;
-  var fil=logs.filter(function(l){
-    if(F.user&&l.user!==F.user)return false;
-    if(F.accion&&l.accion!==F.accion)return false;
-    if(F.entidad&&l.entidad!==F.entidad)return false;
-    if(F.busqueda){
-      var t=((l.detalle||'')+' '+(l.userName||'')+' '+(l.user||'')).toLowerCase();
-      if(t.indexOf(F.busqueda.toLowerCase())===-1)return false;
-    }
-    return true;
-  });
-  // Listas únicas para filtros
-  var users={},acciones={},entidades={};
-  logs.forEach(function(l){users[l.user]=1;acciones[l.accion]=1;entidades[l.entidad]=1;});
-  function selOpts(map,sel){
-    var h='<option value="">— Todos —</option>';
-    Object.keys(map).forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
-    return h;
-  }
-  var rows='';
-  fil.slice(0,200).forEach(function(l){
-    var accionColor='bgr';
-    if(l.accion==='create')accionColor='bg';
-    else if(l.accion==='update')accionColor='bb';
-    else if(l.accion==='delete')accionColor='br';
-    var ts=new Date(l.ts).toLocaleString('es-AR');
-    rows+='<tr>'+
-      '<td style="font-size:11px;font-family:monospace;white-space:nowrap">'+ts+'</td>'+
-      '<td>'+escapeHtml(l.userName||l.user||'—')+'</td>'+
-      '<td><span class="badge '+accionColor+'">'+escapeHtml(l.accion||'—')+'</span></td>'+
-      '<td>'+escapeHtml(l.entidad||'—')+'</td>'+
-      '<td style="font-size:11px;color:var(--text2);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escapeHtml(l.detalle||'')+'">'+escapeHtml(l.detalle||'')+'</td>'+
-      '</tr>';
-  });
-  var hayF=F.user||F.accion||F.entidad||F.busqueda;
-  return ejGlobalBar()+
-    '<div class="pageTitle">🔍 Auditoría de Acciones <span style="font-size:12px;color:var(--text2);font-weight:400;margin-left:8px">'+logs.length+' eventos registrados (local, máx 500)</span></div>'+
-    '<div class="alert ainfo" style="margin-bottom:14px">📋 Los logs se guardan en el navegador local. Reflejan las acciones realizadas desde este equipo y sesión.</div>'+
-    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
-      '<input type="text" value="'+escapeHtml(F.busqueda)+'" placeholder="🔍 Buscar en detalle..." oninput="window.auditFiltros.busqueda=this.value;clearTimeout(window._ab);window._ab=setTimeout(function(){go(\'auditoria\')},300)" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none"/>'+
-      '<select onchange="window.auditFiltros.user=this.value;go(\'auditoria\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(users,F.user)+'</select>'+
-      '<select onchange="window.auditFiltros.accion=this.value;go(\'auditoria\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(acciones,F.accion)+'</select>'+
-      '<select onchange="window.auditFiltros.entidad=this.value;go(\'auditoria\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(entidades,F.entidad)+'</select>'+
-      (hayF?'<button class="btn sm bd" onclick="window.auditFiltros={user:\'\',accion:\'\',entidad:\'\',busqueda:\'\'};go(\'auditoria\')">✕ Limpiar</button>':'')+
-      '<button class="btn bs sm" onclick="exportAuditLog()">⬇ Excel</button>'+
-      '<button class="btn bd sm" onclick="if(confirm(\'¿Borrar todos los logs de auditoría locales?\')){localStorage.removeItem(\'leex_audit\');go(\'auditoria\');}">🗑 Borrar todo</button>'+
-    '</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Eventos</h3><span style="font-size:11px;color:var(--text2)">'+fil.length+(fil.length>200?' (mostrando 200 más recientes)':'')+'</span></div>'+
-    '<table><thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Detalle</th></tr></thead>'+
-    '<tbody>'+(rows||'<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px">Sin eventos</td></tr>')+'</tbody></table></div>';
-}
-
-function exportAuditLog(){
-  var logs=[];
-  try{logs=JSON.parse(localStorage.getItem('leex_audit')||'[]');}catch(e){}
-  var data=logs.map(function(l){return{
-    Fecha:new Date(l.ts).toLocaleString('es-AR'),
-    Usuario:l.userName||l.user||'',
-    'Login':l.user||'',
-    Accion:l.accion||'',
-    Entidad:l.entidad||'',
-    Detalle:l.detalle||''
-  };});
-  exportExcel(data,['Fecha','Usuario','Login','Accion','Entidad','Detalle'],'LEEX_Auditoria_'+hoy(),'Auditoria');
-}
-
 function pgUsuarios(){
-  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">🔒 Acceso restringido</div><div class="alert aerr">Solo administradores pueden gestionar usuarios.</div>';
-
-  // Usuarios de Supabase (nuevos)
-  var dbUsers=C.app_usuarios||[];
-  var rowsDb='';
-  dbUsers.forEach(function(u){
-    var permResumen=resumirPermisos(u.role,u.permisos);
-    var roleBadge=u.role==='admin'?'<span class="badge bb">Admin</span>':'<span class="badge by">Personalizado</span>';
-    rowsDb+='<tr>'+
-      '<td style="font-family:monospace">'+escapeHtml(u.usuario)+'</td>'+
-      '<td>'+escapeHtml(u.nombre||'')+'</td>'+
-      '<td>'+roleBadge+'</td>'+
-      '<td style="font-size:11px;color:var(--text2);max-width:320px">'+permResumen+'</td>'+
-      '<td>'+(u.activo===false?'<span class="badge bgr">Inactivo</span>':'<span class="badge bg">Activo</span>')+'</td>'+
-      '<td style="white-space:nowrap">'+
-        '<button class="miniBtn" onclick="abrirModalUsuario('+u.id+')" title="Editar">✏</button> '+
-        '<button class="miniBtn" style="color:var(--red)" onclick="eliminarUsuario('+u.id+')" title="Eliminar">🗑</button>'+
-      '</td>'+
-    '</tr>';
-  });
-
-  // Usuarios hardcoded (legacy) — solo informativo
-  var rowsLegacy='';
-  USERS.forEach(function(u){
-    rowsLegacy+='<tr style="opacity:.7">'+
-      '<td style="font-family:monospace">'+u.u+'</td>'+
-      '<td>'+u.name+'</td>'+
-      '<td><span class="badge bgr">'+u.role+'</span></td>'+
-      '<td style="font-family:monospace;color:var(--text2)">'+u.p+'</td>'+
-    '</tr>';
-  });
-
+  var rows='';
+  USERS.forEach(function(u){rows+='<tr><td style="font-family:monospace">'+u.u+'</td><td>'+u.name+'</td><td><span class="badge '+(u.role==='admin'?'bb':'by')+'">'+(u.role==='admin'?'Admin':'Lectura')+'</span></td><td style="font-family:monospace;color:var(--text2)">'+u.p+'</td></tr>';});
   return ejGlobalBar()+
-    '<div class="pageTitle">👤 Gestión de Usuarios</div>'+
-    '<div class="alert ainfo" style="margin-bottom:14px">Los usuarios creados acá se guardan en Supabase y pueden iniciar sesión. Asigná permisos por sección: <strong>Sin acceso</strong>, <strong>Ver</strong> (solo lectura) o <strong>Editar</strong> (lectura + escritura). El rol <strong>Admin</strong> tiene acceso total automáticamente.</div>'+
-    '<div class="alert awarn" style="margin-bottom:14px">🔒 <strong>Nota de seguridad:</strong> este control de acceso organiza qué ve cada miembro del equipo, pero al ser una app sin backend las contraseñas no están protegidas criptográficamente. No lo uses como barrera contra accesos malintencionados.</div>'+
-    '<div style="margin-bottom:14px"><button class="btn bp" onclick="abrirModalUsuario(0)">➕ Nuevo usuario</button></div>'+
-    '<div class="twrap" style="margin-bottom:24px"><div class="thead2"><h3>Usuarios del Sistema (Supabase)</h3><span style="font-size:12px;color:var(--text2)">'+dbUsers.length+'</span></div>'+
-    (dbUsers.length===0?
-      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin usuarios creados todavía. <a href="#" onclick="abrirModalUsuario(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
-      '<div style="overflow-x:auto"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Permisos</th><th>Estado</th><th>Acc.</th></tr></thead><tbody>'+rowsDb+'</tbody></table></div>')+
-    '</div>'+
-    '<div class="twrap"><div class="thead2"><h3>Usuarios de respaldo (hardcoded)</h3></div>'+
-    '<div style="padding:8px 16px;font-size:11px;color:var(--text2)">Estos usuarios están en el código como respaldo de emergencia. Funcionan aunque la tabla de Supabase falle. Para cambiarlos hay que editar el HTML.</div>'+
+    '<div class="pageTitle">👤 Usuarios</div>'+
+    '<div class="alert awarn">⚠️ Los usuarios y contraseñas están hardcodeados en el código HTML. Cualquiera con acceso al archivo puede verlos. Para cambiarlos hay que editar el código.</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Usuarios del Sistema</h3></div>'+
     '<table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Contraseña</th></tr></thead>'+
-    '<tbody>'+rowsLegacy+'</tbody></table></div>';
+    '<tbody>'+rows+'</tbody></table></div>';
 }
-
-function resumirPermisos(role,permisos){
-  if(role==='admin')return '<span style="color:var(--cyan)">Acceso total (admin)</span>';
-  if(!permisos||typeof permisos!=='object')return '<span style="color:var(--text2)">Sin permisos definidos</span>';
-  var parts=[];
-  SECCIONES.forEach(function(s){
-    var n=permisos[s.key]||'none';
-    if(n==='edit')parts.push(s.label+': <span style="color:var(--green)">Editar</span>');
-    else if(n==='view')parts.push(s.label+': <span style="color:var(--yellow)">Ver</span>');
-  });
-  return parts.length?parts.join(' · '):'<span style="color:var(--text2)">Sin accesos</span>';
-}
-
-// === MODAL CREAR / EDITAR USUARIO ===
-var editUsuarioId=null;
-function abrirModalUsuario(id){
-  if(!isAdmin()){toast('Solo admin','error');return;}
-  editUsuarioId=id;
-  var u=id?(C.app_usuarios||[]).find(function(x){return x.id===id;}):null;
-  var permisos=(u&&u.permisos)?u.permisos:{};
-  var esAdmin=u?(u.role==='admin'):false;
-
-  var permRows=SECCIONES.map(function(s){
-    var n=esAdmin?'edit':(permisos[s.key]||'none');
-    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)">'+
-      '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+escapeHtml(s.label)+'</div><div style="font-size:11px;color:var(--text2)">'+escapeHtml(s.desc)+'</div></div>'+
-      '<div class="permSeg" data-sec="'+s.key+'">'+
-        '<button type="button" class="permOpt'+(n==='none'?' active':'')+'" data-val="none" onclick="setPerm(\''+s.key+'\',\'none\')">Sin acceso</button>'+
-        '<button type="button" class="permOpt'+(n==='view'?' active':'')+'" data-val="view" onclick="setPerm(\''+s.key+'\',\'view\')">Ver</button>'+
-        '<button type="button" class="permOpt'+(n==='edit'?' active':'')+'" data-val="edit" onclick="setPerm(\''+s.key+'\',\'edit\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
-
-  var modalContent=
-    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
-    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:2">'+
-    '<h3 style="font-size:15px;font-weight:600">'+(id?'✏ Editar':'➕ Nuevo')+' usuario</h3>'+
-    '<button class="rlbtn" onclick="cerrarModalUsuario()" style="font-size:20px">✕</button>'+
-    '</div>'+
-    '<div style="padding:20px">'+
-    '<div class="fg2">'+
-    '<div class="f"><label>Usuario (login) *</label><input type="text" id="usrLogin" value="'+(u?escapeHtml(u.usuario):'')+'" placeholder="jperez" '+(id?'readonly style="opacity:.6"':'')+'/></div>'+
-    '<div class="f"><label>Nombre *</label><input type="text" id="usrNombre" value="'+(u?escapeHtml(u.nombre||''):'')+'" placeholder="Juan Pérez"/></div>'+
-    '</div>'+
-    '<div class="f" style="margin-top:12px"><label>Contraseña '+(id?'(dejar vacío para no cambiar)':'*')+'</label><input type="text" id="usrPass" value="" placeholder="'+(id?'••••••':'Contraseña')+'"/></div>'+
-    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
-      '<input type="checkbox" id="usrAdmin" '+(esAdmin?'checked':'')+' style="width:auto;margin:0" onchange="toggleAdminPerms(this.checked)"/>'+
-      '<label for="usrAdmin" style="margin:0;font-size:13px;cursor:pointer;font-weight:600">Es Administrador (acceso total)</label>'+
-    '</div>'+
-    '<div style="margin-top:14px;display:flex;align-items:center;gap:8px">'+
-      '<input type="checkbox" id="usrActivo" '+(u&&u.activo===false?'':'checked')+' style="width:auto;margin:0"/>'+
-      '<label for="usrActivo" style="margin:0;font-size:13px;cursor:pointer">Usuario activo (puede iniciar sesión)</label>'+
-    '</div>'+
-    '<div id="permSection" style="margin-top:18px'+(esAdmin?';opacity:.4;pointer-events:none':'')+'">'+
-      '<div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Permisos por sección</div>'+
-      permRows+
-    '</div>'+
-    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px">'+
-    '<button class="btn bs" onclick="cerrarModalUsuario()">Cancelar</button>'+
-    '<button class="btn bp" onclick="guardarUsuario()">'+(id?'Guardar cambios':'Crear usuario')+'</button>'+
-    '</div>'+
-    '</div></div>';
-  var modal=document.getElementById('modalUsuario');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='modalUsuario';
-    modal.style.cssText='display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px';
-    document.body.appendChild(modal);
-  }
-  // Estado temporal de permisos
-  window._permTmp={};
-  SECCIONES.forEach(function(s){window._permTmp[s.key]=esAdmin?'edit':(permisos[s.key]||'none');});
-  modal.innerHTML=modalContent;
-  modal.style.display='flex';
-}
-function cerrarModalUsuario(){
-  var modal=document.getElementById('modalUsuario');
-  if(modal){modal.style.display='none';modal.innerHTML='';}
-}
-function setPerm(sec,val){
-  if(!window._permTmp)window._permTmp={};
-  window._permTmp[sec]=val;
-  // Actualizar UI del segmento
-  var seg=document.querySelector('.permSeg[data-sec="'+sec+'"]');
-  if(seg){
-    seg.querySelectorAll('.permOpt').forEach(function(b){
-      b.classList.toggle('active',b.getAttribute('data-val')===val);
-    });
-  }
-}
-function toggleAdminPerms(isAdminChk){
-  var sec=document.getElementById('permSection');
-  if(sec){sec.style.opacity=isAdminChk?'.4':'1';sec.style.pointerEvents=isAdminChk?'none':'auto';}
-}
-function guardarUsuario(){
-  if(lockSubmit('guardarUsuario'))return;
-  var login=document.getElementById('usrLogin').value.trim().toLowerCase();
-  var nombre=document.getElementById('usrNombre').value.trim();
-  var pass=document.getElementById('usrPass').value.trim();
-  var esAdmin=document.getElementById('usrAdmin').checked;
-  var activo=document.getElementById('usrActivo').checked;
-
-  if(!login){unlockSubmit('guardarUsuario');toast('Ingresá el usuario (login)','error');return;}
-  if(!nombre){unlockSubmit('guardarUsuario');toast('Ingresá el nombre','error');return;}
-  if(!editUsuarioId&&!pass){unlockSubmit('guardarUsuario');toast('Ingresá una contraseña','error');return;}
-
-  var permisos=esAdmin?null:(window._permTmp||{});
-  var payload={
-    usuario:login,
-    nombre:nombre,
-    role:esAdmin?'admin':'custom',
-    permisos:permisos,
-    activo:activo
-  };
-  if(pass)payload.password=pass;
-
-  if(editUsuarioId===0){
-    // Verificar que no exista
-    var existe=(C.app_usuarios||[]).some(function(x){return (x.usuario||'').toLowerCase()===login;});
-    if(existe){unlockSubmit('guardarUsuario');toast('Ya existe un usuario con ese login','error');return;}
-    sbPost('app_usuarios',payload).then(function(res){
-      if(res&&res.code){toast('Error: '+res.message+' (¿creaste la tabla app_usuarios?)','error');return;}
-      auditLog('create','Usuario',login+' · '+(esAdmin?'admin':'custom'));
-      toast('Usuario creado','success');
-      cerrarModalUsuario();reload('usuarios');
-    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
-  }else{
-    sbPatch('app_usuarios',editUsuarioId,payload).then(function(res){
-      if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      auditLog('update','Usuario',login);
-      toast('Usuario actualizado','success');
-      cerrarModalUsuario();reload('usuarios');
-    }).catch(function(e){toast('Error: '+(e.message||e),'error');});
-  }
-}
-function eliminarUsuario(id){
-  var u=(C.app_usuarios||[]).find(function(x){return x.id===id;});
-  if(!u)return;
-  if(CU&&CU.u===u.usuario){toast('No podés eliminar tu propio usuario','error');return;}
-  confirmAction({
-    title:'Eliminar usuario',
-    message:'El usuario no podrá iniciar sesión nunca más. Si solo querés suspenderlo temporalmente, editalo y desmarcá "activo".',
-    details:[{label:'Usuario',value:u.usuario},{label:'Nombre',value:u.nombre||'—'}],
-    danger:true,
-    okText:'Sí, eliminar',
-    onOk:function(){
-      sbDelete('app_usuarios',id).then(function(){
-        auditLog('delete','Usuario',u.usuario);
-        toast('Usuario eliminado','success');reload('usuarios');
-      });
-    }
-  });
-}
-
 </script>
 <script>
 // ============================================================
 // PÁGINA: COMPRAS / LOGÍSTICA  (gestión, no contabilidad)
 // ============================================================
 function pgCompras(){
-  var ro=!puedeEditar('logistica');
+  var ro=!isAdmin();
   var F=comprasFiltros;
   var fil=C.compras.filter(function(c){
     if(F.fechaDesde&&(!c.fecha_compra||c.fecha_compra<F.fechaDesde))return false;
@@ -4429,37 +3153,7 @@ function pgCompras(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Pedido</div><input type="text" value="'+escapeHtml(F.pedido)+'" placeholder="ED214..." oninput="comprasFiltros.pedido=this.value;clearTimeout(window._fcp);window._fcp=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Lote</div><input type="text" value="'+escapeHtml(F.lote)+'" placeholder="..." oninput="comprasFiltros.lote=this.value;clearTimeout(window._fcl);window._fcl=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '</div></div>';
-  // === COLUMNAS CONFIGURABLES ===
-  var COLS_COMPRAS=[
-    {k:'fecha',label:'Fecha',def:true},
-    {k:'tipo_op',label:'Tipo Op.',def:true},
-    {k:'pedido',label:'Pedido',def:true},
-    {k:'lote',label:'Lote',def:true},
-    {k:'proveedor',label:'Proveedor',def:true},
-    {k:'pi_ci',label:'PI-CI',def:false},
-    {k:'cod_pago',label:'Cód.Pago',def:false},
-    {k:'swift',label:'SWIFT/CUIT',def:false},
-    {k:'usd_fob',label:'U$S FOB',def:true},
-    {k:'tc',label:'T.Cambio',def:false},
-    {k:'importe',label:'Importe',def:false},
-    {k:'vto',label:'Vto.Prov',def:true},
-    {k:'fpago',label:'F.Pago',def:true},
-    {k:'estado',label:'Estado',def:true},
-    {k:'adj',label:'📎',def:true},
-    {k:'doc',label:'Doc.',def:true}
-  ];
-  // Cargar config de columnas desde localStorage
-  if(!window._colsCompras){
-    var saved=null;
-    try{saved=JSON.parse(localStorage.getItem('leex_cols_compras')||'null');}catch(e){}
-    if(saved&&typeof saved==='object'){window._colsCompras=saved;}
-    else{window._colsCompras={};COLS_COMPRAS.forEach(function(c){window._colsCompras[c.k]=c.def;});}
-  }
-  var COL=window._colsCompras;
-  var colsActivas=COLS_COMPRAS.filter(function(c){return COL[c.k];});
   var rows='';
-  var hoyD=new Date();
-  var cntVencidas=0;
   fil.forEach(function(c){
     var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===c.id;}).length;
     var estBadge='';
@@ -4470,22 +3164,6 @@ function pgCompras(){
     else if(ep==='No Pagar')estBadge='<span class="badge bgr">⏸ No Pagar</span>';
     else if(ep==='Pendiente')estBadge='<span class="badge by">⏳ Pendiente</span>';
     else estBadge='<span class="badge bgr">'+escapeHtml(ep)+'</span>';
-    var vencidaTag='';
-    if(ep==='Enviado a Pagar'){
-      var fRef=c.fecha_compra;
-      if(fRef){
-        var diasTrans=Math.floor((hoyD-new Date(fRef))/(1000*60*60*24));
-        if(diasTrans>=7){
-          cntVencidas++;
-          vencidaTag=' <span class="badge br" title="Hace '+diasTrans+' días enviado a pagar sin confirmar">⏰ '+diasTrans+'d</span>';
-        }
-      }
-      if(c.vencimiento_prov){
-        var hoy0=hoyD.toISOString().split('T')[0];
-        if(c.vencimiento_prov<hoy0)vencidaTag+=' <span class="badge br" title="Vencido según vencimiento del proveedor">⚠️ Vencido</span>';
-      }
-    }
-    estBadge+=vencidaTag;
     var docCell=c.documento_url?'<a href="'+escapeHtml(c.documento_url)+'" target="_blank" style="color:var(--cyan);font-size:11px" title="'+escapeHtml(c.documento_url)+'">🔗 Drive</a>':'<span style="color:var(--text2);font-size:11px">—</span>';
     var adjCell=nAdj>0?
       '<button class="btn sm bs" onclick="verAdjuntosCompra('+c.id+')" title="Ver adjuntos"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':
@@ -4493,37 +3171,31 @@ function pgCompras(){
     var btns=ro?'':
       '<button class="miniBtn" onclick="editCompra('+c.id+')" title="Editar">✏</button> '+
       '<button class="miniBtn" style="color:var(--red)" onclick="deleteCompra('+c.id+')" title="Eliminar">🗑</button>';
-    // Mapa de celdas por columna
-    var cellMap={
-      fecha:'<td>'+fmtD(c.fecha_compra)+'</td>',
-      tipo_op:'<td>'+(c.tipo_operacion?'<span class="badge bb">'+escapeHtml(c.tipo_operacion)+'</span>':'—')+'</td>',
-      pedido:'<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'—')+'</td>',
-      lote:'<td>'+escapeHtml(c.lote||'—')+'</td>',
-      proveedor:'<td>'+escapeHtml(c.proveedor||'—')+'</td>',
-      pi_ci:'<td style="font-size:11px">'+escapeHtml(c.pi_ci||'—')+'</td>',
-      cod_pago:'<td style="font-size:11px">'+escapeHtml(c.codigo_pago||'—')+'</td>',
-      swift:'<td style="font-size:11px">'+escapeHtml(c.swift_cuit_despachante||'—')+'</td>',
-      usd_fob:'<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.usd_fob?fmtN(c.usd_fob):'—')+'</td>',
-      tc:'<td style="font-variant-numeric:tabular-nums;text-align:right">'+(c.tipo_cambio?fmtN(c.tipo_cambio):'—')+'</td>',
-      importe:'<td class="yellow" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.importe_total?'$'+fmtN(c.importe_total):'—')+'</td>',
-      vto:'<td>'+fmtD(c.vencimiento_prov)+'</td>',
-      fpago:'<td>'+fmtD(c.fecha_pago)+'</td>',
-      estado:'<td>'+estBadge+'</td>',
-      adj:'<td>'+adjCell+'</td>',
-      doc:'<td>'+docCell+'</td>'
-    };
-    var tr='<tr>';
-    colsActivas.forEach(function(col){tr+=cellMap[col.k]||'';});
-    if(!ro)tr+='<td style="white-space:nowrap">'+btns+'</td>';
-    tr+='</tr>';
-    rows+=tr;
+    rows+='<tr>'+
+      '<td>'+fmtD(c.fecha_compra)+'</td>'+
+      '<td>'+(c.tipo_operacion?'<span class="badge bb">'+escapeHtml(c.tipo_operacion)+'</span>':'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'—')+'</td>'+
+      '<td>'+escapeHtml(c.lote||'—')+'</td>'+
+      '<td>'+escapeHtml(c.proveedor||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.pi_ci||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.codigo_pago||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(c.swift_cuit_despachante||'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.usd_fob?fmtN(c.usd_fob):'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+(c.tipo_cambio?fmtN(c.tipo_cambio):'—')+'</td>'+
+      '<td class="yellow" style="font-variant-numeric:tabular-nums;text-align:right">'+(c.importe_total?'$'+fmtN(c.importe_total):'—')+'</td>'+
+      '<td>'+fmtD(c.vencimiento_prov)+'</td>'+
+      '<td>'+fmtD(c.fecha_pago)+'</td>'+
+      '<td>'+estBadge+'</td>'+
+      '<td>'+adjCell+'</td>'+
+      '<td>'+docCell+'</td>'+
+      (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
+      '</tr>';
   });
   var banner='<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · Esta información NO impacta en el Balance Contable ni en el Estado de Resultados. Es solo seguimiento operativo de compras.</div>';
-  var bannerVenc=cntVencidas>0?'<div class="alert aerr" style="margin-bottom:14px">⏰ <strong>'+cntVencidas+' compra'+(cntVencidas===1?' está':'s están')+' "Enviado a Pagar" hace +7 días sin confirmar el pago.</strong> Revisalas para confirmar.</div>':'';
   return ejGlobalBar()+
     '<div class="pageTitle">🛒 Compras — Logística'+
     (!ro?' <button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCompra(0)">+ Nueva Compra</button>':'')+
-    '</div>'+banner+bannerVenc+
+    '</div>'+banner+
     '<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Compras</div><div class="val">'+fil.length+'</div><div class="sub">de '+C.compras.length+' totales</div></div>'+
     '<div class="card"><div class="lbl">U$S FOB Total</div><div class="val cyan">'+fmt(totFob)+'</div><div class="sub">USD</div></div>'+
@@ -4536,32 +3208,16 @@ function pgCompras(){
     '</div>'+
     filtrosHTML+
     '<div class="twrap"><div class="thead2"><h3>Listado de Compras</h3>'+
-    '<div style="display:flex;gap:8px;align-items:center;margin-left:auto">'+
-    '<span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span>'+
-    '<button class="btn sm bs" onclick="toggleColsCompras()" title="Configurar columnas visibles">⚙ Columnas</button>'+
-    '</div></div>'+
-    '<div id="colsComprasPanel" style="display:none;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">'+
-      '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">Mostrar columnas:</div>'+
-      '<div style="display:flex;gap:14px;flex-wrap:wrap">'+
-      COLS_COMPRAS.map(function(c){
-        return '<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">'+
-          '<input type="checkbox" '+(COL[c.k]?'checked':'')+' onchange="toggleColCompras(\''+c.k+'\',this.checked)"/>'+
-          escapeHtml(c.label)+'</label>';
-      }).join('')+
-      '</div>'+
-      '<div style="margin-top:10px;display:flex;gap:8px">'+
-      '<button class="btn sm bs" onclick="resetColsCompras()">↺ Restaurar default</button>'+
-      '</div>'+
-    '</div>'+
+    '<span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
     (C.compras.length===0?
       '<div style="padding:32px;text-align:center;color:var(--text2)">🛒 Sin compras cargadas. '+(!ro?'<a href="#" onclick="abrirModalCompra(0);return false;" style="color:var(--cyan)">Crear la primera →</a>':'')+'</div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:'+(colsActivas.length*110)+'px"><thead><tr>'+
-        colsActivas.map(function(c){
-          var ali=(['usd_fob','tc','importe'].indexOf(c.k)>-1)?' style="text-align:right"':'';
-          return '<th'+ali+'>'+escapeHtml(c.label)+'</th>';
-        }).join('')+
+      '<div style="overflow-x:auto"><table style="min-width:1800px"><thead><tr>'+
+        '<th>Fecha</th><th>Tipo Op.</th><th>Pedido</th><th>Lote</th><th>Proveedor</th>'+
+        '<th>PI-CI</th><th>Cód.Pago</th><th>SWIFT/CUIT</th>'+
+        '<th style="text-align:right">U$S FOB</th><th style="text-align:right">T.Cambio</th><th style="text-align:right">Importe</th>'+
+        '<th>Vto.Prov</th><th>F.Pago</th><th>Estado</th><th>📎</th><th>Doc.</th>'+
         (ro?'':'<th>Acc.</th>')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>'+
@@ -4571,23 +3227,6 @@ function pgCompras(){
 
 function limpiarFiltrosCompras(){
   comprasFiltros={fechaDesde:'',fechaHasta:'',tipoOp:'',proveedor:'',estadoPago:'',pedido:'',lote:''};
-  go('compras');
-}
-
-function toggleColsCompras(){
-  var p=document.getElementById('colsComprasPanel');
-  if(!p)return;
-  p.style.display=(p.style.display==='none'||!p.style.display)?'block':'none';
-}
-function toggleColCompras(k,on){
-  if(!window._colsCompras)window._colsCompras={};
-  window._colsCompras[k]=!!on;
-  try{localStorage.setItem('leex_cols_compras',JSON.stringify(window._colsCompras));}catch(e){}
-  go('compras');
-}
-function resetColsCompras(){
-  try{localStorage.removeItem('leex_cols_compras');}catch(e){}
-  window._colsCompras=null;
   go('compras');
 }
 function editCompra(id){abrirModalCompra(id);}
@@ -4672,7 +3311,6 @@ function calcImporteCompra(){
 }
 
 function guardarCompra(keepOpen){
-  if(lockSubmit('guardarCompra'))return;
   var fob=parseFloat(document.getElementById('cmpFob').value);
   var tc=parseFloat(document.getElementById('cmpTC').value);
   // Si son NaN, las dejo como null (no las mando) en vez de 0
@@ -4705,7 +3343,6 @@ function guardarCompra(keepOpen){
   });
 
   if(!payload.fecha_compra&&!payload.proveedor&&!payload.pedido){
-    unlockSubmit('guardarCompra');
     toast('Completá al menos fecha + proveedor o pedido','error');return;
   }
 
@@ -4720,7 +3357,6 @@ function guardarCompra(keepOpen){
         console.error('[guardarCompra] CREATE error response:',res);return;
       }
       if(Array.isArray(res)&&res.length===0){toast('⚠ No se creó la compra (respuesta vacía)','error');return;}
-      auditLog('create','Compra','Pedido '+(payload.pedido||'-')+' · '+(payload.proveedor||'-')+' · USD '+(payload.usd_fob||0));
       toast('Compra creada','success');
       if(keepOpen){
         cerrarModalCompra();
@@ -4765,7 +3401,6 @@ function guardarCompra(keepOpen){
         }
       }
       toast('Compra actualizada ✓','success');
-      auditLog('update','Compra','ID '+editCompraId+' · Pedido '+(payload.pedido||'-')+' · Estado: '+(payload.estado_pago||'-'));
       cerrarModalCompra();
       reload('compras');
     }).catch(function(e){
@@ -4779,38 +3414,22 @@ function deleteCompra(id){
   var c=C.compras.find(function(x){return x.id===id;});
   if(!c)return;
   var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===id;}).length;
-  var details=[
-    {label:'Pedido',value:c.pedido||'(sin pedido)'},
-    {label:'Proveedor',value:c.proveedor||'—'},
-    {label:'Tipo Operación',value:c.tipo_operacion||'—'},
-    {label:'USD FOB',value:fmtN(c.usd_fob||0)},
-    {label:'Estado Pago',value:c.estado_pago||'—'},
-    {label:'Fecha',value:fmtD(c.fecha_compra)||'—'}
-  ];
-  if(nAdj>0)details.push({label:'Adjuntos a borrar',value:nAdj+' archivo'+(nAdj===1?'':'s')});
-  confirmAction({
-    title:'Eliminar compra',
-    message:'Esta acción es permanente. Se borrarán también los adjuntos en Supabase Storage.',
-    details:details,
-    danger:true,
-    okText:'Sí, eliminar compra',
-    onOk:function(){
-      var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===id;});
-      var pAdj=Promise.all(adjs.map(function(a){
-        return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
-          method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-        });
-      }));
-      pAdj.then(function(){
-        sbDeleteWhere('compra_adjuntos','compra_id',id).then(function(){
-          sbDelete('compras',id).then(function(){
-            auditLog('delete','Compra','ID '+id+' · Pedido '+(c.pedido||'-')+' · '+(c.proveedor||'-')+' · USD '+(c.usd_fob||0));
-            toast('Compra eliminada','success');
-            reload('compras');
-          });
-        });
+  var msg='¿Eliminar la compra '+(c.pedido||'#'+id)+'?';
+  if(nAdj>0)msg+='\n'+nAdj+' archivo'+(nAdj===1?'':'s')+' adjunto'+(nAdj===1?'':'s')+' se borrará'+(nAdj===1?'':'n')+' de Supabase Storage.';
+  if(!confirm(msg))return;
+  var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){
+    return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{
+      method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+    });
+  }));
+  pAdj.then(function(){
+    sbDeleteWhere('compra_adjuntos','compra_id',id).then(function(){
+      sbDelete('compras',id).then(function(){
+        toast('Compra eliminada','success');
+        reload('compras');
       });
-    }
+    });
   });
 }
 
@@ -4829,7 +3448,7 @@ function cerrarModalAdjCompra(){
 function renderModalAdjCompra(){
   var c=C.compras.find(function(x){return x.id===modalAdjCompraId;});
   if(!c)return;
-  var ro=!puedeEditar('logistica');
+  var ro=!isAdmin();
   var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===modalAdjCompraId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -4991,15 +3610,12 @@ function pgStock(){
 // TAB: STOCK GENERAL
 // ============================================================
 function renderStockGeneral(){
-  var ro=!puedeEditar('logistica');
+  var ro=!isAdminOrLog();
   var F=stockFiltros;
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS_VIG=(C.cfg_listas.estado_inicial_stock&&C.cfg_listas.estado_inicial_stock.length>0)
-    ?C.cfg_listas.estado_inicial_stock
-    :['Disponible','Reservado','En demo','No conforme'];
-  var ESTADOS=ESTADOS_VIG.concat(['Baja']);
+  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Baja'];
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items.filter(function(it){
@@ -5135,7 +3751,7 @@ function fInput(label,type,valueOrOptions,onchange){
 // TAB: ALTA DE STOCK
 // ============================================================
 function renderStockAlta(){
-  var ro=!puedeEditar('logistica');
+  var ro=!isAdminOrLog();
   var F=altaFiltros;
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
@@ -5240,9 +3856,7 @@ function abrirModalStockItem(id){
 
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
-  var ESTADOS_VIGENTES=(C.cfg_listas.estado_inicial_stock&&C.cfg_listas.estado_inicial_stock.length>0)
-    ?C.cfg_listas.estado_inicial_stock
-    :['Disponible','Reservado','En demo','No conforme'];
+  var ESTADOS_VIGENTES=['Disponible','Reservado','En demo','No conforme'];
   var VERIFS=['Sí','No','Pendiente'];
 
   // Pedidos de compra disponibles (dropdown)
@@ -5327,7 +3941,6 @@ function cerrarModalStockItem(){
 }
 
 function guardarStockItem(keepOpen){
-  if(lockSubmit('guardarStockItem'))return;
   var enBaja=editStockId>0&&(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado==='Baja';
   var payload={
     pn_fabrica:document.getElementById('siPn').value.trim()||null,
@@ -5353,7 +3966,6 @@ function guardarStockItem(keepOpen){
   if(editStockId===0){
     sbPost('stock_items',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      auditLog('create','Stock','SKU '+(payload.sku_leex||'-')+' · SN '+(payload.sn||'-')+' · '+(payload.modelo||''));
       toast('Item dado de alta','success');
       cerrarModalStockItem();
       reload('stock');
@@ -5361,7 +3973,6 @@ function guardarStockItem(keepOpen){
   }else{
     sbPatch('stock_items',editStockId,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      auditLog('update','Stock','ID '+editStockId+' · SKU '+(payload.sku_leex||'-')+' · SN '+(payload.sn||'-'));
       toast('Item actualizado','success');
       cerrarModalStockItem();
       reload('stock');
@@ -5385,7 +3996,6 @@ function deleteStockItem(id){
   pAdj.then(function(){
     sbDeleteWhere('stock_adjuntos','stock_item_id',id).then(function(){
       sbDelete('stock_items',id).then(function(){
-        auditLog('delete','Stock','ID '+id+' · SKU '+(it.sku_leex||'-')+' · SN '+(it.sn||'-')+' · '+(it.modelo||''));
         toast('Item eliminado','success');
         reload('stock');
       });
@@ -5397,34 +4007,9 @@ function deleteStockItem(id){
 // TAB: BAJA DE STOCK
 // ============================================================
 function renderStockBaja(){
-  var ro=!puedeEditar('logistica');
-  // Filtros para la tabla de VIGENTES (la de arriba, para seleccionar items a dar de baja)
-  if(!window.bajaVigFiltros)window.bajaVigFiltros={sku:'',pn:'',modelo:'',sn:'',ubicacion:'',pedido:''};
-  var FV=window.bajaVigFiltros;
-  var vigentesAll=C.stock_items.filter(function(it){return it.estado!=='Baja';});
-  var vigentes=vigentesAll.filter(function(it){
-    if(FV.sku&&(it.sku_leex||'').toLowerCase().indexOf(FV.sku.toLowerCase())===-1)return false;
-    if(FV.pn&&(it.pn_fabrica||'').toLowerCase().indexOf(FV.pn.toLowerCase())===-1)return false;
-    if(FV.modelo&&(it.modelo||'').toLowerCase().indexOf(FV.modelo.toLowerCase())===-1)return false;
-    if(FV.sn&&(it.sn||'').toLowerCase().indexOf(FV.sn.toLowerCase())===-1)return false;
-    if(FV.ubicacion&&(it.ubicacion||'').toLowerCase().indexOf(FV.ubicacion.toLowerCase())===-1)return false;
-    if(FV.pedido&&(it.pedido_compra||'').toLowerCase().indexOf(FV.pedido.toLowerCase())===-1)return false;
-    return true;
-  });
-  var hayFiltrosVig=FV.sku||FV.pn||FV.modelo||FV.sn||FV.ubicacion||FV.pedido;
-  var filtrosVigHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
-    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros (productos vigentes)</span>'+
-    (hayFiltrosVig?'<button class="btn sm bd" onclick="window.bajaVigFiltros={sku:\'\',pn:\'\',modelo:\'\',sn:\'\',ubicacion:\'\',pedido:\'\'};go(\'stock\')">✕ Limpiar</button>':'')+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px">'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">SKU</div><input type="text" value="'+escapeHtml(FV.sku)+'" oninput="window.bajaVigFiltros.sku=this.value;clearTimeout(window._fbv1);window._fbv1=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">PN</div><input type="text" value="'+escapeHtml(FV.pn)+'" oninput="window.bajaVigFiltros.pn=this.value;clearTimeout(window._fbv2);window._fbv2=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Modelo</div><input type="text" value="'+escapeHtml(FV.modelo)+'" oninput="window.bajaVigFiltros.modelo=this.value;clearTimeout(window._fbv3);window._fbv3=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">SN</div><input type="text" value="'+escapeHtml(FV.sn)+'" oninput="window.bajaVigFiltros.sn=this.value;clearTimeout(window._fbv4);window._fbv4=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ubicación</div><input type="text" value="'+escapeHtml(FV.ubicacion)+'" oninput="window.bajaVigFiltros.ubicacion=this.value;clearTimeout(window._fbv5);window._fbv5=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Pedido</div><input type="text" value="'+escapeHtml(FV.pedido)+'" oninput="window.bajaVigFiltros.pedido=this.value;clearTimeout(window._fbv6);window._fbv6=setTimeout(function(){go(\'stock\')},350)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '</div></div>';
+  var ro=!isAdminOrLog();
+  // Mostrar SOLO los items vigentes (estado !== 'Baja') con checkboxes
+  var vigentes=C.stock_items.filter(function(it){return it.estado!=='Baja';});
   var rows='';
   vigentes.forEach(function(it){
     var checked=bajaSelectedIds.indexOf(it.id)>-1;
@@ -5498,7 +4083,7 @@ function renderStockBaja(){
   });
 
   return '<div class="cards" style="margin-bottom:14px">'+
-    '<div class="card"><div class="lbl">Items Vigentes</div><div class="val green">'+vigentes.length+'</div><div class="sub">'+(hayFiltrosVig?'filtrados de '+vigentesAll.length:'disponibles para baja')+'</div></div>'+
+    '<div class="card"><div class="lbl">Items Vigentes</div><div class="val green">'+vigentes.length+'</div><div class="sub">disponibles para baja</div></div>'+
     '<div class="card"><div class="lbl">Seleccionados</div><div class="val cyan">'+bajaSelectedIds.length+'</div></div>'+
     '<div class="card"><div class="lbl">Bajas (filtro)</div><div class="val">'+bajados.length+'</div></div>'+
     '</div>'+
@@ -5511,8 +4096,7 @@ function renderStockBaja(){
       '<button class="btn bp" onclick="abrirModalStockBaja()" '+(bajaSelectedIds.length===0?'disabled style="opacity:.4;cursor:not-allowed"':'')+'>➖ Dar de baja '+bajaSelectedIds.length+' producto'+(bajaSelectedIds.length===1?'':'s')+'</button>'+
     '</div>'+
     '</div>':'')+
-    filtrosVigHTML+
-    '<div class="twrap" style="margin-bottom:24px"><div class="thead2"><h3>Productos Vigentes</h3><span style="font-size:12px;color:var(--text2)">'+vigentes.length+(hayFiltrosVig?' de '+vigentesAll.length:'')+' items</span></div>'+
+    '<div class="twrap" style="margin-bottom:24px"><div class="thead2"><h3>Productos Vigentes</h3><span style="font-size:12px;color:var(--text2)">'+vigentes.length+' items</span></div>'+
     (vigentes.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin productos vigentes para dar de baja</div>':
       '<div style="overflow-x:auto"><table style="min-width:1100px"><thead><tr>'+
@@ -5549,7 +4133,7 @@ function limpiarFiltrosBaja(){
 // ============================================================
 function abrirModalStockBaja(){
   if(bajaSelectedIds.length===0){toast('Seleccioná al menos un producto','error');return;}
-  var motivos=C.cfg_listas.motivo_baja_stock||['Venta','Demo','Reservado','No Conforme','Ajuste de Stock'];
+  var motivos=C.cfg_listas.motivo_baja_stock||['Venta','Demo','No Conforme','Ajuste de Stock'];
   var seleccionados=C.stock_items.filter(function(it){return bajaSelectedIds.indexOf(it.id)>-1;});
 
   var listaSel='';
@@ -5624,7 +4208,6 @@ function toggleCamposVentaDemo(){
 }
 
 function confirmarBajaStock(){
-  if(lockSubmit('confirmarBajaStock'))return;
   var fecha=document.getElementById('sbFecha').value;
   var motivo=document.getElementById('sbMotivo').value;
   var resp=document.getElementById('sbResp').value.trim();
@@ -5633,18 +4216,13 @@ function confirmarBajaStock(){
   var cliente=document.getElementById('sbCliente')?document.getElementById('sbCliente').value.trim():'';
   var fevento=document.getElementById('sbFevento')?document.getElementById('sbFevento').value:'';
 
-  if(!fecha){unlockSubmit('confirmarBajaStock');toast('Ingresá la fecha de baja','error');return;}
-  if(!motivo){unlockSubmit('confirmarBajaStock');toast('Elegí un motivo','error');return;}
+  if(!fecha){toast('Ingresá la fecha de baja','error');return;}
+  if(!motivo){toast('Elegí un motivo','error');return;}
   if((motivo==='Venta'||motivo==='Demo')&&(!cliente||!fevento)){
-    unlockSubmit('confirmarBajaStock');toast('Para Venta/Demo: cliente y fecha del evento son obligatorios','error');return;
+    toast('Para Venta/Demo: cliente y fecha del evento son obligatorios','error');return;
   }
 
-  // Snapshot de items para el log
-  var snapshot=bajaSelectedIds.slice().map(function(id){
-    var it=C.stock_items.find(function(x){return x.id===id;});
-    return it?((it.sku_leex||'-')+'/SN '+(it.sn||'-')):('ID '+id);
-  }).join(' · ');
-
+  // 1) Crear registro de baja en stock_bajas
   sbPost('stock_bajas',{
     fecha_baja:fecha,
     motivo:motivo,
@@ -5658,6 +4236,7 @@ function confirmarBajaStock(){
   }).then(function(res){
     var baja=Array.isArray(res)?res[0]:res;
     if(!baja||!baja.id){toast('Error creando la baja','error');return;}
+    // 2) Actualizar todos los stock_items seleccionados
     var ids=bajaSelectedIds.slice();
     var chain=Promise.resolve();
     var ok=0,err=0;
@@ -5676,7 +4255,6 @@ function confirmarBajaStock(){
     chain.then(function(){
       if(err>0)toast(ok+' bajas OK, '+err+' errores','error');
       else toast(ok+' producto'+(ok===1?'':'s')+' dado'+(ok===1?'':'s')+' de baja','success');
-      auditLog('delete','Stock-Baja','Motivo: '+motivo+' · '+ok+' items · '+snapshot+(cliente?' · Cliente: '+cliente:''));
       bajaSelectedIds=[];
       cerrarModalStockBaja();
       reload('stock');
@@ -5702,7 +4280,7 @@ function cerrarModalAdjStock(){
 function renderModalAdjStock(){
   var it=C.stock_items.find(function(x){return x.id===modalAdjStockId;});
   if(!it)return;
-  var ro=!puedeEditar('logistica');
+  var ro=!isAdminOrLog();
   var adjs=(C.stock_adjuntos||[]).filter(function(a){return a.stock_item_id===modalAdjStockId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -5837,8 +4415,9 @@ function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica');}
 // PÁGINA: PROYECTOS > CHILE
 // Tabs: Caja Oficina Chile (+ Saldo Vigente) · Caja DEAM · Caja Leex
 // ============================================================
-var chileTab='oficina';
+var chileTab='dashboard';
 var chileMostrarSaldo=false;
+var chilePrecioEquipo=null;  // se lee de localStorage al renderizar el dashboard
 var cajaChileFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',estado:''};
 var cajaChileSort={col:'fecha',asc:false};
 var cajaDeamFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',dueno:'',estado:''};
@@ -5852,15 +4431,379 @@ var editingAporte=null;
 var modalAdjCajaTipo=null;  // 'chile' | 'deam'
 var modalAdjCajaId=null;
 
+// ============================================================
+// DASHBOARD PROYECTO CHILE — Opción A (estilo aplicación)
+// Orden: Stock → Compras → Gastos → Síntesis
+// Imprimible / PDF / Excel
+// ============================================================
+function pgChileDashboard(){
+  // === DATOS ===
+  var anioActual=new Date().getFullYear();
+  var mesesNom=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // --- Stock vigente ---
+  var stockVig=(C.stock_items||[]).filter(function(it){return it.estado!=='Baja';});
+  var sxe={Disponible:0,'En demo':0,Reservado:0,'No conforme':0};
+  stockVig.forEach(function(it){
+    var e=it.estado||'(sin estado)';
+    sxe[e]=(sxe[e]||0)+1;
+  });
+  var totalStock=stockVig.length;
+
+  // Precio por equipo (persistido en localStorage)
+  if(chilePrecioEquipo===null){
+    var saved=null;
+    try{saved=parseFloat(localStorage.getItem('leex_chile_precio_equipo'));}catch(e){}
+    chilePrecioEquipo=isNaN(saved)||saved===null?2500:saved;
+  }
+  var precio=chilePrecioEquipo;
+  var valorTotal=totalStock*precio;
+  var valorDisponibles=(sxe['Disponible']||0)*precio;
+
+  // --- Compras Chile ---
+  var comprasCh=(C.compras||[]).filter(function(c){return c.tipo_operacion==='Chile';});
+  comprasCh.sort(function(a,b){return (b.fecha_compra||'').localeCompare(a.fecha_compra||'');});
+  var comprasTop=comprasCh.slice(0,5);
+  // Totales por estado (de TODAS las compras Chile, no solo top 5)
+  var totEst={};
+  var totComprasUsd=0;
+  comprasCh.forEach(function(c){
+    var fob=parseFloat(c.usd_fob)||0;
+    var est=c.estado_pago||'Sin estado';
+    totEst[est]=(totEst[est]||0)+fob;
+    totComprasUsd+=fob;
+  });
+
+  // Colores por estado (compras)
+  function colorEstado(e){
+    if(e==='Pagado')return '#27500A';
+    if(e==='Enviado a Pagar'||e==='Enviado')return '#185FA5';
+    if(e==='Pendiente')return '#854F0B';
+    if(e==='En Revisión'||e==='Revisión')return '#A32D2D';
+    if(e==='No Pagar')return '#6b7280';
+    return '#6b7280';
+  }
+  function pillEstado(e){
+    var bg,col;
+    if(e==='Pagado'){bg='rgba(39,80,10,.18)';col='#7ab43d';}
+    else if(e==='Enviado a Pagar'||e==='Enviado'){bg='rgba(24,95,165,.18)';col='#5ba8f0';}
+    else if(e==='Pendiente'){bg='rgba(133,79,11,.18)';col='#d4a04a';}
+    else if(e==='En Revisión'||e==='Revisión'){bg='rgba(163,45,45,.18)';col='#e87575';}
+    else {bg='rgba(149,167,189,.18)';col='var(--text2)';}
+    return '<span style="font-size:11px;padding:2px 9px;border-radius:10px;background:'+bg+';color:'+col+';white-space:nowrap">'+escapeHtml(e||'—')+'</span>';
+  }
+
+  // --- Gastos mensuales año actual (Oficina + DEAM, en USD) ---
+  var gMes=[0,0,0,0,0,0,0,0,0,0,0,0];
+  (C.caja_oficina_chile||[]).forEach(function(r){
+    if(!r.fecha)return;
+    var y=parseInt(r.fecha.substring(0,4));
+    if(y!==anioActual)return;
+    var m=parseInt(r.fecha.substring(5,7))-1;
+    if(m<0||m>11)return;
+    var imp=parseFloat(r.importe_clp)||0;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    var usd=0;
+    if(r.importe_usd)usd=parseFloat(r.importe_usd)||0;
+    else if(tc>0)usd=imp/tc;
+    gMes[m]+=usd;
+  });
+  (C.caja_deam||[]).forEach(function(r){
+    if(!r.fecha)return;
+    var y=parseInt(r.fecha.substring(0,4));
+    if(y!==anioActual)return;
+    var m=parseInt(r.fecha.substring(5,7))-1;
+    if(m<0||m>11)return;
+    gMes[m]+=parseFloat(r.importe_usd)||0;
+  });
+  var gastoAcum=gMes.reduce(function(a,b){return a+b;},0);
+  var maxG=Math.max.apply(null,gMes)||1;
+  // Solo mostrar meses hasta el actual (o todos si hay datos posteriores)
+  var maxMesConDato=-1;
+  for(var i=0;i<12;i++)if(gMes[i]>0)maxMesConDato=i;
+  var hoyMes=new Date().getMonth();
+  var mesesAMostrar=Math.max(hoyMes,maxMesConDato)+1;
+  if(mesesAMostrar<6)mesesAMostrar=6;
+
+  // --- Síntesis ---
+  var saldoVig=calcSaldoVigenteChile();
+  var aporteTotal=0;
+  (C.caja_chile_aportes||[]).forEach(function(a){aporteTotal+=parseFloat(a.importe_usd)||0;});
+  var pctSaldo=aporteTotal>0?Math.round(saldoVig/aporteTotal*100):0;
+
+  // === HTML ===
+  // Botones de acción
+  var headerBtns='<div style="display:flex;gap:6px" class="no-print">'+
+    '<button class="btn bs sm" onclick="window.print()" title="Imprimir"><span style="font-size:13px">🖨</span> Imprimir</button>'+
+    '<button class="btn bs sm" onclick="window.print()" title="Guardar como PDF (elegí Guardar como PDF en el diálogo)"><span style="font-size:13px">📄</span> PDF</button>'+
+    '<button class="btn bs sm" onclick="exportDashboardChile()" title="Exportar a Excel"><span style="font-size:13px">📊</span> Excel</button>'+
+    '</div>';
+
+  // SECCIÓN 1: STOCK
+  var stockHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px" class="dashChileGrid">'+
+    // Card stock unidades
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Stock · unidades vigentes</div>'+
+      '<div style="font-size:13px">'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Disponible</span><span style="font-weight:600">'+(sxe['Disponible']||0)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>En demo</span><span style="font-weight:600">'+(sxe['En demo']||0)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Reservado</span><span style="font-weight:600">'+(sxe['Reservado']||0)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:6px 0"><span>No conforme</span><span style="font-weight:600">'+(sxe['No conforme']||0)+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px;font-weight:700"><span>Total</span><span>'+totalStock+'</span></div>'+
+      '</div>'+
+    '</div>'+
+    // Card valor stock USD
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Valor stock USD</div>'+
+      '<div class="no-print" style="margin-bottom:14px">'+
+        '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Precio por equipo (USD)</label>'+
+        '<input type="number" value="'+precio+'" step="0.01" min="0" oninput="actualizarPrecioEquipo(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:13px;outline:none;width:160px"/>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Valor total ('+totalStock+' u.)</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--green);margin-bottom:14px">$'+fmtN(valorTotal)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Solo disponibles ('+(sxe['Disponible']||0)+' u.)</div>'+
+      '<div style="font-size:16px;font-weight:600">$'+fmtN(valorDisponibles)+'</div>'+
+    '</div>'+
+    '</div>';
+
+  // SECCIÓN 2: COMPRAS CHILE
+  var rowsCompras='';
+  comprasTop.forEach(function(c){
+    rowsCompras+='<tr style="border-top:1px solid var(--border)">'+
+      '<td style="padding:8px 0;font-family:monospace;font-size:12px">'+escapeHtml(c.pedido||'—')+'</td>'+
+      '<td style="padding:8px 0">'+escapeHtml(c.proveedor||'—')+'</td>'+
+      '<td style="padding:8px 0;font-size:12px">'+fmtD(c.fecha_compra)+'</td>'+
+      '<td style="padding:8px 0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600">$'+fmtN(c.usd_fob||0)+'</td>'+
+      '<td style="padding:8px 0;text-align:right">'+pillEstado(c.estado_pago)+'</td>'+
+    '</tr>';
+  });
+  if(comprasCh.length>5){
+    rowsCompras+='<tr style="border-top:1px solid var(--border)"><td colspan="5" style="padding:6px 0;text-align:center;font-size:11px;color:var(--text2)"><a href="#" onclick="chileTab=\'leex\';go(\'chile\');return false;" style="color:var(--cyan)">+ Ver las otras '+(comprasCh.length-5)+' compras Chile →</a></td></tr>';
+  }
+  // Barra resumen de estados (segmentada)
+  var barraEstadosHTML='';
+  var leyendaHTML='';
+  if(totComprasUsd>0){
+    var ordenEstados=['Pagado','Enviado a Pagar','Pendiente','En Revisión','No Pagar'];
+    ordenEstados.forEach(function(est){
+      if(totEst[est]&&totEst[est]>0){
+        var pct=(totEst[est]/totComprasUsd*100).toFixed(2);
+        barraEstadosHTML+='<div style="background:'+colorEstado(est)+';width:'+pct+'%" title="'+est+': $'+fmtN(totEst[est])+'"></div>';
+        leyendaHTML+='<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+colorEstado(est)+'"></span>'+escapeHtml(est)+' $'+fmtN(totEst[est])+'</span>';
+      }
+    });
+    // Otros estados no mapeados
+    Object.keys(totEst).forEach(function(est){
+      if(ordenEstados.indexOf(est)===-1&&totEst[est]>0){
+        var pct=(totEst[est]/totComprasUsd*100).toFixed(2);
+        barraEstadosHTML+='<div style="background:'+colorEstado(est)+';width:'+pct+'%"></div>';
+        leyendaHTML+='<span style="display:inline-flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+colorEstado(est)+'"></span>'+escapeHtml(est)+' $'+fmtN(totEst[est])+'</span>';
+      }
+    });
+  }
+  var comprasHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+      '<div style="font-size:13px;font-weight:600">Compras Chile — detalle por estado</div>'+
+      '<div style="font-size:11px;color:var(--text2)">'+comprasCh.length+' compras · USD FOB</div>'+
+    '</div>'+
+    (comprasCh.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2);font-size:13px">Sin compras Chile cargadas. <a href="#" onclick="chileTab=\'leex\';go(\'chile\');return false;" style="color:var(--cyan)">Ir a Caja Leex →</a></div>':
+      '<table style="width:100%;font-size:13px;border-collapse:collapse">'+
+      '<thead><tr style="color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.4px">'+
+        '<th style="text-align:left;padding:0 0 8px;font-weight:600">Pedido</th>'+
+        '<th style="text-align:left;font-weight:600">Proveedor</th>'+
+        '<th style="text-align:left;font-weight:600">Fecha</th>'+
+        '<th style="text-align:right;font-weight:600">USD FOB</th>'+
+        '<th style="text-align:right;font-weight:600">Estado</th>'+
+      '</tr></thead>'+
+      '<tbody>'+rowsCompras+
+        '<tr style="border-top:2px solid var(--border);font-weight:700"><td style="padding:10px 0">Total</td><td></td><td></td><td style="text-align:right">$'+fmtN(totComprasUsd)+'</td><td></td></tr>'+
+      '</tbody></table>'+
+      // Barra
+      (totComprasUsd>0?
+        '<div style="display:flex;height:9px;border-radius:6px;overflow:hidden;margin-top:14px">'+barraEstadosHTML+'</div>'+
+        '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin-top:8px;color:var(--text2)">'+leyendaHTML+'</div>'
+      :''))+
+    '</div>';
+
+  // SECCIÓN 3: GASTOS MENSUALES
+  var rowsGastos='';
+  for(var i=0;i<mesesAMostrar;i++){
+    var pct=maxG>0?(gMes[i]/maxG*100):0;
+    // Color de barra: el mes más caro es más oscuro
+    var barColor=gMes[i]===maxG&&gMes[i]>0?'var(--cyan)':gMes[i]>0?'rgba(0,180,216,0.5)':'rgba(0,180,216,0.2)';
+    rowsGastos+='<div style="display:grid;grid-template-columns:40px 1fr 90px;gap:10px;align-items:center;margin-bottom:8px">'+
+      '<span style="font-size:12px;color:var(--text2)">'+mesesNom[i]+'</span>'+
+      '<div style="height:11px;background:var(--bg3);border-radius:6px;overflow:hidden"><div style="height:100%;background:'+barColor+';width:'+pct.toFixed(2)+'%;border-radius:6px;transition:width .3s"></div></div>'+
+      '<span style="text-align:right;font-size:12px;font-variant-numeric:tabular-nums">$'+fmtN(gMes[i])+'</span>'+
+    '</div>';
+  }
+  var gastosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'+
+      '<div style="font-size:13px;font-weight:600">Gasto mensual USD · Oficina + DEAM</div>'+
+      '<div style="font-size:11px;color:var(--text2)">'+anioActual+' · suma en USD</div>'+
+    '</div>'+
+    rowsGastos+
+    '<div style="font-size:10px;color:var(--text2);text-align:right;margin-top:6px">Barra más larga = mes más caro</div>'+
+    '<div style="display:flex;justify-content:space-between;padding:12px 0 0;border-top:2px solid var(--border);margin-top:10px;font-weight:700;font-size:15px">'+
+      '<span>Total acumulado</span><span style="color:var(--cyan)">$'+fmtN(gastoAcum)+'</span>'+
+    '</div>'+
+    '</div>';
+
+  // SECCIÓN 4: SÍNTESIS (4 KPIs)
+  var sintesisHTML='<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin:0 0 8px">SÍNTESIS</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" class="dashChileGrid4">'+
+    // Saldo vigente USD
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--cyan)">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Saldo vigente USD</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--cyan)">$'+fmtN(saldoVig)+'</div>'+
+      '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+(aporteTotal>0?pctSaldo+'% del aporte ($'+fmtN(aporteTotal)+')':'Sin aportes definidos')+'</div>'+
+    '</div>'+
+    // Gasto acumulado
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--red)">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Gasto acumulado</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--red)">$'+fmtN(gastoAcum)+'</div>'+
+      '<div style="font-size:10px;color:var(--text2);margin-top:2px">Oficina + DEAM '+anioActual+'</div>'+
+    '</div>'+
+    // Stock vigente (valor)
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--green)">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Stock vigente (valor)</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--green)">$'+fmtN(valorTotal)+'</div>'+
+      '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+totalStock+' unidades · $'+fmtN(precio)+'/u</div>'+
+    '</div>'+
+    // Compras Chile
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--yellow)">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Compras Chile</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--yellow)">$'+fmtN(totComprasUsd)+'</div>'+
+      '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+comprasCh.length+' pedido'+(comprasCh.length===1?'':'s')+' · USD FOB</div>'+
+    '</div>'+
+    '</div>';
+
+  // === HEADER + COMPOSICIÓN ===
+  var header='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'+
+    '<div>'+
+      '<div style="font-size:18px;font-weight:700">Proyecto Chile · Dashboard</div>'+
+      '<div style="font-size:12px;color:var(--text2)">Estado general · '+anioActual+'</div>'+
+    '</div>'+
+    headerBtns+
+    '</div>';
+
+  return '<div id="chileDashboardPrint">'+header+stockHTML+comprasHTML+gastosHTML+sintesisHTML+'</div>';
+}
+
+// Actualizar precio por equipo (input del dashboard)
+function actualizarPrecioEquipo(val){
+  var n=parseFloat(val);
+  if(isNaN(n)||n<0)n=0;
+  chilePrecioEquipo=n;
+  try{localStorage.setItem('leex_chile_precio_equipo',String(n));}catch(e){}
+  // Re-render con debounce para no saturar
+  clearTimeout(window._chilePrecioT);
+  window._chilePrecioT=setTimeout(function(){go('chile');},400);
+}
+
+// Exportar dashboard Chile a Excel (varias hojas)
+function exportDashboardChile(){
+  var anioActual=new Date().getFullYear();
+  var wb=XLSX.utils.book_new();
+  var mesesNom=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // --- Hoja 1: Stock ---
+  var stockVig=(C.stock_items||[]).filter(function(it){return it.estado!=='Baja';});
+  var sxe={};
+  stockVig.forEach(function(it){var e=it.estado||'(sin estado)';sxe[e]=(sxe[e]||0)+1;});
+  var precio=chilePrecioEquipo||2500;
+  var stockData=[
+    {Concepto:'Disponible',Unidades:sxe['Disponible']||0,'Valor USD':(sxe['Disponible']||0)*precio},
+    {Concepto:'En demo',Unidades:sxe['En demo']||0,'Valor USD':(sxe['En demo']||0)*precio},
+    {Concepto:'Reservado',Unidades:sxe['Reservado']||0,'Valor USD':(sxe['Reservado']||0)*precio},
+    {Concepto:'No conforme',Unidades:sxe['No conforme']||0,'Valor USD':(sxe['No conforme']||0)*precio},
+    {Concepto:'TOTAL',Unidades:stockVig.length,'Valor USD':stockVig.length*precio},
+    {Concepto:'',Unidades:'','Valor USD':''},
+    {Concepto:'Precio por equipo (USD)',Unidades:'','Valor USD':precio}
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stockData),'Stock');
+
+  // --- Hoja 2: Compras Chile ---
+  var comprasCh=(C.compras||[]).filter(function(c){return c.tipo_operacion==='Chile';});
+  comprasCh.sort(function(a,b){return (b.fecha_compra||'').localeCompare(a.fecha_compra||'');});
+  var comprasData=comprasCh.map(function(c){
+    return {
+      Pedido:c.pedido||'',
+      Proveedor:c.proveedor||'',
+      Fecha:c.fecha_compra||'',
+      Lote:c.lote||'',
+      'USD FOB':parseFloat(c.usd_fob)||0,
+      'Tipo Cambio':parseFloat(c.tipo_cambio)||'',
+      'Importe Total':parseFloat(c.importe_total)||0,
+      'Estado Pago':c.estado_pago||'',
+      Vencimiento:c.vencimiento_prov||'',
+      'Fecha Pago':c.fecha_pago||'',
+      Notas:c.notas||''
+    };
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(comprasData.length>0?comprasData:[{Pedido:'(sin compras Chile)'}]),'Compras');
+
+  // --- Hoja 3: Gastos mensuales ---
+  var gMes=[0,0,0,0,0,0,0,0,0,0,0,0];
+  (C.caja_oficina_chile||[]).forEach(function(r){
+    if(!r.fecha)return;
+    var y=parseInt(r.fecha.substring(0,4));
+    if(y!==anioActual)return;
+    var m=parseInt(r.fecha.substring(5,7))-1;
+    if(m<0||m>11)return;
+    var imp=parseFloat(r.importe_clp)||0;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    var usd=0;
+    if(r.importe_usd)usd=parseFloat(r.importe_usd)||0;
+    else if(tc>0)usd=imp/tc;
+    gMes[m]+=usd;
+  });
+  (C.caja_deam||[]).forEach(function(r){
+    if(!r.fecha)return;
+    var y=parseInt(r.fecha.substring(0,4));
+    if(y!==anioActual)return;
+    var m=parseInt(r.fecha.substring(5,7))-1;
+    if(m<0||m>11)return;
+    gMes[m]+=parseFloat(r.importe_usd)||0;
+  });
+  var gastosData=mesesNom.map(function(n,i){return {Mes:n,'Gasto USD':gMes[i]};});
+  gastosData.push({Mes:'TOTAL','Gasto USD':gMes.reduce(function(a,b){return a+b;},0)});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(gastosData),'Gastos '+anioActual);
+
+  // --- Hoja 4: Síntesis ---
+  var saldoVig=calcSaldoVigenteChile();
+  var aporteTotal=0;
+  (C.caja_chile_aportes||[]).forEach(function(a){aporteTotal+=parseFloat(a.importe_usd)||0;});
+  var totComprasUsd=0;
+  comprasCh.forEach(function(c){totComprasUsd+=parseFloat(c.usd_fob)||0;});
+  var gastoAcum=gMes.reduce(function(a,b){return a+b;},0);
+  var sintesisData=[
+    {Indicador:'Saldo vigente USD',Valor:saldoVig,'Detalle':aporteTotal>0?(Math.round(saldoVig/aporteTotal*100)+'% del aporte'):''},
+    {Indicador:'Gasto acumulado USD',Valor:gastoAcum,'Detalle':'Oficina + DEAM '+anioActual},
+    {Indicador:'Stock vigente (valor USD)',Valor:stockVig.length*precio,'Detalle':stockVig.length+' unidades · $'+precio+'/u'},
+    {Indicador:'Compras Chile USD FOB',Valor:totComprasUsd,'Detalle':comprasCh.length+' pedidos'},
+    {Indicador:'',Valor:'',Detalle:''},
+    {Indicador:'Aporte total USD',Valor:aporteTotal,'Detalle':''},
+    {Indicador:'Fecha snapshot',Valor:hoy(),'Detalle':''}
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sintesisData),'Síntesis');
+
+  XLSX.writeFile(wb,'LEEX_Dashboard_Chile_'+hoy()+'.xlsx');
+  toast('Dashboard Chile exportado','success');
+}
+
 function pgChile(){
-  if(!puedeVer('proyectos'))return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert aerr">No tenés acceso a esta sección.</div>';
+  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
   var tabs='<div class="tabs">'+
+    '<div class="tab'+(chileTab==='dashboard'?' active':'')+'" onclick="chileTab=\'dashboard\';go(\'chile\')">📊 Dashboard</div>'+
     '<div class="tab'+(chileTab==='oficina'?' active':'')+'" onclick="chileTab=\'oficina\';go(\'chile\')">💰 Caja Oficina Chile</div>'+
     '<div class="tab'+(chileTab==='deam'?' active':'')+'" onclick="chileTab=\'deam\';go(\'chile\')">🇦🇷 Caja DEAM</div>'+
     '<div class="tab'+(chileTab==='leex'?' active':'')+'" onclick="chileTab=\'leex\';go(\'chile\')">🛒 Caja Leex</div>'+
     '</div>';
   var contenido='';
-  if(chileTab==='oficina'){
+  if(chileTab==='dashboard')contenido=pgChileDashboard();
+  else if(chileTab==='oficina'){
     // Sub-tabs dentro de Caja Oficina: Lista vs Tabla Dinámica
     var subTabs='<div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px">'+
       '<button class="btn '+(cajaChileDinTab==='lista'?'bp':'bs')+' sm" onclick="cajaChileDinTab=\'lista\';go(\'chile\')">📋 Listado</button>'+
@@ -5882,7 +4825,6 @@ function pgChile(){
 // CAJA OFICINA CHILE
 // ============================================================
 function renderCajaChile(){
-  var ro=!puedeEditar('proyectos');
   var F=cajaChileFiltros;
   var S=cajaChileSort;
   var conceptos=C.cfg_listas.concepto_caja||[];
@@ -5934,7 +4876,7 @@ function renderCajaChile(){
     '<select onchange="cajaChileFiltros.concepto=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(conceptos,F.concepto)+'</select>'+
     '<select onchange="cajaChileFiltros.estado=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select>'+
     (hayFiltros?'<button class="btn sm bd" onclick="cajaChileFiltros={busqueda:\'\',fecha:\'\',proveedor:\'\',concepto:\'\',estado:\'\'};go(\'chile\')">✕</button>':'')+
-    (ro?'':'<button class="btn bp sm" onclick="abrirModalCaja(\'chile\',0)">+ Nueva fila</button>')+
+    '<button class="btn bp sm" onclick="abrirModalCaja(\'chile\',0)">+ Nueva fila</button>'+
     '<button class="btn bs sm" onclick="exportCajaChile()">⬇ Excel</button>'+
     '</div>';
 
@@ -5958,10 +4900,10 @@ function renderCajaChile(){
       '<td>'+estBadge+'</td>'+
       '<td>'+adjCell+'</td>'+
       '<td>'+urlCell+'</td>'+
-      (ro?'':'<td style="white-space:nowrap">'+
+      '<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalCaja(\'chile\','+r.id+')" title="Editar">✏</button> '+
         '<button class="miniBtn" style="color:var(--red)" onclick="deleteCajaItem(\'chile\','+r.id+')" title="Eliminar">🗑</button>'+
-      '</td>')+
+      '</td>'+
       '</tr>';
   });
 
@@ -5975,9 +4917,9 @@ function renderCajaChile(){
       '<th style="text-align:right">'+sortBtn('importe_clp','Importe $')+'</th>'+
       '<th style="text-align:right">'+sortBtn('importe_iva_clp','IVA $')+'</th>'+
       '<th>'+sortBtn('estado','Estado')+'</th>'+
-      '<th>📎</th><th>URL</th>'+(ro?'':'<th></th>')+
+      '<th>📎</th><th>URL</th><th></th>'+
       '</tr></thead><tbody>'+
-      (rows||'<tr><td colspan="'+(ro?10:11)+'" style="text-align:center;color:var(--text2);padding:20px">Sin registros.'+(ro?'':' <a href="#" onclick="abrirModalCaja(\'chile\',0);return false;" style="color:var(--cyan)">Agregar primero →</a>')+'</td></tr>')+
+      (rows||'<tr><td colspan="11" style="text-align:center;color:var(--text2);padding:20px">Sin registros. <a href="#" onclick="abrirModalCaja(\'chile\',0);return false;" style="color:var(--cyan)">Agregar primero →</a></td></tr>')+
       '</tbody></table></div></div>';
 
   // === Totales ===
@@ -6482,8 +5424,6 @@ function calcDeamUsd(){
 }
 
 function guardarCajaItem(tipo,keepOpen){
-  if(lockSubmit('guardarCajaItem_'+tipo))return;
-  if(!puedeEditar('proyectos')){unlockSubmit('guardarCajaItem_'+tipo);toast('No tenés permiso de edición en Proyectos','error');return;}
   var url=document.getElementById('cjUrl').value.trim();
   if(tipo==='chile'){
     var payload={
@@ -6507,7 +5447,6 @@ function guardarCajaItem(tipo,keepOpen){
       payload.numero=maxN+1;
       sbPost('caja_oficina_chile',payload).then(function(res){
         if(res&&res.code){toast('Error: '+res.message,'error');return;}
-        auditLog('create','Caja Chile','#'+payload.numero+' · '+(payload.proveedor||'-')+' · CLP '+payload.importe_clp);
         toast('Fila creada','success');
         if(keepOpen){
           cerrarModalCaja();
@@ -6520,7 +5459,6 @@ function guardarCajaItem(tipo,keepOpen){
     }else{
       sbPatch('caja_oficina_chile',editingChile,payload).then(function(res){
         if(res&&res.code){toast('Error: '+res.message,'error');return;}
-        auditLog('update','Caja Chile','ID '+editingChile+' · '+(payload.proveedor||'-')+' · CLP '+payload.importe_clp);
         toast('Fila actualizada','success');
         cerrarModalCaja();
         reload('chile');
@@ -6689,24 +5627,20 @@ function abrirModalAporte(id){
 }
 
 function guardarAporte(){
-  if(lockSubmit('guardarAporte'))return;
-  if(!puedeEditar('proyectos')){unlockSubmit('guardarAporte');toast('No tenés permiso de edición en Proyectos','error');return;}
   var f=document.getElementById('apF').value;
   var imp=parseFloat(document.getElementById('apImp').value);
   var desc=document.getElementById('apDesc').value.trim();
   var url=document.getElementById('apUrl').value.trim();
-  if(!f||isNaN(imp)||imp<=0){unlockSubmit('guardarAporte');toast('Completá fecha e importe positivo','error');return;}
+  if(!f||isNaN(imp)||imp<=0){toast('Completá fecha e importe positivo','error');return;}
   var payload={fecha:f,descripcion:desc||'Aporte',importe_usd:imp,es_saldo_inicial:false,url:url||null,created_by:CU?CU.u:null};
   if(editingAporte===0){
     sbPost('caja_oficina_chile_aportes',payload).then(function(){
-      auditLog('create','Aporte Chile','USD '+imp+' · '+(desc||'Aporte'));
       toast('Aporte registrado','success');
       cerrarModalCaja();
       reload('chile');
     });
   }else{
     sbPatch('caja_oficina_chile_aportes',editingAporte,payload).then(function(){
-      auditLog('update','Aporte Chile','ID '+editingAporte+' · USD '+imp);
       toast('Aporte actualizado','success');
       cerrarModalCaja();
       reload('chile');
@@ -6717,7 +5651,6 @@ function guardarAporte(){
 function deleteAporte(id){
   if(!confirm('¿Eliminar este aporte de capital?'))return;
   sbDelete('caja_oficina_chile_aportes',id).then(function(){
-    auditLog('delete','Aporte Chile','ID '+id);
     toast('Aporte eliminado','success');
     reload('chile');
   });
@@ -6969,11 +5902,11 @@ var editCobroId=null;
 var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
 function pgClientes(){
-  if(!puedeVer('clientes')){
+  // Solo admin tiene acceso por ahora
+  if(!isAdmin()){
     return ejGlobalBar()+'<div class="pageTitle">👥 Clientes</div>'+
-      '<div class="alert aerr">No tenés acceso a esta sección.</div>';
+      '<div class="alert ainfo">Solo administradores. Pronto sistema de permisos por usuario.</div>';
   }
-  var ro=!puedeEditar('clientes');
   var tabs='<div class="tabs">'+
     '<div class="tab'+(clientesTab==='datos'?' active':'')+'" onclick="clientesTab=\'datos\';go(\'clientes\')">👥 Datos</div>'+
     '<div class="tab'+(clientesTab==='ventas'?' active':'')+'" onclick="clientesTab=\'ventas\';go(\'clientes\')">📤 Ventas</div>'+
@@ -7284,7 +6217,6 @@ function cerrarModalCliente(){
 }
 
 function guardarCliente(keepOpen){
-  if(lockSubmit('guardarCliente'))return;
   var payload={
     nombre_empresa:document.getElementById('clNombre').value.trim(),
     referente:document.getElementById('clRef').value.trim()||null,
@@ -7308,7 +6240,6 @@ function guardarCliente(keepOpen){
   if(editClienteId===0){
     sbPost('clientes',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      auditLog('create','Cliente',(payload.nombre_empresa||'-')+' · '+(payload.pais||''));
       toast('Cliente creado','success');
       if(keepOpen){
         cerrarModalCliente();
@@ -7320,7 +6251,6 @@ function guardarCliente(keepOpen){
   }else{
     sbPatch('clientes',editClienteId,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      auditLog('update','Cliente','ID '+editClienteId+' · '+(payload.nombre_empresa||'-'));
       toast('Cliente actualizado','success');cerrarModalCliente();reload('clientes');
     });
   }
@@ -7334,22 +6264,9 @@ function deleteCliente(id){
   if(nV>0||nC>0){
     toast('No se puede eliminar: tiene '+nV+' ventas y '+nC+' cobros. Marcalo como Inactivo.','error');return;
   }
-  confirmAction({
-    title:'Eliminar cliente',
-    message:'Esta acción es permanente. Sólo se permite si no tiene ventas ni cobros registrados.',
-    details:[
-      {label:'Empresa',value:c.nombre_empresa||'—'},
-      {label:'País',value:c.pais||'—'},
-      {label:'Email',value:c.email||'—'}
-    ],
-    danger:true,
-    okText:'Sí, eliminar cliente',
-    onOk:function(){
-      sbDelete('clientes',id).then(function(){
-        auditLog('delete','Cliente','ID '+id+' · '+(c.nombre_empresa||'-'));
-        toast('Cliente eliminado','success');reload('clientes');
-      });
-    }
+  if(!confirm('¿Eliminar el cliente "'+c.nombre_empresa+'"?'))return;
+  sbDelete('clientes',id).then(function(){
+    toast('Cliente eliminado','success');reload('clientes');
   });
 }
 
@@ -7577,7 +6494,6 @@ function calcImporteUSDVenta(){
 }
 
 function guardarVenta(keepOpen){
-  if(lockSubmit('guardarVenta'))return;
   var imp=parseFloat(document.getElementById('vImp').value)||0;
   var mon=document.getElementById('vMoneda').value;
   var tc=parseFloat(document.getElementById('vTC').value)||0;
@@ -8136,7 +7052,6 @@ function setImputacionMonto(ventaId,monto,saldoMax){
 }
 
 function guardarCobro(keepOpen){
-  if(lockSubmit('guardarCobro'))return;
   var imp=parseFloat(document.getElementById('cImp').value)||0;
   var mon=document.getElementById('cMoneda').value;
   var tc=parseFloat(document.getElementById('cTC').value)||0;
