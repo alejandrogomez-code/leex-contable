@@ -4432,6 +4432,28 @@ var modalAdjCajaTipo=null;  // 'chile' | 'deam'
 var modalAdjCajaId=null;
 
 // ============================================================
+// HELPER: Saldo Vigente USD del Proyecto Chile
+// (saldo inicial + aportes - gastos en USD)
+// ============================================================
+function calcSaldoVigenteChile(){
+  var saldoInicial=(C.caja_chile_aportes||[]).find(function(a){return a.es_saldo_inicial;});
+  var saldo=saldoInicial?(parseFloat(saldoInicial.importe_usd)||0):0;
+  // Restar gastos (convertidos a USD via TC, si existe)
+  (C.caja_oficina_chile||[]).forEach(function(r){
+    var imp=parseFloat(r.importe_clp)||0;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    if(r.importe_usd) saldo-=parseFloat(r.importe_usd)||0;
+    else if(tc>0) saldo-=imp/tc;
+  });
+  // Sumar aportes (no iniciales)
+  (C.caja_chile_aportes||[]).forEach(function(a){
+    if(a.es_saldo_inicial)return;
+    saldo+=parseFloat(a.importe_usd)||0;
+  });
+  return saldo;
+}
+
+// ============================================================
 // DASHBOARD PROYECTO CHILE — Opción A (estilo aplicación)
 // Orden: Stock → Compras → Gastos → Síntesis
 // Imprimible / PDF / Excel
