@@ -4417,7 +4417,7 @@ function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica');}
 // ============================================================
 var chileTab='dashboard';
 var chileMostrarSaldo=false;
-var chilePrecioEquipo=null;  // se lee de localStorage al renderizar el dashboard
+var chileValorStock=null;  // valor total del stock en USD (manual, se lee de localStorage)
 var cajaChileFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',estado:''};
 var cajaChileSort={col:'fecha',asc:false};
 var cajaDeamFiltros={busqueda:'',fecha:'',proveedor:'',concepto:'',dueno:'',estado:''};
@@ -4472,15 +4472,13 @@ function pgChileDashboard(){
   });
   var totalStock=stockVig.length;
 
-  // Precio por equipo (persistido en localStorage)
-  if(chilePrecioEquipo===null){
+  // Valor total del stock en USD (manual, persistido en localStorage)
+  if(chileValorStock===null){
     var saved=null;
-    try{saved=parseFloat(localStorage.getItem('leex_chile_precio_equipo'));}catch(e){}
-    chilePrecioEquipo=isNaN(saved)||saved===null?2500:saved;
+    try{saved=parseFloat(localStorage.getItem('leex_chile_valor_stock'));}catch(e){}
+    chileValorStock=isNaN(saved)||saved===null?0:saved;
   }
-  var precio=chilePrecioEquipo;
-  var valorTotal=totalStock*precio;
-  var valorDisponibles=(sxe['Disponible']||0)*precio;
+  var valorTotal=chileValorStock;
 
   // --- Compras Chile ---
   var comprasCh=(C.compras||[]).filter(function(c){return c.tipo_operacion==='Chile';});
@@ -4574,17 +4572,17 @@ function pgChileDashboard(){
         '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px;font-weight:700"><span>Total</span><span>'+totalStock+'</span></div>'+
       '</div>'+
     '</div>'+
-    // Card valor stock USD
+    // Card valor stock USD (manual)
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">'+
       '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Valor stock USD</div>'+
       '<div class="no-print" style="margin-bottom:14px">'+
-        '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Precio por equipo (USD)</label>'+
-        '<input type="number" value="'+precio+'" step="0.01" min="0" oninput="actualizarPrecioEquipo(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:13px;outline:none;width:160px"/>'+
+        '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Valor total stock (USD) <span style="color:var(--text2);font-size:9px">· ingreso manual</span></label>'+
+        '<input type="number" value="'+chileValorStock+'" step="0.01" min="0" placeholder="0" oninput="actualizarValorStock(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:14px;outline:none;width:200px;font-weight:600"/>'+
       '</div>'+
-      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Valor total ('+totalStock+' u.)</div>'+
-      '<div style="font-size:22px;font-weight:700;color:var(--green);margin-bottom:14px">$'+fmtN(valorTotal)+'</div>'+
-      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Solo disponibles ('+(sxe['Disponible']||0)+' u.)</div>'+
-      '<div style="font-size:16px;font-weight:600">$'+fmtN(valorDisponibles)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock vigente</div>'+
+      '<div style="font-size:22px;font-weight:700;color:var(--green);margin-bottom:6px">$'+fmtN(valorTotal)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2)">'+totalStock+' unidades en total</div>'+
+      (valorTotal===0?'<div class="no-print" style="margin-top:10px;padding:8px 10px;background:rgba(244,185,66,.10);border-left:3px solid var(--yellow);border-radius:4px;font-size:11px;color:var(--text2)">💡 Ingresá el valor total del stock en el campo de arriba</div>':'')+
     '</div>'+
     '</div>';
 
@@ -4691,7 +4689,7 @@ function pgChileDashboard(){
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--green)">'+
       '<div style="font-size:11px;color:var(--text2);margin-bottom:4px">Stock vigente (valor)</div>'+
       '<div style="font-size:22px;font-weight:700;color:var(--green)">$'+fmtN(valorTotal)+'</div>'+
-      '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+totalStock+' unidades · $'+fmtN(precio)+'/u</div>'+
+      '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+totalStock+' unidades · valor manual</div>'+
     '</div>'+
     // Compras Chile
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;border-top:3px solid var(--yellow)">'+
@@ -4713,15 +4711,15 @@ function pgChileDashboard(){
   return '<div id="chileDashboardPrint">'+header+stockHTML+comprasHTML+gastosHTML+sintesisHTML+'</div>';
 }
 
-// Actualizar precio por equipo (input del dashboard)
-function actualizarPrecioEquipo(val){
+// Actualizar valor total del stock (input del dashboard)
+function actualizarValorStock(val){
   var n=parseFloat(val);
   if(isNaN(n)||n<0)n=0;
-  chilePrecioEquipo=n;
-  try{localStorage.setItem('leex_chile_precio_equipo',String(n));}catch(e){}
+  chileValorStock=n;
+  try{localStorage.setItem('leex_chile_valor_stock',String(n));}catch(e){}
   // Re-render con debounce para no saturar
-  clearTimeout(window._chilePrecioT);
-  window._chilePrecioT=setTimeout(function(){go('chile');},400);
+  clearTimeout(window._chileValorStockT);
+  window._chileValorStockT=setTimeout(function(){go('chile');},500);
 }
 
 // Exportar dashboard Chile a Excel (varias hojas)
@@ -4734,15 +4732,15 @@ function exportDashboardChile(){
   var stockVig=(C.stock_items||[]).filter(function(it){return it.estado!=='Baja';});
   var sxe={};
   stockVig.forEach(function(it){var e=it.estado||'(sin estado)';sxe[e]=(sxe[e]||0)+1;});
-  var precio=chilePrecioEquipo||2500;
+  var valorStock=chileValorStock||0;
   var stockData=[
-    {Concepto:'Disponible',Unidades:sxe['Disponible']||0,'Valor USD':(sxe['Disponible']||0)*precio},
-    {Concepto:'En demo',Unidades:sxe['En demo']||0,'Valor USD':(sxe['En demo']||0)*precio},
-    {Concepto:'Reservado',Unidades:sxe['Reservado']||0,'Valor USD':(sxe['Reservado']||0)*precio},
-    {Concepto:'No conforme',Unidades:sxe['No conforme']||0,'Valor USD':(sxe['No conforme']||0)*precio},
-    {Concepto:'TOTAL',Unidades:stockVig.length,'Valor USD':stockVig.length*precio},
-    {Concepto:'',Unidades:'','Valor USD':''},
-    {Concepto:'Precio por equipo (USD)',Unidades:'','Valor USD':precio}
+    {Concepto:'Disponible',Unidades:sxe['Disponible']||0},
+    {Concepto:'En demo',Unidades:sxe['En demo']||0},
+    {Concepto:'Reservado',Unidades:sxe['Reservado']||0},
+    {Concepto:'No conforme',Unidades:sxe['No conforme']||0},
+    {Concepto:'TOTAL unidades',Unidades:stockVig.length},
+    {Concepto:'',Unidades:''},
+    {Concepto:'Valor total stock USD (manual)',Unidades:valorStock}
   ];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stockData),'Stock');
 
@@ -4803,7 +4801,7 @@ function exportDashboardChile(){
   var sintesisData=[
     {Indicador:'Saldo vigente USD',Valor:saldoVig,'Detalle':aporteTotal>0?(Math.round(saldoVig/aporteTotal*100)+'% del aporte'):''},
     {Indicador:'Gasto acumulado USD',Valor:gastoAcum,'Detalle':'Oficina + DEAM '+anioActual},
-    {Indicador:'Stock vigente (valor USD)',Valor:stockVig.length*precio,'Detalle':stockVig.length+' unidades · $'+precio+'/u'},
+    {Indicador:'Stock vigente (valor USD)',Valor:valorStock,'Detalle':stockVig.length+' unidades · valor manual'},
     {Indicador:'Compras Chile USD FOB',Valor:totComprasUsd,'Detalle':comprasCh.length+' pedidos'},
     {Indicador:'',Valor:'',Detalle:''},
     {Indicador:'Aporte total USD',Valor:aporteTotal,'Detalle':''},
