@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <style>
-:root{
+:root,[data-theme="oscuro"]{
 --bg:#1e2a3a;--bg2:#263548;--bg3:#2f4158;--border:#3d5268;
 --text:#e8eef5;--text2:#95a7bd;
 --cyan:#00b4d8;--cyan-hover:#0099bb;--cyan-soft:rgba(0,180,216,0.12);
@@ -17,6 +17,96 @@
 --red:#ef5a6f;--red-soft:rgba(239,90,111,0.15);
 --yellow:#f4b942;--yellow-soft:rgba(244,185,66,0.15);
 --shadow:0 2px 8px rgba(0,0,0,0.25);--shadow-lg:0 8px 24px rgba(0,0,0,0.35);
+}
+[data-theme="slate"]{
+--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--border:#475569;
+--text:#f1f5f9;--text2:#94a3b8;
+--cyan:#38bdf8;--cyan-hover:#0ea5e9;--cyan-soft:rgba(56,189,248,0.12);
+--lime:#a3e635;--green:#86efac;--lime-hover:#84cc16;--lime-soft:rgba(163,230,53,0.15);
+--deep-blue:#172554;
+--red:#f87171;--red-soft:rgba(248,113,113,0.15);
+--yellow:#fbbf24;--yellow-soft:rgba(251,191,36,0.15);
+--shadow:0 2px 8px rgba(0,0,0,0.3);--shadow-lg:0 8px 24px rgba(0,0,0,0.4);
+}
+[data-theme="carbon"]{
+--bg:#171717;--bg2:#262626;--bg3:#404040;--border:#525252;
+--text:#fafafa;--text2:#a3a3a3;
+--cyan:#06b6d4;--cyan-hover:#0891b2;--cyan-soft:rgba(6,182,212,0.12);
+--lime:#84cc16;--green:#bef264;--lime-hover:#65a30d;--lime-soft:rgba(132,204,22,0.15);
+--deep-blue:#1e3a8a;
+--red:#ef4444;--red-soft:rgba(239,68,68,0.15);
+--yellow:#eab308;--yellow-soft:rgba(234,179,8,0.15);
+--shadow:0 2px 8px rgba(0,0,0,0.4);--shadow-lg:0 8px 24px rgba(0,0,0,0.5);
+}
+[data-theme="claro"]{
+--bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--border:#cbd5e1;
+--text:#0f172a;--text2:#64748b;
+--cyan:#0891b2;--cyan-hover:#0e7490;--cyan-soft:rgba(8,145,178,0.10);
+--lime:#65a30d;--green:#16a34a;--lime-hover:#4d7c0f;--lime-soft:rgba(101,163,13,0.10);
+--deep-blue:#1e40af;
+--red:#dc2626;--red-soft:rgba(220,38,38,0.10);
+--yellow:#ca8a04;--yellow-soft:rgba(202,138,4,0.10);
+--shadow:0 2px 6px rgba(0,0,0,0.08);--shadow-lg:0 8px 20px rgba(0,0,0,0.12);
+}
+[data-theme="sepia"]{
+--bg:#f5efe6;--bg2:#faf5ec;--bg3:#ebe2d2;--border:#c9b896;
+--text:#3a2f1f;--text2:#7d6a4f;
+--cyan:#8b5a2b;--cyan-hover:#6b4520;--cyan-soft:rgba(139,90,43,0.12);
+--lime:#7c8a36;--green:#5d8a4a;--lime-hover:#5e6926;--lime-soft:rgba(124,138,54,0.15);
+--deep-blue:#5d4e3e;
+--red:#a83d3d;--red-soft:rgba(168,61,61,0.12);
+--yellow:#b8860b;--yellow-soft:rgba(184,134,11,0.12);
+--shadow:0 2px 8px rgba(120,90,50,0.15);--shadow-lg:0 8px 24px rgba(120,90,50,0.25);
+}
+[data-theme="oceanico"]{
+--bg:#0a1929;--bg2:#0f2942;--bg3:#1a3a5c;--border:#2c5078;
+--text:#e3f2fd;--text2:#90caf9;
+--cyan:#29b6f6;--cyan-hover:#03a9f4;--cyan-soft:rgba(41,182,246,0.15);
+--lime:#26a69a;--green:#4dd0e1;--lime-hover:#00897b;--lime-soft:rgba(38,166,154,0.15);
+--deep-blue:#01579b;
+--red:#ff5252;--red-soft:rgba(255,82,82,0.15);
+--yellow:#ffd54f;--yellow-soft:rgba(255,213,79,0.15);
+--shadow:0 2px 8px rgba(0,30,60,0.3);--shadow-lg:0 8px 24px rgba(0,30,60,0.4);
+}
+[data-theme="bosque"]{
+--bg:#1a2e1f;--bg2:#243d2a;--bg3:#2f5036;--border:#456649;
+--text:#e8f0ea;--text2:#a4b8a7;
+--cyan:#5eead4;--cyan-hover:#2dd4bf;--cyan-soft:rgba(94,234,212,0.12);
+--lime:#bef264;--green:#86efac;--lime-hover:#a3e635;--lime-soft:rgba(190,242,100,0.15);
+--deep-blue:#14532d;
+--red:#fb7185;--red-soft:rgba(251,113,133,0.15);
+--yellow:#fde047;--yellow-soft:rgba(253,224,71,0.15);
+--shadow:0 2px 8px rgba(0,30,15,0.3);--shadow-lg:0 8px 24px rgba(0,30,15,0.4);
+}
+[data-theme="violeta"]{
+--bg:#1e1b2e;--bg2:#2a253c;--bg3:#3a3354;--border:#534a7a;
+--text:#f1ecff;--text2:#a89cd1;
+--cyan:#a78bfa;--cyan-hover:#8b5cf6;--cyan-soft:rgba(167,139,250,0.15);
+--lime:#c084fc;--green:#86efac;--lime-hover:#a855f7;--lime-soft:rgba(192,132,252,0.15);
+--deep-blue:#4c1d95;
+--red:#f472b6;--red-soft:rgba(244,114,182,0.15);
+--yellow:#fcd34d;--yellow-soft:rgba(252,211,77,0.15);
+--shadow:0 2px 8px rgba(30,20,60,0.4);--shadow-lg:0 8px 24px rgba(30,20,60,0.5);
+}
+[data-theme="rose"]{
+--bg:#2a1820;--bg2:#3d242f;--bg3:#523340;--border:#724a5b;
+--text:#fce7e8;--text2:#c89aa6;
+--cyan:#fb7185;--cyan-hover:#f43f5e;--cyan-soft:rgba(251,113,133,0.15);
+--lime:#fda4af;--green:#86efac;--lime-hover:#fb7185;--lime-soft:rgba(253,164,175,0.15);
+--deep-blue:#831843;
+--red:#ef4444;--red-soft:rgba(239,68,68,0.15);
+--yellow:#fbbf24;--yellow-soft:rgba(251,191,36,0.15);
+--shadow:0 2px 8px rgba(60,15,30,0.4);--shadow-lg:0 8px 24px rgba(60,15,30,0.5);
+}
+[data-theme="solarized"]{
+--bg:#fdf6e3;--bg2:#eee8d5;--bg3:#fffaeb;--border:#93a1a1;
+--text:#073642;--text2:#586e75;
+--cyan:#268bd2;--cyan-hover:#1e6fa7;--cyan-soft:rgba(38,139,210,0.10);
+--lime:#859900;--green:#2aa198;--lime-hover:#6b7d00;--lime-soft:rgba(133,153,0,0.12);
+--deep-blue:#073642;
+--red:#dc322f;--red-soft:rgba(220,50,47,0.10);
+--yellow:#b58900;--yellow-soft:rgba(181,137,0,0.10);
+--shadow:0 2px 6px rgba(0,0,0,0.08);--shadow-lg:0 8px 20px rgba(0,0,0,0.12);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
@@ -263,6 +353,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
 
     <div class="sbFoot">
+      <div style="padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">
+        <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;text-align:center">🎨 Paleta</div>
+        <div id="paletaSelector" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center"></div>
+      </div>
       <div class="ubadge">
         <div class="uav" id="uav">AD</div>
         <div><div id="uname" style="font-size:12px;font-weight:600">Admin</div><div id="urole" style="font-size:10px;color:var(--cyan)">Administrador</div></div>
@@ -342,6 +436,9 @@ var C={
   pago_imputaciones:[],
   ajustes_compras:[],
   proveedor_adjuntos:[],
+  // Tanda 3
+  ajustes_ventas:[],
+  transferencias_cajas:[],
   usuario_permisos:[]
 };
 
@@ -395,6 +492,7 @@ function login(){
     var thisYear=new Date().getFullYear();
     if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
     else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
+    if(typeof renderSelectorPaletas==='function')renderSelectorPaletas();
     go(CU&&CU.role==='logistica'?'compras':'dashboard');
   });
 }
@@ -441,7 +539,9 @@ function loadAll(){
     sbGet('pagos_proveedores','select=*&order=fecha.desc').catch(function(){return[];}),
     sbGet('pago_imputaciones','select=*').catch(function(){return[];}),
     sbGet('ajustes_compras','select=*&order=fecha.desc').catch(function(){return[];}),
-    sbGet('proveedor_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
+    sbGet('proveedor_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
+    sbGet('ajustes_ventas','select=*&order=fecha.desc').catch(function(){return[];}),
+    sbGet('transferencias_cajas','select=*&order=fecha.desc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -496,6 +596,8 @@ function loadAll(){
     C.pago_imputaciones=Array.isArray(res[32])?res[32]:[];
     C.ajustes_compras=Array.isArray(res[33])?res[33]:[];
     C.proveedor_adjuntos=Array.isArray(res[34])?res[34]:[];
+    C.ajustes_ventas=Array.isArray(res[35])?res[35]:[];
+    C.transferencias_cajas=Array.isArray(res[36])?res[36]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -6010,12 +6112,14 @@ function pgClientes(){
     '<div class="tab'+(clientesTab==='datos'?' active':'')+'" onclick="clientesTab=\'datos\';go(\'clientes\')">👥 Datos</div>'+
     '<div class="tab'+(clientesTab==='ventas'?' active':'')+'" onclick="clientesTab=\'ventas\';go(\'clientes\')">📤 Ventas</div>'+
     '<div class="tab'+(clientesTab==='cobros'?' active':'')+'" onclick="clientesTab=\'cobros\';go(\'clientes\')">💵 Cobros</div>'+
+    '<div class="tab'+(clientesTab==='ajustes'?' active':'')+'" onclick="clientesTab=\'ajustes\';go(\'clientes\')">⚖️ Ajustes contables</div>'+
     '<div class="tab'+(clientesTab==='ctacte'?' active':'')+'" onclick="clientesTab=\'ctacte\';go(\'clientes\')">📊 Cuenta Corriente</div>'+
     '</div>';
   var contenido='';
   if(clientesTab==='datos')contenido=renderTabClientesDatos();
   else if(clientesTab==='ventas')contenido=renderTabVentas();
   else if(clientesTab==='cobros')contenido=renderTabCobros();
+  else if(clientesTab==='ajustes')contenido=renderTabAjustesVentas();
   else if(clientesTab==='ctacte')contenido=renderTabCtaCte();
   return ejGlobalBar()+
     '<div class="pageTitle">👥 Clientes</div>'+
@@ -6024,6 +6128,7 @@ function pgClientes(){
     '<div id="modalCliente" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalVenta" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalCobro" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalAjusteVenta" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalImpBanco" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1100;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>';
 }
 
@@ -9415,10 +9520,17 @@ function pgTesoreria(){
   var tabs='<div class="tabs">'+
     '<div class="tab'+(tesoTab==='semanal'?' active':'')+'" onclick="tesoTab=\'semanal\';tesoPeriodos=8;go(\'tesoreria\')">📅 Vista semanal</div>'+
     '<div class="tab'+(tesoTab==='mensual'?' active':'')+'" onclick="tesoTab=\'mensual\';tesoPeriodos=6;go(\'tesoreria\')">📆 Vista mensual</div>'+
+    '<div class="tab'+(tesoTab==='calendario'?' active':'')+'" onclick="tesoTab=\'calendario\';go(\'tesoreria\')">🗓️ Calendario</div>'+
+    '<div class="tab'+(tesoTab==='transferencias'?' active':'')+'" onclick="tesoTab=\'transferencias\';go(\'tesoreria\')">🔄 Transferencias</div>'+
     '</div>';
+  var contenido='';
+  if(tesoTab==='semanal'||tesoTab==='mensual')contenido=renderFlujoCaja(tesoTab,tesoPeriodos);
+  else if(tesoTab==='calendario')contenido=renderCalendarioTesoreria();
+  else if(tesoTab==='transferencias')contenido=renderTransferencias();
   return '<div class="pageTitle">💰 Tesorería — Flujo de Caja Proyectado</div>'+
     '<div class="alert ainfo">📊 Proyección de flujo basada en vencimientos de ventas (cobros esperados) y compras (pagos a vencer). Saldos en USD.</div>'+
-    tabs+renderFlujoCaja(tesoTab,tesoPeriodos);
+    tabs+contenido+
+    '<div id="modalTransfer" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>';
 }
 
 // === HELPERS ===
@@ -9850,6 +9962,532 @@ function hacerBackupCompleto(){
     console.error('Error backup:',e);
     toast('Error en backup: '+(e.message||e),'error');
   }
+}
+
+</script>
+</script>
+<script>
+// ============================================================
+// PALETAS DE COLORES
+// ============================================================
+var PALETAS=[
+  {id:'oscuro',nombre:'Oscuro',color:'#1e2a3a',cyan:'#00b4d8'},
+  {id:'slate',nombre:'Slate',color:'#0f172a',cyan:'#38bdf8'},
+  {id:'carbon',nombre:'Carbón',color:'#171717',cyan:'#06b6d4'},
+  {id:'claro',nombre:'Claro',color:'#f8fafc',cyan:'#0891b2'},
+  {id:'sepia',nombre:'Sepia',color:'#f5efe6',cyan:'#8b5a2b'},
+  {id:'oceanico',nombre:'Oceánico',color:'#0a1929',cyan:'#29b6f6'},
+  {id:'bosque',nombre:'Bosque',color:'#1a2e1f',cyan:'#5eead4'},
+  {id:'violeta',nombre:'Violeta',color:'#1e1b2e',cyan:'#a78bfa'},
+  {id:'rose',nombre:'Rosé',color:'#2a1820',cyan:'#fb7185'},
+  {id:'solarized',nombre:'Solarized',color:'#fdf6e3',cyan:'#268bd2'}
+];
+function aplicarPaleta(id){
+  document.documentElement.setAttribute('data-theme',id);
+  try{localStorage.setItem('leex_paleta',id);}catch(e){}
+  renderSelectorPaletas();
+}
+function getPaletaActual(){
+  try{return localStorage.getItem('leex_paleta')||'oscuro';}catch(e){return 'oscuro';}
+}
+function renderSelectorPaletas(){
+  var sel=document.getElementById('paletaSelector');
+  if(!sel)return;
+  var actual=getPaletaActual();
+  sel.innerHTML=PALETAS.map(function(p){
+    var sel=p.id===actual;
+    return '<button onclick="aplicarPaleta(\''+p.id+'\')" title="'+p.nombre+'" style="width:24px;height:24px;border-radius:6px;border:2px solid '+(sel?p.cyan:'transparent')+';background:linear-gradient(135deg,'+p.color+' 50%,'+p.cyan+' 50%);cursor:pointer;outline:none;padding:0;transition:transform .15s" onmouseover="this.style.transform=\'scale(1.15)\'" onmouseout="this.style.transform=\'scale(1)\'"></button>';
+  }).join('');
+}
+// Aplicar paleta guardada al iniciar
+(function initPaleta(){
+  var guardada=null;
+  try{guardada=localStorage.getItem('leex_paleta');}catch(e){}
+  if(guardada)document.documentElement.setAttribute('data-theme',guardada);
+})();
+
+</script>
+<script>
+// ============================================================
+// CALENDARIO DE TESORERÍA — Vencimientos del mes
+// ============================================================
+var calendarioMes=null;  // {year, month} - se inicializa al mes actual
+function initCalendarioMes(){
+  if(!calendarioMes){
+    var d=new Date();
+    calendarioMes={year:d.getFullYear(),month:d.getMonth()};
+  }
+  return calendarioMes;
+}
+function cambiarMesCalendario(delta){
+  var c=initCalendarioMes();
+  c.month+=delta;
+  if(c.month<0){c.month=11;c.year--;}
+  if(c.month>11){c.month=0;c.year++;}
+  go('tesoreria');
+}
+function renderCalendarioTesoreria(){
+  var c=initCalendarioMes();
+  var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var dias=['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
+  var primerDia=new Date(c.year,c.month,1);
+  var ultimoDia=new Date(c.year,c.month+1,0);
+  var diaSemPrimer=primerDia.getDay()||7;  // 1-7 (lun-dom)
+  var totalDias=ultimoDia.getDate();
+  // Eventos del mes (cobros + pagos)
+  var hoyStr=hoy();
+  var eventos={};  // YYYY-MM-DD => {cobros:[], pagos:[]}
+  (C.ventas||[]).forEach(function(v){
+    if(!v.fecha_vencimiento)return;
+    if(v.fecha_vencimiento.substring(0,7)!==isoMonth(c.year,c.month))return;
+    var saldo=saldoVenta(v);
+    if(saldo<=0.01)return;
+    if(!eventos[v.fecha_vencimiento])eventos[v.fecha_vencimiento]={cobros:[],pagos:[]};
+    var cli=(C.clientes||[]).find(function(x){return x.id===v.cliente_id;});
+    eventos[v.fecha_vencimiento].cobros.push({entidad:cli?cli.nombre_empresa:'(sin cliente)',ref:v.numero||v.factura||'#'+v.id,monto:saldo});
+  });
+  (C.compras||[]).forEach(function(co){
+    if(!co.vencimiento_prov)return;
+    if(co.vencimiento_prov.substring(0,7)!==isoMonth(c.year,c.month))return;
+    var saldo=saldoCompra(co);
+    if(saldo<=0.01)return;
+    if(!eventos[co.vencimiento_prov])eventos[co.vencimiento_prov]={cobros:[],pagos:[]};
+    var prov=co.proveedor_id?proveedorName(co.proveedor_id):(co.proveedor||'(sin prov.)');
+    eventos[co.vencimiento_prov].pagos.push({entidad:prov,ref:co.pedido||'#'+co.id,monto:saldo});
+  });
+  // Calcular totales del mes
+  var totCobrosMes=0,totPagosMes=0,totCobrosVenc=0,totPagosVenc=0;
+  Object.keys(eventos).forEach(function(fecha){
+    var ev=eventos[fecha];
+    ev.cobros.forEach(function(c){totCobrosMes+=c.monto;if(fecha<hoyStr)totCobrosVenc+=c.monto;});
+    ev.pagos.forEach(function(p){totPagosMes+=p.monto;if(fecha<hoyStr)totPagosVenc+=p.monto;});
+  });
+  // Render header con navegación
+  var header='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'+
+    '<div style="display:flex;align-items:center;gap:10px">'+
+    '<button class="btn bs sm" onclick="cambiarMesCalendario(-1)">◀</button>'+
+    '<div style="font-size:16px;font-weight:700;min-width:180px;text-align:center">'+meses[c.month]+' '+c.year+'</div>'+
+    '<button class="btn bs sm" onclick="cambiarMesCalendario(1)">▶</button>'+
+    '<button class="btn bs sm" onclick="calendarioMes=null;go(\'tesoreria\')" title="Volver al mes actual">📍 Hoy</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:14px;font-size:11px">'+
+    '<div><span style="color:var(--green);font-weight:600">⬆ Cobros:</span> $'+fmtN(totCobrosMes)+' USD</div>'+
+    '<div><span style="color:var(--red);font-weight:600">⬇ Pagos:</span> $'+fmtN(totPagosMes)+' USD</div>'+
+    '<div><span style="font-weight:600">Neto:</span> '+fmtS(totCobrosMes-totPagosMes)+'</div>'+
+    '</div></div>';
+  // Render grid
+  var cells='';
+  // Espacios vacíos antes del primer día
+  for(var i=1;i<diaSemPrimer;i++){
+    cells+='<div style="background:var(--bg3);min-height:90px;border-radius:6px;opacity:.3"></div>';
+  }
+  for(var d=1;d<=totalDias;d++){
+    var fechaCelda=isoMonth(c.year,c.month)+'-'+('0'+d).slice(-2);
+    var esHoy=fechaCelda===hoyStr;
+    var esPasado=fechaCelda<hoyStr;
+    var ev=eventos[fechaCelda]||{cobros:[],pagos:[]};
+    var totCobs=ev.cobros.reduce(function(s,x){return s+x.monto;},0);
+    var totPags=ev.pagos.reduce(function(s,x){return s+x.monto;},0);
+    var hayEventos=ev.cobros.length>0||ev.pagos.length>0;
+    var alerta=esPasado&&hayEventos;
+    var bgCelda=esHoy?'var(--cyan-soft)':alerta?'rgba(232,87,87,0.08)':'var(--bg2)';
+    var borderCelda=esHoy?'2px solid var(--cyan)':alerta?'1px solid var(--red)':'1px solid var(--border)';
+    var detalleHTML='';
+    if(ev.cobros.length>0){
+      detalleHTML+='<div style="margin-top:3px"><span style="font-size:10px;background:rgba(34,197,94,.15);color:var(--green);padding:1px 5px;border-radius:8px;font-weight:600" title="'+ev.cobros.length+' cobros · '+fmtN(totCobs)+' USD">+'+fmtN(totCobs)+'</span></div>';
+    }
+    if(ev.pagos.length>0){
+      detalleHTML+='<div style="margin-top:2px"><span style="font-size:10px;background:rgba(239,68,68,.15);color:var(--red);padding:1px 5px;border-radius:8px;font-weight:600" title="'+ev.pagos.length+' pagos · '+fmtN(totPags)+' USD">-'+fmtN(totPags)+'</span></div>';
+    }
+    var clickable=hayEventos?'cursor:pointer" onclick="verEventosDia(\''+fechaCelda+'\')':'';
+    cells+='<div style="background:'+bgCelda+';border:'+borderCelda+';border-radius:6px;padding:6px;min-height:90px;overflow:hidden;'+clickable+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'+
+      '<span style="font-size:13px;font-weight:'+(esHoy?'700':'600')+';color:'+(esHoy?'var(--cyan)':alerta?'var(--red)':'var(--text)')+'">'+d+'</span>'+
+      (alerta?'<span style="font-size:9px;color:var(--red)" title="Vencido">⚠</span>':'')+
+      '</div>'+detalleHTML+'</div>';
+  }
+  var grid='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:14px">'+
+    dias.map(function(dn){return '<div style="text-align:center;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600;padding:4px">'+dn+'</div>';}).join('')+
+    cells+'</div>';
+  // Lista de próximos vencimientos del mes
+  var proxRows='';
+  var eventosOrdenados=Object.keys(eventos).sort();
+  if(eventosOrdenados.length===0){
+    proxRows='<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--text2)">Sin vencimientos en este mes</td></tr>';
+  }else{
+    eventosOrdenados.forEach(function(fecha){
+      var ev=eventos[fecha];
+      var esPas=fecha<hoyStr;
+      ev.cobros.forEach(function(co){
+        proxRows+='<tr'+(esPas?' style="background:rgba(232,87,87,0.05)"':'')+'><td>'+fmtD(fecha)+(esPas?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td><td><span style="color:var(--green);font-weight:600">⬆ Cobro</span></td><td>'+escapeHtml(co.entidad)+'</td><td style="font-family:monospace;font-size:11px">'+escapeHtml(co.ref)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--green)">+'+fmtN(co.monto)+'</td></tr>';
+      });
+      ev.pagos.forEach(function(p){
+        proxRows+='<tr'+(esPas?' style="background:rgba(232,87,87,0.05)"':'')+'><td>'+fmtD(fecha)+(esPas?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td><td><span style="color:var(--red);font-weight:600">⬇ Pago</span></td><td>'+escapeHtml(p.entidad)+'</td><td style="font-family:monospace;font-size:11px">'+escapeHtml(p.ref)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--red)">-'+fmtN(p.monto)+'</td></tr>';
+      });
+    });
+  }
+  return header+grid+
+    '<div class="twrap"><div class="thead2"><h3>Detalle del mes</h3></div>'+
+    '<table><thead><tr><th>Fecha</th><th>Tipo</th><th>Entidad</th><th>Ref.</th><th style="text-align:right">Monto USD</th></tr></thead><tbody>'+proxRows+'</tbody></table>'+
+    '</div>';
+}
+function isoMonth(y,m){return y+'-'+('0'+(m+1)).slice(-2);}
+function verEventosDia(fecha){
+  // Por ahora solo scroll a la tabla; podríamos abrir modal en el futuro
+  toast('Fecha: '+fmtD(fecha)+' — ver detalle abajo','info');
+}
+
+</script>
+<script>
+// ============================================================
+// TRANSFERENCIAS ENTRE CAJAS
+// ============================================================
+var CAJAS_DISPONIBLES=[
+  {id:'banco',nombre:'Banco (USD)',moneda:'USD'},
+  {id:'caja_deam',nombre:'Caja DEAM (USD)',moneda:'USD'},
+  {id:'caja_chile_oficina',nombre:'Caja Oficina Chile (CLP)',moneda:'CLP'},
+  {id:'caja_chile_aporte',nombre:'Aporte Chile (USD)',moneda:'USD'}
+];
+function renderTransferencias(){
+  var transfs=(C.transferencias_cajas||[]).slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  var rows='';
+  transfs.forEach(function(t){
+    var origenNom=CAJAS_DISPONIBLES.find(function(c){return c.id===t.caja_origen;});
+    var destinoNom=CAJAS_DISPONIBLES.find(function(c){return c.id===t.caja_destino;});
+    rows+='<tr>'+
+      '<td>'+fmtD(t.fecha)+'</td>'+
+      '<td>'+(origenNom?escapeHtml(origenNom.nombre):escapeHtml(t.caja_origen))+'</td>'+
+      '<td><span style="color:var(--cyan)">→</span></td>'+
+      '<td>'+(destinoNom?escapeHtml(destinoNom.nombre):escapeHtml(t.caja_destino))+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(t.importe_origen)+' '+(t.moneda_origen||'')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(t.importe_destino)+' '+(t.moneda_destino||'')+'</td>'+
+      '<td class="cyan" style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600">'+fmtN(t.importe_usd)+'</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+escapeHtml(t.descripcion||'—')+'</td>'+
+      '<td><button class="miniBtn" style="color:var(--red)" onclick="deleteTransferencia('+t.id+')" title="Eliminar">🗑</button></td>'+
+      '</tr>';
+  });
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Total transferencias</div><div class="val">'+transfs.length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">USD movidos (acum.)</div><div class="val cyan">'+fmtN(transfs.reduce(function(s,t){return s+(parseFloat(t.importe_usd)||0);},0))+'</div></div>'+
+    '</div>'+
+    '<div class="alert ainfo" style="margin-bottom:14px">🔄 <strong>Transferencias entre cajas</strong> registran movimientos de fondos entre Banco / Caja DEAM / Caja Chile. <em>Solo registro</em> — no genera asiento contable automático (puede crearse manual desde Nuevo Asiento si corresponde).</div>'+
+    '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px">'+
+    '<button class="btn bp" onclick="abrirModalTransferencia()">+ Nueva Transferencia</button>'+
+    '<button class="btn bs" onclick="exportTransferenciasExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Histórico de transferencias</h3></div>'+
+    (transfs.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">🔄 Sin transferencias registradas. <a href="#" onclick="abrirModalTransferencia();return false;" style="color:var(--cyan)">Crear la primera →</a></div>':
+      '<div style="overflow-x:auto"><table style="min-width:1100px"><thead><tr><th>Fecha</th><th>Origen</th><th></th><th>Destino</th><th style="text-align:right">Importe Origen</th><th style="text-align:right">Importe Destino</th><th style="text-align:right">USD equivalente</th><th>Descripción</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+function abrirModalTransferencia(){
+  var p={fecha:hoy(),caja_origen:'',caja_destino:'',importe_origen:'',moneda_origen:'',importe_destino:'',moneda_destino:'',tipo_cambio:'',importe_usd:'',descripcion:'',url:''};
+  var modalContent='<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:800px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">🔄 Nueva Transferencia entre Cajas</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalTransfer()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:20px">'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="trF" value="'+hoy()+'"/></div>'+
+    '<div class="f"></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">⬇ ORIGEN (de dónde sale)</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Caja origen *</label><select id="trCajaOri" onchange="actualizarMonedaTransfer(\'ori\')">'+opcionesCajas('')+'</select></div>'+
+    '<div class="f"><label>Importe</label><input type="number" id="trImpOri" step="0.01" min="0" oninput="calcImporteUSDTransfer()" placeholder="0.00"/></div>'+
+    '<div class="f"><label>Moneda</label><input type="text" id="trMonOri" readonly placeholder="—" style="color:var(--text2);background:var(--bg3)"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">⬆ DESTINO (a dónde llega)</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Caja destino *</label><select id="trCajaDes" onchange="actualizarMonedaTransfer(\'des\')">'+opcionesCajas('')+'</select></div>'+
+    '<div class="f"><label>Importe</label><input type="number" id="trImpDes" step="0.01" min="0" oninput="calcImporteUSDTransfer()" placeholder="0.00"/></div>'+
+    '<div class="f"><label>Moneda</label><input type="text" id="trMonDes" readonly placeholder="—" style="color:var(--text2);background:var(--bg3)"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Tipo de cambio <span style="font-size:9px;color:var(--text2)">(si distintas monedas)</span></label><input type="number" id="trTC" step="0.0001" min="0" oninput="calcImporteUSDTransfer()" placeholder="0.0000"/></div>'+
+    '<div class="f"><label>Importe USD equivalente <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="trUSD" readonly value="" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Descripción</label><input type="text" id="trDesc" placeholder="Ej: Aporte mensual a Chile"/></div>'+
+    '<div class="f"><label>URL/Comprobante</label><input type="text" id="trUrl" placeholder="https://..."/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarTransferencia()">💾 Crear transferencia</button>'+
+    '<button class="btn bs" onclick="cerrarModalTransfer()">Cancelar</button>'+
+    '</div></div></div>';
+  var modal=document.getElementById('modalTransfer');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+function opcionesCajas(sel){
+  return '<option value="">— elegir caja —</option>'+CAJAS_DISPONIBLES.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel?' selected':'')+' data-moneda="'+c.moneda+'">'+escapeHtml(c.nombre)+'</option>';}).join('');
+}
+function cerrarModalTransfer(){
+  var m=document.getElementById('modalTransfer');
+  if(m){m.style.display='none';m.innerHTML='';}
+}
+function actualizarMonedaTransfer(tipo){
+  var selId=tipo==='ori'?'trCajaOri':'trCajaDes';
+  var monId=tipo==='ori'?'trMonOri':'trMonDes';
+  var s=document.getElementById(selId);
+  var caja=CAJAS_DISPONIBLES.find(function(c){return c.id===s.value;});
+  document.getElementById(monId).value=caja?caja.moneda:'';
+  calcImporteUSDTransfer();
+}
+function calcImporteUSDTransfer(){
+  var monOri=document.getElementById('trMonOri').value;
+  var impOri=parseFloat(document.getElementById('trImpOri').value)||0;
+  var tc=parseFloat(document.getElementById('trTC').value)||0;
+  var usd=0;
+  if(monOri==='USD')usd=impOri;
+  else if(tc>0)usd=impOri/tc;
+  document.getElementById('trUSD').value=usd>0?fmtN(usd):'';
+}
+function guardarTransferencia(){
+  if(lockSubmit('guardarTransferencia'))return;
+  var origen=document.getElementById('trCajaOri').value;
+  var destino=document.getElementById('trCajaDes').value;
+  var fecha=document.getElementById('trF').value;
+  if(!origen||!destino){unlockSubmit('guardarTransferencia');toast('Elegí origen y destino','error');return;}
+  if(origen===destino){unlockSubmit('guardarTransferencia');toast('Origen y destino no pueden ser iguales','error');return;}
+  if(!fecha){unlockSubmit('guardarTransferencia');toast('Falta fecha','error');return;}
+  var impOri=parseFloat(document.getElementById('trImpOri').value)||0;
+  var impDes=parseFloat(document.getElementById('trImpDes').value)||0;
+  var monOri=document.getElementById('trMonOri').value;
+  var monDes=document.getElementById('trMonDes').value;
+  var tc=parseFloat(document.getElementById('trTC').value)||0;
+  var usd=monOri==='USD'?impOri:(tc>0?impOri/tc:0);
+  if(impOri<=0||impDes<=0){unlockSubmit('guardarTransferencia');toast('Los importes deben ser > 0','error');return;}
+  if(monOri!=='USD'&&tc<=0){unlockSubmit('guardarTransferencia');toast('Para '+monOri+' necesitás TC a USD','error');return;}
+  var payload={
+    fecha:fecha,
+    caja_origen:origen,
+    caja_destino:destino,
+    importe_origen:impOri,
+    moneda_origen:monOri,
+    importe_destino:impDes,
+    moneda_destino:monDes,
+    tipo_cambio:tc||null,
+    importe_usd:usd,
+    descripcion:document.getElementById('trDesc').value.trim()||null,
+    url:document.getElementById('trUrl').value.trim()||null
+  };
+  sbPost('transferencias_cajas',payload).then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarTransferencia');return;}
+    auditLog('create','Transferencia',origen+' → '+destino+' · USD '+usd);
+    toast('Transferencia registrada','success');
+    unlockSubmit('guardarTransferencia');
+    cerrarModalTransfer();reload('tesoreria');
+  });
+}
+function deleteTransferencia(id){
+  if(!confirm('¿Eliminar esta transferencia?'))return;
+  sbDelete('transferencias_cajas',id).then(function(){
+    auditLog('delete','Transferencia','ID '+id);
+    toast('Transferencia eliminada','success');reload('tesoreria');
+  });
+}
+function exportTransferenciasExcel(){
+  var data=(C.transferencias_cajas||[]).map(function(t){
+    var o=CAJAS_DISPONIBLES.find(function(c){return c.id===t.caja_origen;});
+    var d=CAJAS_DISPONIBLES.find(function(c){return c.id===t.caja_destino;});
+    return {Fecha:t.fecha,Origen:o?o.nombre:t.caja_origen,Destino:d?d.nombre:t.caja_destino,Importe_Origen:t.importe_origen,Moneda_Origen:t.moneda_origen,Importe_Destino:t.importe_destino,Moneda_Destino:t.moneda_destino,TC:t.tipo_cambio,Importe_USD:t.importe_usd,Descripcion:t.descripcion};
+  });
+  if(data.length===0){toast('Sin datos','info');return;}
+  exportExcel(data,Object.keys(data[0]),'Transferencias_'+hoy(),'Transferencias');
+}
+
+</script>
+<script>
+
+// ============================================================
+// AJUSTES CONTABLES DE VENTAS (notas crédito/débito de clientes)
+// Espejo de ajustes_compras pero para clientes
+// ============================================================
+var ajustesVentasFiltros={busca:'',clienteId:'',tipo:'',fechaDesde:'',fechaHasta:''};
+var editAjusteVentaId=null;
+
+function ajustesDeCliente(clienteId){
+  return (C.ajustes_ventas||[]).filter(function(a){return a.cliente_id===clienteId;});
+}
+
+function renderTabAjustesVentas(){
+  var F=ajustesVentasFiltros;
+  var fil=(C.ajustes_ventas||[]).filter(function(a){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var cli=(C.clientes||[]).find(function(x){return x.id===a.cliente_id;});
+      var nomCli=cli?cli.nombre_empresa:'';
+      var match=nomCli.toLowerCase().indexOf(b)>-1||(a.concepto||'').toLowerCase().indexOf(b)>-1||(a.observacion||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.clienteId&&a.cliente_id!=F.clienteId)return false;
+    if(F.tipo&&a.tipo!==F.tipo)return false;
+    if(F.fechaDesde&&a.fecha<F.fechaDesde)return false;
+    if(F.fechaHasta&&a.fecha>F.fechaHasta)return false;
+    return true;
+  });
+  var totDeb=0,totCre=0;
+  fil.forEach(function(a){var u=parseFloat(a.importe_usd)||0;if(a.tipo==='debito')totDeb+=u;else if(a.tipo==='credito')totCre+=u;});
+  function tipoSelOpts(sel){
+    var opts=[{value:'',label:'— Todos —'},{value:'debito',label:'Débito (↑ deuda cliente)'},{value:'credito',label:'Crédito (↓ deuda cliente)'}];
+    return opts.map(function(o){return '<option value="'+o.value+'"'+(o.value===sel?' selected':'')+'>'+o.label+'</option>';}).join('');
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosAjustesVentas()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalAjusteVenta(0)">+ Nuevo Ajuste</button>'+
+    '<button class="btn bs sm" onclick="exportAjustesVentasExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ajustesVentasFiltros.busca=this.value;clearTimeout(window._fajv);window._fajv=setTimeout(function(){go(\'clientes\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="ajustesVentasFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="ajustesVentasFiltros.tipo=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+tipoSelOpts(F.tipo)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="ajustesVentasFiltros.fechaDesde=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="ajustesVentasFiltros.fechaHasta=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '</div></div>';
+  function clienteName(id){var c=(C.clientes||[]).find(function(x){return x.id===id;});return c?c.nombre_empresa:'—';}
+  var rows='';
+  fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(a){
+    var tipoLbl=a.tipo==='debito'?'<span class="badge br">↑ Débito</span>':'<span class="badge bg">↓ Crédito</span>';
+    rows+='<tr>'+
+      '<td>'+fmtD(a.fecha)+'</td>'+
+      '<td style="font-weight:600">'+escapeHtml(clienteName(a.cliente_id))+'</td>'+
+      '<td>'+tipoLbl+'</td>'+
+      '<td>'+escapeHtml(a.concepto||'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(a.importe)+'</td>'+
+      '<td>'+(a.moneda||'USD')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(a.tipo_cambio?fmtN(a.tipo_cambio):'—')+'</td>'+
+      '<td class="'+(a.tipo==='debito'?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+(a.tipo==='debito'?'+':'-')+fmtN(a.importe_usd)+'</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+escapeHtml(a.observacion||'—')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        (a.url?'<a href="'+escapeHtml(a.url)+'" target="_blank" class="miniBtn" title="Doc">📄</a> ':'')+
+        '<button class="miniBtn" onclick="abrirModalAjusteVenta('+a.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteAjusteVenta('+a.id+')" title="Eliminar">🗑</button>'+
+      '</td></tr>';
+  });
+  return '<div class="alert ainfo" style="margin-bottom:14px">⚖️ <strong>Ajustes contables de ventas</strong> son notas de débito (aumentan deuda del cliente) o crédito (la reducen) que NO modifican las ventas originales. Útiles para penalidades, bonificaciones, diferencias de cambio, devoluciones, etc.</div>'+
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Ajustes (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.ajustes_ventas||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Total Débitos USD</div><div class="val red">+'+fmtN(totDeb)+'</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Total Créditos USD</div><div class="val green">-'+fmtN(totCre)+'</div></div>'+
+    '<div class="card"><div class="lbl">Neto USD</div><div class="val">'+fmtS(totDeb-totCre)+'</div></div>'+
+    '</div>'+filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Ajustes Contables de Ventas</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.ajustes_ventas||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">⚖️ Sin ajustes cargados. <a href="#" onclick="abrirModalAjusteVenta(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Concepto</th><th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">Impacto USD</th><th>Observación</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+function limpiarFiltrosAjustesVentas(){ajustesVentasFiltros={busca:'',clienteId:'',tipo:'',fechaDesde:'',fechaHasta:''};go('clientes');}
+function exportAjustesVentasExcel(){
+  function clienteName(id){var c=(C.clientes||[]).find(function(x){return x.id===id;});return c?c.nombre_empresa:'—';}
+  var data=(C.ajustes_ventas||[]).map(function(a){return {Fecha:a.fecha,Cliente:clienteName(a.cliente_id),Tipo:a.tipo,Concepto:a.concepto,Importe:a.importe,Moneda:a.moneda,TC:a.tipo_cambio,Importe_USD:a.importe_usd,Observacion:a.observacion,URL:a.url};});
+  if(data.length===0){toast('Sin datos','info');return;}
+  exportExcel(data,Object.keys(data[0]),'Ajustes_Ventas_'+hoy(),'Ajustes');
+}
+
+function clienteOpts(sel,placeholder){
+  var h='<option value="">'+(placeholder||'— elegir cliente —')+'</option>';
+  (C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).forEach(function(c){
+    h+='<option value="'+c.id+'"'+(c.id==sel?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+(c.pais?' ('+escapeHtml(c.pais)+')':'')+'</option>';
+  });
+  return h;
+}
+
+function abrirModalAjusteVenta(id){
+  editAjusteVentaId=id;
+  var a=id===0?{fecha:hoy(),cliente_id:'',tipo:'debito',concepto:'',importe:'',moneda:'USD',tipo_cambio:'',importe_usd:'',observacion:'',url:''}:(C.ajustes_ventas||[]).find(function(x){return x.id===id;})||{};
+  var monedas=C.cfg_listas.moneda_cliente||C.cfg_listas.moneda_proveedor||['USD','CLP','ARS','EUR','CNY'];
+  var conceptos=C.cfg_listas.concepto_ajuste_venta||['Nota de débito','Nota de crédito','Bonificación','Penalidad','Diferencia de cambio','Devolución','Otro'];
+  function opts(arr,sel,ph){
+    var h='<option value="">'+(ph||'— elegir —')+'</option>';
+    arr.forEach(function(x){h+='<option value="'+escapeHtml(x)+'"'+(x===sel?' selected':'')+'>'+escapeHtml(x)+'</option>';});
+    return h;
+  }
+  var titulo=id===0?'➕ Nuevo Ajuste de Venta':'✏ Editar Ajuste';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:800px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalAjusteVenta()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:20px">'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="avF" value="'+(a.fecha||'')+'"/></div>'+
+    '<div class="f"><label>Cliente *</label><select id="avCli">'+clienteOpts(a.cliente_id,'— elegir —')+'</select></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Tipo *</label><select id="avTipo"><option value="debito"'+(a.tipo==='debito'?' selected':'')+'>↑ Débito (aumenta deuda del cliente)</option><option value="credito"'+(a.tipo==='credito'?' selected':'')+'>↓ Crédito (reduce deuda del cliente)</option></select></div>'+
+    '<div class="f"><label>Concepto *</label><select id="avConcepto">'+opts(conceptos,a.concepto)+'</select></div>'+
+    '</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Importe *</label><input type="number" id="avImp" value="'+(a.importe||'')+'" step="0.01" min="0" oninput="calcImporteUSDAjusteVenta()"/></div>'+
+    '<div class="f"><label>Moneda</label><select id="avMoneda" onchange="calcImporteUSDAjusteVenta()">'+opts(monedas,a.moneda||'USD','')+'</select></div>'+
+    '<div class="f"><label>Tipo de cambio</label><input type="number" id="avTC" value="'+(a.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDAjusteVenta()" placeholder="Si moneda ≠ USD"/></div>'+
+    '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="avUSD" readonly value="'+(a.importe_usd?fmtN(a.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>URL/Documento</label><input type="text" id="avUrl" value="'+escapeHtml(a.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observación</label><input type="text" id="avObs" value="'+escapeHtml(a.observacion||'')+'"/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarAjusteVenta()">💾 '+(id===0?'Crear ajuste':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarAjusteVenta(true)">💾➕ Crear + Nuevo</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalAjusteVenta()">Cancelar</button>'+
+    '</div></div></div>';
+  var modal=document.getElementById('modalAjusteVenta');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+  setTimeout(calcImporteUSDAjusteVenta,10);
+}
+function cerrarModalAjusteVenta(){
+  var m=document.getElementById('modalAjusteVenta');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editAjusteVentaId=null;
+}
+function calcImporteUSDAjusteVenta(){
+  var imp=parseFloat(document.getElementById('avImp').value)||0;
+  var mon=document.getElementById('avMoneda').value;
+  var tc=parseFloat(document.getElementById('avTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  document.getElementById('avUSD').value=usd>0?fmtN(usd):'';
+  var tcInp=document.getElementById('avTC');
+  if(mon==='USD'){tcInp.disabled=true;tcInp.value='';}else{tcInp.disabled=false;}
+}
+function guardarAjusteVenta(keepOpen){
+  if(lockSubmit('guardarAjusteVenta'))return;
+  var imp=parseFloat(document.getElementById('avImp').value)||0;
+  var mon=document.getElementById('avMoneda').value;
+  var tc=parseFloat(document.getElementById('avTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  var cliente=parseInt(document.getElementById('avCli').value);
+  if(!cliente){unlockSubmit('guardarAjusteVenta');toast('Elegí un cliente','error');return;}
+  if(!document.getElementById('avF').value){unlockSubmit('guardarAjusteVenta');toast('Falta fecha','error');return;}
+  if(imp<=0){unlockSubmit('guardarAjusteVenta');toast('Importe debe ser > 0','error');return;}
+  if(mon!=='USD'&&tc<=0){unlockSubmit('guardarAjusteVenta');toast('Para '+mon+' necesitás un TC','error');return;}
+  function clienteName(id){var c=(C.clientes||[]).find(function(x){return x.id===id;});return c?c.nombre_empresa:'—';}
+  var payload={fecha:document.getElementById('avF').value,cliente_id:cliente,tipo:document.getElementById('avTipo').value,concepto:document.getElementById('avConcepto').value||null,importe:imp,moneda:mon,tipo_cambio:mon==='USD'?null:tc,importe_usd:usd,observacion:document.getElementById('avObs').value.trim()||null,url:document.getElementById('avUrl').value.trim()||null};
+  var savePromise=editAjusteVentaId===0?sbPost('ajustes_ventas',payload):sbPatch('ajustes_ventas',editAjusteVentaId,payload);
+  savePromise.then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarAjusteVenta');return;}
+    auditLog(editAjusteVentaId===0?'create':'update','Ajuste Venta',payload.tipo+' USD '+usd+' · '+clienteName(cliente));
+    toast('Ajuste guardado','success');
+    unlockSubmit('guardarAjusteVenta');
+    if(keepOpen){cerrarModalAjusteVenta();loadAll().then(function(){abrirModalAjusteVenta(0);});}
+    else{cerrarModalAjusteVenta();reload('clientes');}
+  });
+}
+function deleteAjusteVenta(id){
+  if(!confirm('¿Eliminar este ajuste contable? La cta cte se recalcula.'))return;
+  sbDelete('ajustes_ventas',id).then(function(){
+    auditLog('delete','Ajuste Venta','ID '+id);
+    toast('Ajuste eliminado','success');reload('clientes');
+  });
 }
 
 </script>
