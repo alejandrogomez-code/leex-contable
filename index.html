@@ -385,6 +385,49 @@ function sbPatchWhere(t,col,val,b){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=e
 function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH(),cache:'no-store'});}
 function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
 
+// === ANTI DOUBLE-SUBMIT ===
+// Previene que un usuario haga doble click en "Guardar" y duplique registros.
+// Si la misma key se intenta lockear de nuevo antes de 30s, devuelve true (bloquea).
+var _submitLocks={};
+function lockSubmit(key){
+  var ahora=Date.now();
+  var prev=_submitLocks[key];
+  if(prev&&(ahora-prev)<30000){
+    toast('Procesando... esperá unos segundos','info');
+    return true;
+  }
+  _submitLocks[key]=ahora;
+  return false;
+}
+// === AUDITORÍA LOCAL ===
+// Guarda eventos en localStorage. Max 500 eventos (FIFO).
+function auditLog(accion,entidad,detalle){
+  try{
+    var log=JSON.parse(localStorage.getItem('leex_audit')||'[]');
+    log.push({fecha:new Date().toISOString(),usuario:(CU&&CU.u)||'(sin sesión)',accion:accion,entidad:entidad,detalle:detalle||''});
+    if(log.length>500)log=log.slice(-500);
+    localStorage.setItem('leex_audit',JSON.stringify(log));
+  }catch(e){console.warn('auditLog fail:',e);}
+}
+
+function unlockSubmit(key){
+  delete _submitLocks[key];
+}
+
+// === CONFIRM ACTION ===
+// Wrapper para confirmaciones con detalles. Por ahora usa el confirm() nativo del browser.
+function confirmAction(opts){
+  var msg=(opts.title||'¿Confirmar?')+'\n\n'+(opts.message||'');
+  if(opts.details&&opts.details.length){
+    msg+='\n\n';
+    opts.details.forEach(function(d){msg+=d.label+': '+d.value+'\n';});
+  }
+  if(opts.danger)msg+='\n⚠️ Esta acción es irreversible.';
+  if(confirm(msg)){
+    if(typeof opts.onOk==='function')opts.onOk();
+  }
+}
+
 // === USUARIOS (auth simple client-side) ===
 var USERS=[
   {id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},
