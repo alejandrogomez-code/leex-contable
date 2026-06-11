@@ -234,6 +234,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="ni" data-sec="contabilidad" data-page="nuevoAst" onclick="go('nuevoAst')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Asiento</div>
     <div class="ni" data-sec="contabilidad" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance</div>
     <div class="ni" data-sec="contabilidad" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
+    <div class="ni" data-sec="contabilidad" data-page="tesoreria" onclick="go('tesoreria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>Tesorería</div>
 
     <div class="divider" data-sec="admin"></div>
     <div class="sbSection" data-sec="admin">Administración</div>
@@ -254,6 +255,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="sbSection" data-sec="clientes">Comercial</div>
     <div class="ni" data-sec="clientes" data-page="clientes" onclick="go('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
     <div class="ni" data-sec="clientes" data-page="proveedores" onclick="go('proveedores')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>Proveedores</div>
+    <div class="ni" data-sec="clientes" data-page="aging" onclick="go('aging')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Aging</div>
 
     <div class="divider" data-sec="sistema"></div>
     <div class="sbSection" data-sec="sistema">Sistema</div>
@@ -531,6 +533,8 @@ function go(page){
       chile:pgChile,
       clientes:pgClientes,
       proveedores:pgProveedores,
+      aging:pgAging,
+      tesoreria:pgTesoreria,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -718,6 +722,8 @@ function pgDashboard(){
   });
 
   return ejGlobalBar()+
+    renderBannerBackup()+
+    renderWidgetFlujo30dias()+
     '<div class="pageTitle">Dashboard — Ejercicio '+año+'</div>'+
     '<div class="cards">'+
     '<div class="card"><div class="lbl">Ingresos del Ejercicio</div><div class="val green">'+fmt(totIng)+'</div><div class="sub">USD · solo movs normales</div></div>'+
@@ -3071,6 +3077,7 @@ function pgConfig(){
     '<div class="factions"><button class="btn bp sm" onclick="guardarBanco()">Guardar</button></div></div>':'';
   return ejGlobalBar()+
     '<div class="pageTitle">⚙ Configuración</div>'+
+    renderSeccionBackup()+
     cfgBanco+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div>'+
@@ -9151,6 +9158,698 @@ function eliminarAdjPago(adjId,storagePath){
   fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+storagePath,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(){
     sbDelete('proveedor_adjuntos',adjId).then(function(){toast('Adjunto eliminado','success');reload('proveedores');});
   });
+}
+
+</script>
+</script>
+<script>
+// ============================================================
+// AGING — Antigüedad de saldos (Proveedores + Clientes)
+// ============================================================
+var agingTab='proveedores';
+var agingFiltros={moneda:'',pais:'',entidad:''};
+
+function pgAging(){
+  if(!isAdmin())return '<div class="pageTitle">📊 Aging</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(agingTab==='proveedores'?' active':'')+'" onclick="agingTab=\'proveedores\';go(\'aging\')">🏭 Proveedores</div>'+
+    '<div class="tab'+(agingTab==='clientes'?' active':'')+'" onclick="agingTab=\'clientes\';go(\'aging\')">👥 Clientes</div>'+
+    '<div class="tab'+(agingTab==='combinado'?' active':'')+'" onclick="agingTab=\'combinado\';go(\'aging\')">⚖️ Combinado</div>'+
+    '</div>';
+  var contenido='';
+  if(agingTab==='proveedores')contenido=renderAgingProveedores();
+  else if(agingTab==='clientes')contenido=renderAgingClientes();
+  else contenido=renderAgingCombinado();
+  return '<div class="pageTitle">📊 Aging — Antigüedad de Saldos</div>'+
+    '<div class="alert ainfo">📅 Antigüedad de las deudas y créditos con respecto a su fecha de vencimiento. Las facturas sin vencimiento se consideran "Por Vencer".</div>'+
+    tabs+contenido;
+}
+
+// === HELPERS ===
+// Calcula buckets para un proveedor (deudas pendientes)
+function calcAgingProveedor(provId){
+  var hoyStr=hoy();
+  var b={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0};
+  var compras=comprasDeProveedor(provId);
+  compras.forEach(function(c){
+    var saldo=saldoCompra(c);
+    if(saldo<=0.01)return;
+    if(!c.vencimiento_prov||c.vencimiento_prov>=hoyStr){b.porVencer+=saldo;return;}
+    var dias=diasEntre(c.vencimiento_prov,hoyStr);
+    if(dias<=30)b.b0_30+=saldo;
+    else if(dias<=60)b.b31_60+=saldo;
+    else if(dias<=90)b.b61_90+=saldo;
+    else b.b90mas+=saldo;
+  });
+  // Sumar ajustes pendientes (débitos sin compensar)
+  ajustesDeProveedor(provId).forEach(function(a){
+    var monto=parseFloat(a.importe_usd)||0;
+    var signo=a.tipo==='debito'?1:-1;
+    if(!a.fecha||a.fecha>=hoyStr){b.porVencer+=signo*monto;return;}
+    var dias=diasEntre(a.fecha,hoyStr);
+    if(dias<=30)b.b0_30+=signo*monto;
+    else if(dias<=60)b.b31_60+=signo*monto;
+    else if(dias<=90)b.b61_90+=signo*monto;
+    else b.b90mas+=signo*monto;
+  });
+  // Restar pagos no imputados (los considero a favor a "por vencer")
+  pagosDeProveedor(provId).forEach(function(p){
+    var noApl=saldoNoAplicadoPago(p);
+    if(noApl>0.01)b.porVencer-=noApl;
+  });
+  b.total=b.porVencer+b.b0_30+b.b31_60+b.b61_90+b.b90mas;
+  return b;
+}
+
+function calcAgingCliente(cliId){
+  var hoyStr=hoy();
+  var b={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0};
+  var ventas=(C.ventas||[]).filter(function(v){return v.cliente_id===cliId;});
+  ventas.forEach(function(v){
+    var saldo=saldoVenta(v);
+    if(saldo<=0.01)return;
+    if(!v.fecha_vencimiento||v.fecha_vencimiento>=hoyStr){b.porVencer+=saldo;return;}
+    var dias=diasEntre(v.fecha_vencimiento,hoyStr);
+    if(dias<=30)b.b0_30+=saldo;
+    else if(dias<=60)b.b31_60+=saldo;
+    else if(dias<=90)b.b61_90+=saldo;
+    else b.b90mas+=saldo;
+  });
+  // Cobros no aplicados restan
+  (C.cobros||[]).filter(function(co){return co.cliente_id===cliId;}).forEach(function(co){
+    var aplic=(C.cobro_imputaciones||[]).filter(function(i){return i.cobro_id===co.id;}).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    var noApl=Math.max(0,(parseFloat(co.importe_usd)||0)-aplic);
+    if(noApl>0.01)b.porVencer-=noApl;
+  });
+  b.total=b.porVencer+b.b0_30+b.b31_60+b.b61_90+b.b90mas;
+  return b;
+}
+
+function diasEntre(fechaIni,fechaFin){
+  var d1=new Date(fechaIni+'T00:00:00');
+  var d2=new Date(fechaFin+'T00:00:00');
+  return Math.round((d2-d1)/(1000*60*60*24));
+}
+
+// === RENDER PROVEEDORES ===
+function renderAgingProveedores(){
+  var filas=[];
+  var totales={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0,total:0};
+  (C.proveedores||[]).forEach(function(p){
+    var b=calcAgingProveedor(p.id);
+    if(b.total>0.01||b.porVencer<-0.01){
+      filas.push({prov:p,bucket:b});
+      totales.porVencer+=b.porVencer;totales.b0_30+=b.b0_30;totales.b31_60+=b.b31_60;
+      totales.b61_90+=b.b61_90;totales.b90mas+=b.b90mas;totales.total+=b.total;
+    }
+  });
+  filas.sort(function(a,b){return b.bucket.total-a.bucket.total;});
+  return renderAgingTable(filas,totales,'Proveedor','proveedores');
+}
+
+function renderAgingClientes(){
+  var filas=[];
+  var totales={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0,total:0};
+  (C.clientes||[]).forEach(function(c){
+    var b=calcAgingCliente(c.id);
+    if(b.total>0.01||b.porVencer<-0.01){
+      filas.push({prov:c,bucket:b});
+      totales.porVencer+=b.porVencer;totales.b0_30+=b.b0_30;totales.b31_60+=b.b31_60;
+      totales.b61_90+=b.b61_90;totales.b90mas+=b.b90mas;totales.total+=b.total;
+    }
+  });
+  filas.sort(function(a,b){return b.bucket.total-a.bucket.total;});
+  return renderAgingTable(filas,totales,'Cliente','clientes');
+}
+
+function renderAgingCombinado(){
+  // KPIs comparativos
+  var totProv={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0,total:0};
+  var totCli={porVencer:0,b0_30:0,b31_60:0,b61_90:0,b90mas:0,total:0};
+  (C.proveedores||[]).forEach(function(p){
+    var b=calcAgingProveedor(p.id);
+    totProv.porVencer+=b.porVencer;totProv.b0_30+=b.b0_30;totProv.b31_60+=b.b31_60;
+    totProv.b61_90+=b.b61_90;totProv.b90mas+=b.b90mas;totProv.total+=b.total;
+  });
+  (C.clientes||[]).forEach(function(c){
+    var b=calcAgingCliente(c.id);
+    totCli.porVencer+=b.porVencer;totCli.b0_30+=b.b0_30;totCli.b31_60+=b.b31_60;
+    totCli.b61_90+=b.b61_90;totCli.b90mas+=b.b90mas;totCli.total+=b.total;
+  });
+  var neto=totCli.total-totProv.total;
+  function fila(label,proValor,cliValor,color){
+    return '<tr><td style="font-weight:600">'+label+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--red)">'+fmtN(proValor)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--green)">'+fmtN(cliValor)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:'+(cliValor-proValor>=0?'var(--green)':'var(--red)')+'">'+fmtS(cliValor-proValor)+'</td>'+
+      '</tr>';
+  }
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Total a pagar (proveedores)</div><div class="val red">'+fmtN(totProv.total)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Total a cobrar (clientes)</div><div class="val green">'+fmtN(totCli.total)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card" style="border-color:'+(neto>=0?'var(--green)':'var(--red)')+'"><div class="lbl">Posición neta</div><div class="val '+(neto>=0?'green':'red')+'">'+fmtS(neto)+'</div><div class="sub">'+(neto>=0?'A favor':'En contra')+'</div></div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Vencidos +90d (proveedores)</div><div class="val red">'+fmtN(totProv.b90mas)+'</div></div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">Vencidos +90d (clientes)</div><div class="val yellow">'+fmtN(totCli.b90mas)+'</div></div>'+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Comparativo por bucket — USD</h3></div>'+
+    '<table><thead><tr><th>Período</th><th style="text-align:right">A Pagar (Proveedores)</th><th style="text-align:right">A Cobrar (Clientes)</th><th style="text-align:right">Diferencia</th></tr></thead><tbody>'+
+    fila('Por vencer',totProv.porVencer,totCli.porVencer)+
+    fila('Vencido 0-30 días',totProv.b0_30,totCli.b0_30)+
+    fila('Vencido 31-60 días',totProv.b31_60,totCli.b31_60)+
+    fila('Vencido 61-90 días',totProv.b61_90,totCli.b61_90)+
+    fila('Vencido +90 días',totProv.b90mas,totCli.b90mas)+
+    '<tr style="border-top:2px solid var(--border);font-weight:700"><td>TOTAL</td>'+
+    '<td style="text-align:right;color:var(--red)">'+fmtN(totProv.total)+'</td>'+
+    '<td style="text-align:right;color:var(--green)">'+fmtN(totCli.total)+'</td>'+
+    '<td style="text-align:right;color:'+(neto>=0?'var(--green)':'var(--red)')+'">'+fmtS(neto)+'</td></tr>'+
+    '</tbody></table></div>';
+}
+
+function renderAgingTable(filas,totales,entityLabel,entityType){
+  var rowsHTML='';
+  filas.forEach(function(f){
+    var b=f.bucket;
+    var critico=b.b90mas>b.total*0.3;
+    rowsHTML+='<tr'+(critico?' style="background:rgba(232,87,87,0.05)"':'')+'>'+
+      '<td style="font-weight:600">'+escapeHtml(f.prov.nombre_empresa||'—')+(critico?' <span class="badge br" style="font-size:9px">CRÍTICO</span>':'')+'</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+escapeHtml(f.prov.pais||'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtS(b.porVencer)+'</td>'+
+      '<td class="'+(b.b0_30>0.01?'yellow':'')+'" style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(b.b0_30)+'</td>'+
+      '<td class="'+(b.b31_60>0.01?'yellow':'')+'" style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(b.b31_60)+'</td>'+
+      '<td class="'+(b.b61_90>0.01?'red':'')+'" style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(b.b61_90)+'</td>'+
+      '<td class="'+(b.b90mas>0.01?'red':'')+'" style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600">'+fmtN(b.b90mas)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700">'+fmtS(b.total)+'</td>'+
+      '<td><button class="miniBtn" onclick="go(\''+entityType+'\')" title="Ir a detalle">🔍</button></td>'+
+      '</tr>';
+  });
+  // Barras visuales de buckets en KPIs
+  var maxBar=Math.max(totales.porVencer,totales.b0_30,totales.b31_60,totales.b61_90,totales.b90mas)||1;
+  function bar(val,color){
+    var pct=Math.max(0,Math.min(100,(val/maxBar)*100));
+    return '<div style="height:6px;background:var(--bg3);border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;background:'+color+';width:'+pct.toFixed(1)+'%"></div></div>';
+  }
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Por Vencer</div><div class="val">'+fmtS(totales.porVencer)+'</div>'+bar(Math.max(0,totales.porVencer),'var(--cyan)')+'</div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">Vencido 0-30 d</div><div class="val yellow">'+fmtN(totales.b0_30)+'</div>'+bar(totales.b0_30,'var(--yellow)')+'</div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">Vencido 31-60 d</div><div class="val yellow">'+fmtN(totales.b31_60)+'</div>'+bar(totales.b31_60,'#d4a04a')+'</div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Vencido 61-90 d</div><div class="val red">'+fmtN(totales.b61_90)+'</div>'+bar(totales.b61_90,'var(--red)')+'</div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Vencido +90 d</div><div class="val red">'+fmtN(totales.b90mas)+'</div>'+bar(totales.b90mas,'#a32d2d')+'</div>'+
+    '<div class="card" style="border-color:'+(totales.total>=0?'var(--cyan)':'var(--green)')+'"><div class="lbl">TOTAL</div><div class="val">'+fmtS(totales.total)+'</div><div class="sub">USD · '+filas.length+' '+entityLabel.toLowerCase()+'(s)</div></div>'+
+    '</div>'+
+    '<div style="margin-bottom:14px;display:flex;justify-content:flex-end;gap:8px">'+
+    '<button class="btn bs sm" onclick="exportAgingExcel(\''+entityType+'\')">⬇ Excel</button>'+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>'+entityLabel+'s con saldo · '+filas.length+'</h3></div>'+
+    (filas.length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">✓ Sin saldos pendientes</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1200px"><thead><tr>'+
+      '<th>'+entityLabel+'</th><th>País</th><th style="text-align:right">Por Vencer</th>'+
+      '<th style="text-align:right">0-30 d</th><th style="text-align:right">31-60 d</th>'+
+      '<th style="text-align:right">61-90 d</th><th style="text-align:right">+90 d</th>'+
+      '<th style="text-align:right">Total USD</th><th>Acc.</th></tr></thead><tbody>'+rowsHTML+
+      '<tr style="border-top:2px solid var(--border);font-weight:700">'+
+      '<td>TOTAL ('+filas.length+')</td><td></td>'+
+      '<td style="text-align:right">'+fmtS(totales.porVencer)+'</td>'+
+      '<td style="text-align:right">'+fmtN(totales.b0_30)+'</td>'+
+      '<td style="text-align:right">'+fmtN(totales.b31_60)+'</td>'+
+      '<td style="text-align:right">'+fmtN(totales.b61_90)+'</td>'+
+      '<td style="text-align:right">'+fmtN(totales.b90mas)+'</td>'+
+      '<td style="text-align:right">'+fmtS(totales.total)+'</td>'+
+      '<td></td></tr>'+
+      '</tbody></table></div>')+
+    '</div>';
+}
+
+function exportAgingExcel(tipo){
+  var filas=[];
+  if(tipo==='proveedores'){
+    (C.proveedores||[]).forEach(function(p){
+      var b=calcAgingProveedor(p.id);
+      if(b.total>0.01||b.porVencer<-0.01){
+        filas.push({Proveedor:p.nombre_empresa,Pais:p.pais,Por_Vencer_USD:b.porVencer,Vencido_0_30:b.b0_30,Vencido_31_60:b.b31_60,Vencido_61_90:b.b61_90,Vencido_mas_90:b.b90mas,Total_USD:b.total});
+      }
+    });
+  }else{
+    (C.clientes||[]).forEach(function(c){
+      var b=calcAgingCliente(c.id);
+      if(b.total>0.01||b.porVencer<-0.01){
+        filas.push({Cliente:c.nombre_empresa,Pais:c.pais,Por_Vencer_USD:b.porVencer,Vencido_0_30:b.b0_30,Vencido_31_60:b.b31_60,Vencido_61_90:b.b61_90,Vencido_mas_90:b.b90mas,Total_USD:b.total});
+      }
+    });
+  }
+  if(filas.length===0){toast('Sin datos para exportar','info');return;}
+  exportExcel(filas,Object.keys(filas[0]),'Aging_'+tipo+'_'+hoy(),'Aging');
+}
+
+</script>
+<script>
+
+// ============================================================
+// TESORERÍA — Flujo de caja proyectado (semanal/mensual)
+// ============================================================
+var tesoTab='semanal';
+var tesoPeriodos=8;
+
+function pgTesoreria(){
+  if(!isAdmin())return '<div class="pageTitle">💰 Tesorería</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(tesoTab==='semanal'?' active':'')+'" onclick="tesoTab=\'semanal\';tesoPeriodos=8;go(\'tesoreria\')">📅 Vista semanal</div>'+
+    '<div class="tab'+(tesoTab==='mensual'?' active':'')+'" onclick="tesoTab=\'mensual\';tesoPeriodos=6;go(\'tesoreria\')">📆 Vista mensual</div>'+
+    '</div>';
+  return '<div class="pageTitle">💰 Tesorería — Flujo de Caja Proyectado</div>'+
+    '<div class="alert ainfo">📊 Proyección de flujo basada en vencimientos de ventas (cobros esperados) y compras (pagos a vencer). Saldos en USD.</div>'+
+    tabs+renderFlujoCaja(tesoTab,tesoPeriodos);
+}
+
+// === HELPERS ===
+function saldoTesoreriaActual(){
+  var saldoBcoUSD=saldoBanco();
+  var saldoChile=typeof calcSaldoVigenteChile==='function'?calcSaldoVigenteChile():0;
+  return {banco:saldoBcoUSD,chile:saldoChile,total:saldoBcoUSD+saldoChile};
+}
+
+// Cobros esperados en un rango (ventas con fecha_vencimiento entre desde y hasta)
+function cobrosEsperadosRango(desde,hasta){
+  var total=0;
+  var detalle=[];
+  (C.ventas||[]).forEach(function(v){
+    if(!v.fecha_vencimiento)return;
+    if(v.fecha_vencimiento<desde||v.fecha_vencimiento>hasta)return;
+    var saldo=saldoVenta(v);
+    if(saldo<=0.01)return;
+    total+=saldo;
+    var cli=(C.clientes||[]).find(function(x){return x.id===v.cliente_id;});
+    detalle.push({fecha:v.fecha_vencimiento,entidad:cli?cli.nombre_empresa:'(sin cliente)',ref:v.numero||v.factura||'#'+v.id,monto:saldo,tipo:'cobro'});
+  });
+  return {total:total,detalle:detalle};
+}
+
+function pagosEsperadosRango(desde,hasta){
+  var total=0;
+  var detalle=[];
+  (C.compras||[]).forEach(function(c){
+    if(!c.vencimiento_prov)return;
+    if(c.vencimiento_prov<desde||c.vencimiento_prov>hasta)return;
+    var saldo=saldoCompra(c);
+    if(saldo<=0.01)return;
+    total+=saldo;
+    var prov=c.proveedor_id?proveedorName(c.proveedor_id):(c.proveedor||'(sin prov.)');
+    detalle.push({fecha:c.vencimiento_prov,entidad:prov,ref:c.pedido||'#'+c.id,monto:saldo,tipo:'pago'});
+  });
+  return {total:total,detalle:detalle};
+}
+
+// Genera lista de períodos {label, desde, hasta} desde hoy
+function generarPeriodos(modo,cantidad){
+  var periodos=[];
+  var hoyDate=new Date();
+  hoyDate.setHours(0,0,0,0);
+  if(modo==='semanal'){
+    // Arranca el lunes de esta semana
+    var diaSemana=hoyDate.getDay()||7;  // 1-7 (lun-dom)
+    var lunes=new Date(hoyDate);
+    lunes.setDate(hoyDate.getDate()-(diaSemana-1));
+    for(var i=0;i<cantidad;i++){
+      var ini=new Date(lunes);ini.setDate(lunes.getDate()+i*7);
+      var fin=new Date(ini);fin.setDate(ini.getDate()+6);
+      periodos.push({label:'Sem '+(i+1),subLabel:fmtFecha(ini)+' → '+fmtFecha(fin),desde:isoFecha(ini),hasta:isoFecha(fin)});
+    }
+  }else{
+    var yr=hoyDate.getFullYear(),mo=hoyDate.getMonth();
+    var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    for(var i=0;i<cantidad;i++){
+      var anioP=yr+Math.floor((mo+i)/12);
+      var mesP=(mo+i)%12;
+      var ini=new Date(anioP,mesP,1);
+      var fin=new Date(anioP,mesP+1,0);
+      periodos.push({label:meses[mesP]+' '+anioP,subLabel:fmtFecha(ini)+' → '+fmtFecha(fin),desde:isoFecha(ini),hasta:isoFecha(fin)});
+    }
+  }
+  return periodos;
+}
+function fmtFecha(d){return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2);}
+function isoFecha(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+
+// === RENDER ===
+function renderFlujoCaja(modo,cantidad){
+  var saldos=saldoTesoreriaActual();
+  var periodos=generarPeriodos(modo,cantidad);
+  var saldoAcum=saldos.total;
+  var datos=periodos.map(function(p){
+    var co=cobrosEsperadosRango(p.desde,p.hasta);
+    var pa=pagosEsperadosRango(p.desde,p.hasta);
+    var neto=co.total-pa.total;
+    saldoAcum+=neto;
+    return {label:p.label,sub:p.subLabel,desde:p.desde,hasta:p.hasta,cobros:co.total,pagos:pa.total,neto:neto,acum:saldoAcum,cobrosDet:co.detalle,pagosDet:pa.detalle};
+  });
+
+  // KPIs
+  var totCob=datos.reduce(function(s,d){return s+d.cobros;},0);
+  var totPag=datos.reduce(function(s,d){return s+d.pagos;},0);
+  var saldoFin=datos.length>0?datos[datos.length-1].acum:saldos.total;
+  var alertaCritica=datos.some(function(d){return d.acum<0;});
+
+  var kpis='<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Saldo Banco actual</div><div class="val cyan">'+fmtS(saldos.banco)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card"><div class="lbl">Saldo Chile (Proyecto)</div><div class="val">'+fmtS(saldos.chile)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Cobros esperados</div><div class="val green">'+fmtN(totCob)+'</div><div class="sub">próximo'+(modo==='semanal'?' bimestre':'s '+cantidad+' meses')+'</div></div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Pagos a vencer</div><div class="val red">'+fmtN(totPag)+'</div><div class="sub">USD</div></div>'+
+    '<div class="card" style="border-color:'+(saldoFin>=0?'var(--green)':'var(--red)')+'"><div class="lbl">Saldo proyectado fin</div><div class="val '+(saldoFin>=0?'green':'red')+'">'+fmtS(saldoFin)+'</div><div class="sub">USD · al cierre</div></div>'+
+    '</div>';
+
+  var alerta=alertaCritica?
+    '<div class="alert aerr" style="margin-bottom:14px">⚠️ <strong>Alerta de liquidez:</strong> el saldo proyectado se vuelve negativo en al menos un período. Revisá los pagos a vencer y considerá adelantar cobros.</div>':'';
+
+  // GRÁFICO de barras (SVG)
+  var maxAbs=Math.max.apply(null,datos.map(function(d){return Math.max(d.cobros,d.pagos);}))||1;
+  var maxAcum=Math.max.apply(null,datos.map(function(d){return Math.abs(d.acum);}))||1;
+  var W=900,H=240,padL=50,padR=30,padT=20,padB=50;
+  var innerW=W-padL-padR,innerH=H-padT-padB;
+  var bw=innerW/datos.length;
+  var groupBarW=bw*0.7,barW=groupBarW/2;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px;height:auto;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">';
+  // Eje X (cero)
+  svg+='<line x1="'+padL+'" y1="'+(padT+innerH/2)+'" x2="'+(W-padR)+'" y2="'+(padT+innerH/2)+'" stroke="var(--border)" stroke-width="1"/>';
+  // Labels eje X
+  datos.forEach(function(d,i){
+    var cx=padL+i*bw+bw/2;
+    svg+='<text x="'+cx+'" y="'+(H-padB+18)+'" text-anchor="middle" font-size="10" fill="var(--text2)">'+escapeHtml(d.label)+'</text>';
+    // Barra cobros (verde, hacia arriba)
+    var hCob=(d.cobros/maxAbs)*(innerH/2-2);
+    if(hCob>0){
+      svg+='<rect x="'+(cx-barW-1)+'" y="'+(padT+innerH/2-hCob)+'" width="'+barW+'" height="'+hCob+'" fill="#22c55e" rx="2"><title>'+escapeHtml(d.label)+': Cobros $'+fmtN(d.cobros)+'</title></rect>';
+    }
+    // Barra pagos (rojo, hacia abajo)
+    var hPag=(d.pagos/maxAbs)*(innerH/2-2);
+    if(hPag>0){
+      svg+='<rect x="'+(cx+1)+'" y="'+(padT+innerH/2)+'" width="'+barW+'" height="'+hPag+'" fill="#ef4444" rx="2"><title>'+escapeHtml(d.label)+': Pagos $'+fmtN(d.pagos)+'</title></rect>';
+    }
+  });
+  // Línea de saldo acumulado (cyan)
+  if(datos.length>1){
+    var puntos=datos.map(function(d,i){
+      var x=padL+i*bw+bw/2;
+      var ratio=d.acum/Math.max(maxAcum,Math.abs(saldos.total))/2;  // normalizado
+      var y=padT+innerH/2-ratio*innerH;
+      y=Math.max(padT,Math.min(padT+innerH,y));
+      return x+','+y;
+    });
+    svg+='<polyline points="'+puntos.join(' ')+'" stroke="#06b6d4" stroke-width="2" fill="none"/>';
+    datos.forEach(function(d,i){
+      var pt=puntos[i].split(',');
+      svg+='<circle cx="'+pt[0]+'" cy="'+pt[1]+'" r="3" fill="#06b6d4"><title>'+escapeHtml(d.label)+' · Saldo acum: '+fmtS(d.acum)+'</title></circle>';
+    });
+  }
+  // Leyenda
+  svg+='<g><rect x="'+(padL+5)+'" y="'+(padT+5)+'" width="10" height="10" fill="#22c55e"/><text x="'+(padL+20)+'" y="'+(padT+14)+'" font-size="10" fill="var(--text)">Cobros</text>';
+  svg+='<rect x="'+(padL+80)+'" y="'+(padT+5)+'" width="10" height="10" fill="#ef4444"/><text x="'+(padL+95)+'" y="'+(padT+14)+'" font-size="10" fill="var(--text)">Pagos</text>';
+  svg+='<line x1="'+(padL+150)+'" y1="'+(padT+10)+'" x2="'+(padL+170)+'" y2="'+(padT+10)+'" stroke="#06b6d4" stroke-width="2"/><circle cx="'+(padL+160)+'" cy="'+(padT+10)+'" r="3" fill="#06b6d4"/><text x="'+(padL+175)+'" y="'+(padT+14)+'" font-size="10" fill="var(--text)">Saldo acum.</text></g>';
+  svg+='</svg>';
+
+  // TABLA
+  var rowsHTML='';
+  datos.forEach(function(d,i){
+    var clase=d.acum<0?'aerr':'';
+    rowsHTML+='<tr style="cursor:pointer" onclick="toggleDetallePeriodo(\''+i+'\')">'+
+      '<td><strong>'+escapeHtml(d.label)+'</strong><div style="font-size:10px;color:var(--text2)">'+escapeHtml(d.sub)+'</div></td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--green)">'+fmtN(d.cobros)+'<div style="font-size:9px;color:var(--text2)">'+d.cobrosDet.length+' op.</div></td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--red)">'+fmtN(d.pagos)+'<div style="font-size:9px;color:var(--text2)">'+d.pagosDet.length+' op.</div></td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:'+(d.neto>=0?'var(--green)':'var(--red)')+'">'+fmtS(d.neto)+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:'+(d.acum>=0?'var(--cyan)':'var(--red)')+'">'+fmtS(d.acum)+'</td>'+
+      '<td><button class="miniBtn">▼</button></td>'+
+      '</tr>'+
+      '<tr id="detPeriodo_'+i+'" style="display:none;background:var(--bg3)"><td colspan="6" style="padding:14px">'+renderDetallePeriodo(d)+'</td></tr>';
+  });
+
+  return kpis+alerta+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+    '<strong style="font-size:13px">Gráfico de flujo</strong>'+
+    '<button class="btn bs sm" onclick="exportFlujoExcel()">⬇ Excel</button>'+
+    '</div>'+svg+'</div>'+
+    '<div class="twrap"><div class="thead2"><h3>Detalle por período</h3><span style="font-size:11px;color:var(--text2)">Cliqueá una fila para ver el detalle</span></div>'+
+    '<table><thead><tr><th>Período</th><th style="text-align:right">Cobros USD</th><th style="text-align:right">Pagos USD</th><th style="text-align:right">Neto</th><th style="text-align:right">Saldo Acum.</th><th></th></tr></thead><tbody>'+rowsHTML+'</tbody></table>'+
+    '</div>';
+}
+
+function renderDetallePeriodo(d){
+  var todos=d.cobrosDet.concat(d.pagosDet).sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+  if(todos.length===0)return '<div style="text-align:center;color:var(--text2);padding:10px">Sin movimientos esperados</div>';
+  var rows='';
+  todos.forEach(function(m){
+    var color=m.tipo==='cobro'?'var(--green)':'var(--red)';
+    var sign=m.tipo==='cobro'?'+':'-';
+    var icon=m.tipo==='cobro'?'⬆':'⬇';
+    rows+='<tr><td style="padding:5px 8px;font-size:11px">'+icon+' '+fmtD(m.fecha)+'</td>'+
+      '<td style="padding:5px 8px;font-size:11px">'+escapeHtml(m.entidad)+'</td>'+
+      '<td style="padding:5px 8px;font-family:monospace;font-size:10px">'+escapeHtml(m.ref)+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;font-size:11px;font-variant-numeric:tabular-nums;color:'+color+';font-weight:600">'+sign+fmtN(m.monto)+'</td></tr>';
+  });
+  return '<table style="width:100%;font-size:11px"><thead><tr style="color:var(--text2);font-size:10px;text-transform:uppercase"><th style="padding:5px 8px;text-align:left">Fecha</th><th style="padding:5px 8px;text-align:left">Entidad</th><th style="padding:5px 8px;text-align:left">Ref</th><th style="padding:5px 8px;text-align:right">Monto USD</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function toggleDetallePeriodo(idx){
+  var el=document.getElementById('detPeriodo_'+idx);
+  if(el)el.style.display=el.style.display==='none'?'table-row':'none';
+}
+
+function exportFlujoExcel(){
+  var periodos=generarPeriodos(tesoTab,tesoPeriodos);
+  var saldos=saldoTesoreriaActual();
+  var saldoAcum=saldos.total;
+  var filas=[{Periodo:'SALDO INICIAL',Desde:'',Hasta:'',Cobros_USD:'',Pagos_USD:'',Neto_USD:'',Saldo_Acumulado_USD:saldos.total}];
+  periodos.forEach(function(p){
+    var co=cobrosEsperadosRango(p.desde,p.hasta);
+    var pa=pagosEsperadosRango(p.desde,p.hasta);
+    var neto=co.total-pa.total;
+    saldoAcum+=neto;
+    filas.push({Periodo:p.label,Desde:p.desde,Hasta:p.hasta,Cobros_USD:co.total,Pagos_USD:pa.total,Neto_USD:neto,Saldo_Acumulado_USD:saldoAcum});
+  });
+  exportExcel(filas,Object.keys(filas[0]),'Flujo_Caja_'+tesoTab+'_'+hoy(),'Flujo');
+}
+
+// === WIDGET para Dashboard: próximos 30 días ===
+function renderWidgetFlujo30dias(){
+  if(!isAdmin())return '';
+  var saldos=saldoTesoreriaActual();
+  var hoyD=new Date();hoyD.setHours(0,0,0,0);
+  var en30=new Date(hoyD);en30.setDate(hoyD.getDate()+30);
+  var co=cobrosEsperadosRango(isoFecha(hoyD),isoFecha(en30));
+  var pa=pagosEsperadosRango(isoFecha(hoyD),isoFecha(en30));
+  var neto=co.total-pa.total;
+  var saldoFin=saldos.banco+neto;
+  var critico=saldoFin<0;
+  return '<div style="background:var(--bg2);border:1px solid '+(critico?'var(--red)':'var(--border)')+';border-radius:10px;padding:14px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:center">'+
+    '<div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600">📊 Próximos 30 días</div><div style="font-size:9px;color:var(--text2)">Saldo banco + proyección</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2)">Saldo actual</div><div style="font-size:16px;font-weight:600;color:var(--cyan)">'+fmtS(saldos.banco)+'</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2)">Cobros esperados</div><div style="font-size:16px;font-weight:600;color:var(--green)">+'+fmtN(co.total)+'</div><div style="font-size:9px;color:var(--text2)">'+co.detalle.length+' op.</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2)">Pagos a vencer</div><div style="font-size:16px;font-weight:600;color:var(--red)">-'+fmtN(pa.total)+'</div><div style="font-size:9px;color:var(--text2)">'+pa.detalle.length+' op.</div></div>'+
+    '<div><div style="font-size:10px;color:var(--text2)">Saldo proyectado</div><div style="font-size:18px;font-weight:700;color:'+(saldoFin>=0?'var(--green)':'var(--red)')+'">'+fmtS(saldoFin)+'</div>'+(critico?'<div style="font-size:9px;color:var(--red);font-weight:600">⚠️ Liquidez crítica</div>':'')+'</div>'+
+    '<button class="btn bp sm" onclick="go(\'tesoreria\')">Ver completo →</button>'+
+    '</div>';
+}
+
+</script>
+<script>
+
+// ============================================================
+// BACKUP — Exportación completa + recordatorio
+// ============================================================
+var BACKUP_STORAGE_KEY='leex_ultimo_backup';
+var BACKUP_DAYS_WARNING=7;
+var BACKUP_DAYS_CRITICAL=14;
+
+function getUltimoBackup(){
+  try{
+    var v=localStorage.getItem(BACKUP_STORAGE_KEY);
+    if(!v)return null;
+    return new Date(v);
+  }catch(e){return null;}
+}
+
+function diasDesdeBackup(){
+  var ultimo=getUltimoBackup();
+  if(!ultimo)return null;
+  var ahora=new Date();
+  return Math.floor((ahora-ultimo)/(1000*60*60*24));
+}
+
+function marcarBackupHecho(){
+  try{localStorage.setItem(BACKUP_STORAGE_KEY,new Date().toISOString());}catch(e){}
+}
+
+function renderBannerBackup(){
+  var dias=diasDesdeBackup();
+  var dismissed=false;
+  try{dismissed=sessionStorage.getItem('leex_backup_dismissed')==='1';}catch(e){}
+  if(dismissed)return '';
+  if(dias===null){
+    return '<div style="background:rgba(244,185,66,0.10);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<span style="font-size:18px">💾</span>'+
+      '<div style="flex:1;min-width:200px;font-size:12px">Aún no hiciste ningún backup. <strong>Es muy recomendable</strong> hacer un backup completo periódicamente para no perder datos.</div>'+
+      '<button class="btn bp sm" onclick="hacerBackupCompleto()">📥 Hacer backup ahora</button>'+
+      '<button class="btn bs sm" onclick="dismissBannerBackup()" title="Ocultar hasta la próxima recarga">✕</button>'+
+      '</div>';
+  }
+  if(dias>=BACKUP_DAYS_CRITICAL){
+    return '<div style="background:rgba(232,87,87,0.10);border:1px solid var(--red);border-left:4px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<span style="font-size:18px">🚨</span>'+
+      '<div style="flex:1;min-width:200px;font-size:12px"><strong>Backup desactualizado.</strong> Tu último backup es de hace <strong>'+dias+' días</strong>. Hacé uno ahora para proteger tus datos.</div>'+
+      '<button class="btn bp sm" onclick="hacerBackupCompleto()">📥 Hacer backup ahora</button>'+
+      '<button class="btn bs sm" onclick="dismissBannerBackup()" title="Ocultar hasta la próxima recarga">✕</button>'+
+      '</div>';
+  }
+  if(dias>=BACKUP_DAYS_WARNING){
+    return '<div style="background:rgba(244,185,66,0.10);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<span style="font-size:18px">⚠️</span>'+
+      '<div style="flex:1;min-width:200px;font-size:12px">Tu último backup es de hace <strong>'+dias+' día(s)</strong>. Considerá hacer uno nuevo.</div>'+
+      '<button class="btn bp sm" onclick="hacerBackupCompleto()">📥 Hacer backup ahora</button>'+
+      '<button class="btn bs sm" onclick="dismissBannerBackup()" title="Ocultar hasta la próxima recarga">✕</button>'+
+      '</div>';
+  }
+  return '';
+}
+
+function dismissBannerBackup(){
+  try{sessionStorage.setItem('leex_backup_dismissed','1');}catch(e){}
+  reload('dashboard');
+}
+
+function renderSeccionBackup(){
+  var dias=diasDesdeBackup();
+  var ultimo=getUltimoBackup();
+  var fechaStr=ultimo?ultimo.toLocaleDateString('es-AR')+' '+ultimo.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'Nunca';
+  var estado,color;
+  if(dias===null){estado='⚠️ Sin backups';color='var(--yellow)';}
+  else if(dias>=BACKUP_DAYS_CRITICAL){estado='🚨 Crítico — hace '+dias+' días';color='var(--red)';}
+  else if(dias>=BACKUP_DAYS_WARNING){estado='⚠️ Atrasado — hace '+dias+' días';color='var(--yellow)';}
+  else{estado='✓ Reciente — hace '+dias+' día(s)';color='var(--green)';}
+  // Conteos de tablas
+  var conteos=[
+    {tabla:'Asientos',n:(C.asientos||[]).length},
+    {tabla:'Líneas de asientos',n:(C.lineas||[]).length},
+    {tabla:'Movs banco',n:(C.movs||[]).length},
+    {tabla:'Compras',n:(C.compras||[]).length},
+    {tabla:'Stock',n:(C.stock_items||[]).length},
+    {tabla:'Clientes',n:(C.clientes||[]).length},
+    {tabla:'Ventas',n:(C.ventas||[]).length},
+    {tabla:'Cobros',n:(C.cobros||[]).length},
+    {tabla:'Proveedores',n:(C.proveedores||[]).length},
+    {tabla:'Pagos prov.',n:(C.pagos_proveedores||[]).length}
+  ];
+  var conteoHTML=conteos.map(function(c){return '<span style="display:inline-block;padding:3px 8px;background:var(--bg3);border-radius:10px;font-size:10px;margin-right:6px;margin-bottom:4px">'+c.tabla+': <strong>'+c.n+'</strong></span>';}).join('');
+  return '<div class="panel" style="border-left:4px solid '+color+'"><h3>💾 Backup de datos</h3>'+
+    '<div style="display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-bottom:12px">'+
+    '<div>'+
+    '<div style="font-size:13px;font-weight:600;color:'+color+';margin-bottom:4px">'+estado+'</div>'+
+    '<div style="font-size:11px;color:var(--text2)">Último backup: <strong>'+fechaStr+'</strong></div>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:6px">Genera un Excel multihoja con toda la información de tu base de datos. Guardalo en Drive, Dropbox o disco externo.</div>'+
+    '</div>'+
+    '<button class="btn bp" onclick="hacerBackupCompleto()" style="white-space:nowrap">📥 Hacer backup ahora</button>'+
+    '</div>'+
+    '<details style="margin-top:10px"><summary style="font-size:11px;color:var(--text2);cursor:pointer">Datos a respaldar ('+conteos.reduce(function(s,c){return s+c.n;},0)+' registros)</summary>'+
+    '<div style="margin-top:8px">'+conteoHTML+'</div></details>'+
+    '</div>';
+}
+
+// === FUNCIÓN PRINCIPAL: BACKUP COMPLETO ===
+function hacerBackupCompleto(){
+  toast('Generando backup completo...','info');
+  try{
+    var wb=XLSX.utils.book_new();
+    // Lista de tablas a respaldar
+    var tablas=[
+      {key:'cuentas',label:'Plan de Cuentas'},
+      {key:'ejercicios',label:'Ejercicios'},
+      {key:'asientos',label:'Asientos'},
+      {key:'lineas',label:'Lineas Asientos'},
+      {key:'movs',label:'Movs Banco'},
+      {key:'reglas',label:'Reglas Auto'},
+      {key:'importaciones',label:'Importaciones'},
+      {key:'proyectos',label:'Proyectos (legacy)'},
+      {key:'comex',label:'COMEX'},
+      {key:'proy_ingresos',label:'Proy Ingresos'},
+      {key:'proy_gastos',label:'Proy Gastos'},
+      {key:'compras',label:'Compras'},
+      {key:'compra_adjuntos',label:'Compra Adjuntos'},
+      {key:'adjuntos',label:'Adjuntos Movs'},
+      {key:'stock_items',label:'Stock Items'},
+      {key:'stock_bajas',label:'Stock Bajas'},
+      {key:'stock_adjuntos',label:'Stock Adjuntos'},
+      {key:'caja_oficina_chile',label:'Caja Chile'},
+      {key:'caja_chile_aportes',label:'Aportes Chile'},
+      {key:'caja_deam',label:'Caja DEAM'},
+      {key:'caja_adjuntos',label:'Caja Adjuntos'},
+      {key:'clientes',label:'Clientes'},
+      {key:'ventas',label:'Ventas'},
+      {key:'cobros',label:'Cobros'},
+      {key:'cobro_imputaciones',label:'Imp Cobros'},
+      {key:'cliente_adjuntos',label:'Cliente Adj.'},
+      {key:'proveedores',label:'Proveedores'},
+      {key:'pagos_proveedores',label:'Pagos Prov.'},
+      {key:'pago_imputaciones',label:'Imp Pagos'},
+      {key:'ajustes_compras',label:'Ajustes Compras'},
+      {key:'proveedor_adjuntos',label:'Prov Adjuntos'}
+    ];
+    // Hoja de meta info
+    var meta=[
+      {Campo:'Fecha del backup',Valor:new Date().toLocaleString('es-AR')},
+      {Campo:'Versión app',Valor:'LEEX Contable'},
+      {Campo:'Usuario',Valor:(CU&&CU.u)||'(sin sesión)'},
+      {Campo:'Banco',Valor:(C.config&&C.config.banco_nombre)||''},
+      {Campo:'',Valor:''},
+      {Campo:'TABLA',Valor:'REGISTROS'}
+    ];
+    var totalRegs=0;
+    tablas.forEach(function(t){
+      var arr=C[t.key]||[];
+      meta.push({Campo:t.label,Valor:arr.length});
+      totalRegs+=arr.length;
+    });
+    meta.push({Campo:'',Valor:''});
+    meta.push({Campo:'TOTAL REGISTROS',Valor:totalRegs});
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(meta),'_INFO');
+    // Hoja config
+    if(C.config){
+      var cfgRows=Object.keys(C.config).map(function(k){return {Clave:k,Valor:typeof C.config[k]==='object'?JSON.stringify(C.config[k]):String(C.config[k]||'')};});
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(cfgRows),'configuracion');
+    }
+    // Hoja cfg_listas
+    if(C.cfg_listas){
+      var lstRows=[];
+      Object.keys(C.cfg_listas).forEach(function(tipo){
+        (C.cfg_listas[tipo]||[]).forEach(function(v){lstRows.push({Tipo:tipo,Valor:v});});
+      });
+      if(lstRows.length>0)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(lstRows),'cfg_listas');
+    }
+    // Resto de tablas
+    tablas.forEach(function(t){
+      var arr=C[t.key]||[];
+      if(arr.length===0){
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet([{nota:'(tabla vacía)'}]),t.key.substring(0,31));
+      }else{
+        // Limpiar nulls para Excel
+        var rows=arr.map(function(r){
+          var o={};
+          Object.keys(r).forEach(function(k){o[k]=r[k]===null?'':r[k];});
+          return o;
+        });
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),t.key.substring(0,31));
+      }
+    });
+    var nombreArchivo='LEEX_Backup_Completo_'+hoy()+'_'+new Date().toTimeString().slice(0,8).replace(/:/g,'')+'.xlsx';
+    XLSX.writeFile(wb,nombreArchivo);
+    marcarBackupHecho();
+    try{sessionStorage.removeItem('leex_backup_dismissed');}catch(e){}
+    auditLog('backup','Sistema','Backup completo · '+totalRegs+' registros');
+    toast('✓ Backup descargado · '+totalRegs+' registros','success');
+    // Re-render config si está en pgConfig
+    var titleEl=document.querySelector('.pageTitle');
+    if(titleEl&&titleEl.textContent.indexOf('Configuración')>-1){setTimeout(function(){go('config');},800);}
+  }catch(e){
+    console.error('Error backup:',e);
+    toast('Error en backup: '+(e.message||e),'error');
+  }
 }
 
 </script>
