@@ -385,7 +385,7 @@ function sbPatchWhere(t,col,val,b){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=e
 function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH(),cache:'no-store'});}
 function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
 
-// === ANTI DOUBLE-SUBMIT === [BUILD: T3-FIX-v2 2026-06-11]
+// === ANTI DOUBLE-SUBMIT === [BUILD: T3-FIX-v3 2026-06-11]
 // Previene que un usuario haga doble click en "Guardar" y duplique registros.
 // Si la misma key se intenta lockear de nuevo antes de 30s, devuelve true (bloquea).
 var _submitLocks={};
@@ -8285,7 +8285,12 @@ function saldoCompra(compra){
   var total=parseFloat(compra.usd_fob)||0;
   var aplicado=0;
   imputacionesDeCompraPago(compra.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
-  return total-aplicado;
+  // Si hay imputaciones formales, esas mandan (sobrescriben el flag manual)
+  if(aplicado>0.01)return total-aplicado;
+  // Sin imputaciones: respetar flag manual estado_pago
+  if(compra.estado_pago==='Pagado')return 0;
+  // En cualquier otro caso (Pendiente, En Revisión, etc), saldo = total
+  return total;
 }
 function estadoCompraCalc(compra){
   var total=parseFloat(compra.usd_fob)||0;
@@ -8307,16 +8312,23 @@ function ctaCteProveedor(proveedorId){
   var compras=comprasDeProveedor(proveedorId);
   var pagos=pagosDeProveedor(proveedorId);
   var ajustes=ajustesDeProveedor(proveedorId);
-  var totalFacturado=0,totalPagado=0,totalAjustes=0;
+  var totalFacturado=0,totalPagadoFormal=0,totalPagadoManual=0,totalAjustes=0;
   var comprasPend=0,comprasVenc=0;
   var ultimoPago=null;
   compras.forEach(function(c){
-    totalFacturado+=parseFloat(c.usd_fob)||0;
+    var fob=parseFloat(c.usd_fob)||0;
+    totalFacturado+=fob;
+    // Compras marcadas manualmente "Pagado" sin imputaciones formales → suman al total pagado
+    var aplicado=0;
+    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+    if(aplicado<0.01&&c.estado_pago==='Pagado'){
+      totalPagadoManual+=fob;
+    }
     var s=saldoCompra(c);
     if(s>0.01){comprasPend++;if(isCompraVencida(c))comprasVenc++;}
   });
   pagos.forEach(function(p){
-    totalPagado+=parseFloat(p.importe_usd)||0;
+    totalPagadoFormal+=parseFloat(p.importe_usd)||0;
     if(!ultimoPago||p.fecha>ultimoPago)ultimoPago=p.fecha;
   });
   ajustes.forEach(function(a){
@@ -8324,6 +8336,7 @@ function ctaCteProveedor(proveedorId){
     if(a.tipo==='debito')totalAjustes+=monto;
     else if(a.tipo==='credito')totalAjustes-=monto;
   });
+  var totalPagado=totalPagadoFormal+totalPagadoManual;
   var saldo=totalFacturado+totalAjustes-totalPagado;
   var pagosNoApl=0;
   pagos.forEach(function(p){pagosNoApl+=saldoNoAplicadoPago(p);});
@@ -8574,10 +8587,10 @@ function renderTabProveedoresCompras(){
   todas.sort(function(a,b){return (b.fecha_compra||'').localeCompare(a.fecha_compra||'');});
   var totFob=0,totalPag=0;
   todas.forEach(function(c){
-    totFob+=parseFloat(c.usd_fob)||0;
-    var aplicado=0;
-    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
-    totalPag+=aplicado;
+    var fob=parseFloat(c.usd_fob)||0;
+    totFob+=fob;
+    // Pagado: imputaciones formales + flag manual "Pagado"
+    totalPag+=(fob-saldoCompra(c));
   });
   var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
   function selOpts(arr,sel){
@@ -8607,8 +8620,9 @@ function renderTabProveedoresCompras(){
     var venc=isCompraVencida(c);
     var nombreProv=c.proveedor_id?proveedorName(c.proveedor_id):(c.proveedor||'—');
     var iconLink=c.proveedor_id?' <span class="badge bb" style="font-size:9px" title="Vinculado">🔗</span>':'';
-    var aplicado=0;
-    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+    // Pagado = FOB - saldo (cubre imputaciones formales + flag manual)
+    var fob=parseFloat(c.usd_fob)||0;
+    var aplicado=fob-saldo;
     rows+='<tr>'+
       '<td>'+fmtD(c.fecha_compra)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'—')+'</td>'+
@@ -8639,9 +8653,10 @@ function renderTabProveedoresCompras(){
 function limpiarFiltrosComprasProv(){comprasProvFiltros={busca:'',estadoPago:'',fechaDesde:'',fechaHasta:''};go('proveedores');}
 function exportComprasProvExcel(){
   var data=(C.compras||[]).map(function(c){
-    var aplicado=0;
-    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
-    return {Fecha:c.fecha_compra,Pedido:c.pedido,Proveedor:c.proveedor_id?proveedorName(c.proveedor_id):c.proveedor,Vinculado:c.proveedor_id?'Sí':'No',TipoOp:c.tipo_operacion,USD_FOB:c.usd_fob,Pagado_USD:aplicado,Saldo_USD:(parseFloat(c.usd_fob)||0)-aplicado,EstadoCalc:estadoCompraCalc(c),Vencimiento:c.vencimiento_prov,FechaPago:c.fecha_pago,Notas:c.notas};
+    var fob=parseFloat(c.usd_fob)||0;
+    var saldo=saldoCompra(c);
+    var aplicado=fob-saldo;
+    return {Fecha:c.fecha_compra,Pedido:c.pedido,Proveedor:c.proveedor_id?proveedorName(c.proveedor_id):c.proveedor,Vinculado:c.proveedor_id?'Sí':'No',TipoOp:c.tipo_operacion,USD_FOB:c.usd_fob,Pagado_USD:aplicado,Saldo_USD:saldo,EstadoCalc:estadoCompraCalc(c),Vencimiento:c.vencimiento_prov,FechaPago:c.fecha_pago,Notas:c.notas};
   });
   exportExcel(data,Object.keys(data[0]||{}),'Compras_Proveedores_'+hoy(),'Compras');
 }
@@ -9196,7 +9211,9 @@ function renderTabCtaCteProv(){
     var saldo=saldoCompra(co);
     var estClass=est==='Pagado'?'bg':est==='Parcial'?'by':'br';
     var venc=isCompraVencida(co);
-    var aplic=0;imputacionesDeCompraPago(co.id).forEach(function(i){aplic+=parseFloat(i.importe_aplicado_usd)||0;});
+    var fob=parseFloat(co.usd_fob)||0;
+    // Pagado = FOB - saldo (cubre tanto imputaciones formales como flag manual "Pagado")
+    var aplic=fob-saldo;
     rowsC+='<tr><td>'+fmtD(co.fecha_compra)+'</td><td style="font-family:monospace;font-size:11px">'+escapeHtml(co.pedido||'#'+co.id)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(co.usd_fob)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--green)">'+fmtN(aplic)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:'+(saldo>0.01?'var(--red)':'var(--green)')+';font-weight:600">'+fmtN(saldo)+'</td><td>'+fmtD(co.vencimiento_prov)+(venc?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td><td><span class="badge '+estClass+'">'+est+'</span></td></tr>';
   });
 
