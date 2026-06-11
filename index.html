@@ -385,7 +385,7 @@ function sbPatchWhere(t,col,val,b){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=e
 function sbDelete(t,id){return fetch(SB_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:sbH(),cache:'no-store'});}
 function sbDeleteWhere(t,col,val){return fetch(SB_URL+'/rest/v1/'+t+'?'+col+'=eq.'+val,{method:'DELETE',headers:sbH()});}
 
-// === ANTI DOUBLE-SUBMIT ===
+// === ANTI DOUBLE-SUBMIT === [BUILD: T3-FIX-v2 2026-06-11]
 // Previene que un usuario haga doble click en "Guardar" y duplique registros.
 // Si la misma key se intenta lockear de nuevo antes de 30s, devuelve true (bloquea).
 var _submitLocks={};
