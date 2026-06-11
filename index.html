@@ -253,6 +253,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="divider" data-sec="clientes"></div>
     <div class="sbSection" data-sec="clientes">Comercial</div>
     <div class="ni" data-sec="clientes" data-page="clientes" onclick="go('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
+    <div class="ni" data-sec="clientes" data-page="proveedores" onclick="go('proveedores')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>Proveedores</div>
 
     <div class="divider" data-sec="sistema"></div>
     <div class="sbSection" data-sec="sistema">Sistema</div>
@@ -333,6 +334,12 @@ var C={
   cobros:[],
   cobro_imputaciones:[],
   cliente_adjuntos:[],
+  // Proveedores / Comercial
+  proveedores:[],
+  pagos_proveedores:[],
+  pago_imputaciones:[],
+  ajustes_compras:[],
+  proveedor_adjuntos:[],
   usuario_permisos:[]
 };
 
@@ -427,7 +434,12 @@ function loadAll(){
     sbGet('cobros','select=*&order=fecha.desc').catch(function(){return[];}),
     sbGet('cobro_imputaciones','select=*').catch(function(){return[];}),
     sbGet('cliente_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];}),
-    sbGet('usuario_permisos','select=*').catch(function(){return[];})
+    sbGet('usuario_permisos','select=*').catch(function(){return[];}),
+    sbGet('proveedores','select=*&order=nombre_empresa').catch(function(){return[];}),
+    sbGet('pagos_proveedores','select=*&order=fecha.desc').catch(function(){return[];}),
+    sbGet('pago_imputaciones','select=*').catch(function(){return[];}),
+    sbGet('ajustes_compras','select=*&order=fecha.desc').catch(function(){return[];}),
+    sbGet('proveedor_adjuntos','select=*&order=uploaded_at.desc').catch(function(){return[];})
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -477,6 +489,11 @@ function loadAll(){
     C.cobro_imputaciones=Array.isArray(res[27])?res[27]:[];
     C.cliente_adjuntos=Array.isArray(res[28])?res[28]:[];
     C.usuario_permisos=Array.isArray(res[29])?res[29]:[];
+    C.proveedores=Array.isArray(res[30])?res[30]:[];
+    C.pagos_proveedores=Array.isArray(res[31])?res[31]:[];
+    C.pago_imputaciones=Array.isArray(res[32])?res[32]:[];
+    C.ajustes_compras=Array.isArray(res[33])?res[33]:[];
+    C.proveedor_adjuntos=Array.isArray(res[34])?res[34]:[];
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -488,8 +505,8 @@ function loadAll(){
 // ============================================================
 function go(page){
   try{
-    // Bloqueo: logistica solo accede a compras y stock
-    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'){
+    // Bloqueo: logistica solo accede a compras, stock y proveedores
+    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'&&page!=='proveedores'){
       page='compras';
     }
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -513,6 +530,7 @@ function go(page){
       stock:pgStock,
       chile:pgChile,
       clientes:pgClientes,
+      proveedores:pgProveedores,
       config:pgConfig,
       usuarios:pgUsuarios
     };
@@ -3234,13 +3252,35 @@ function editCompra(id){abrirModalCompra(id);}
 // MODAL: NUEVA / EDITAR COMPRA
 function abrirModalCompra(id){
   editCompraId=id;
-  var c=id===0?{fecha_compra:hoy(),tipo_operacion:'',pedido:'',lote:'',proveedor:'',pi_ci:'',codigo_pago:'',swift_cuit_despachante:'',usd_fob:'',tipo_cambio:'',importe_total:0,vencimiento_prov:'',fecha_pago:'',estado_pago:'No Pagar',documento_url:'',notas:''}:(C.compras.find(function(x){return x.id===id;})||{});
+  var c=id===0?{fecha_compra:hoy(),tipo_operacion:'',pedido:'',lote:'',proveedor:'',proveedor_id:null,pi_ci:'',codigo_pago:'',swift_cuit_despachante:'',usd_fob:'',tipo_cambio:'',importe_total:0,vencimiento_prov:'',fecha_pago:'',estado_pago:'No Pagar',documento_url:'',notas:''}:(C.compras.find(function(x){return x.id===id;})||{});
   var tiposOp=C.cfg_listas.tipo_operacion_compra||[];
-  var proveedores=C.cfg_listas.proveedor_compra||[];
+  var proveedoresLegacy=C.cfg_listas.proveedor_compra||[];
+  var proveedoresNuevos=(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');});
   var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
   function opts(arr,sel){
     var h='<option value="">— elegir —</option>';
     arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  // Dropdown combinado de proveedores
+  function opcionesProveedoresCompra(){
+    var h='<option value="">— Sin vincular (texto libre) —</option>';
+    if(proveedoresNuevos.length>0){
+      h+='<optgroup label="📋 Proveedores registrados">';
+      proveedoresNuevos.forEach(function(p){
+        var sel=c.proveedor_id==p.id?' selected':'';
+        h+='<option value="prov:'+p.id+'"'+sel+'>'+escapeHtml(p.nombre_empresa)+'</option>';
+      });
+      h+='</optgroup>';
+    }
+    if(proveedoresLegacy.length>0){
+      h+='<optgroup label="📝 Lista legacy">';
+      proveedoresLegacy.forEach(function(v){
+        var sel=(!c.proveedor_id&&v===c.proveedor)?' selected':'';
+        h+='<option value="legacy:'+escapeHtml(v)+'"'+sel+'>'+escapeHtml(v)+'</option>';
+      });
+      h+='</optgroup>';
+    }
     return h;
   }
   var titulo=id===0?'➕ Nueva Compra':'✏ Editar Compra #'+id;
@@ -3260,10 +3300,14 @@ function abrirModalCompra(id){
     '</div>'+
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🏭 Proveedor y Documentación</div>'+
     '<div class="fg4" style="margin-bottom:14px">'+
-    '<div class="f"><label>Proveedor</label><select id="cmpProv">'+opts(proveedores,c.proveedor)+'</select></div>'+
+    '<div class="f"><label>Proveedor (vincular)</label><select id="cmpProvSel" onchange="autoLlenarProvCompra(this.value)">'+opcionesProveedoresCompra()+'</select></div>'+
+    '<div class="f"><label>Nombre proveedor <span style="font-size:9px;color:var(--text2)">(editable)</span></label><input type="text" id="cmpProv" value="'+escapeHtml(c.proveedor||'')+'" placeholder="Nombre del proveedor"/></div>'+
     '<div class="f"><label>PI - CI</label><input type="text" id="cmpPiCi" value="'+escapeHtml(c.pi_ci||'')+'"/></div>'+
-    '<div class="f"><label>Código de Pago</label><input type="text" id="cmpCodPago" value="'+escapeHtml(c.codigo_pago||'')+'"/></div>'+
     '<div class="f"><label>SWIFT o CUIT despachante</label><input type="text" id="cmpSwift" value="'+escapeHtml(c.swift_cuit_despachante||'')+'"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Código de Pago</label><input type="text" id="cmpCodPago" value="'+escapeHtml(c.codigo_pago||'')+'"/></div>'+
+    '<input type="hidden" id="cmpProvId" value="'+(c.proveedor_id||'')+'"/>'+
     '</div>'+
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Montos</div>'+
     '<div class="fg3" style="margin-bottom:14px">'+
@@ -3303,6 +3347,28 @@ function cerrarModalCompra(){
   editCompraId=null;
 }
 
+// Cuando el user elige un proveedor del dropdown, autocompletar el campo texto + ID
+function autoLlenarProvCompra(val){
+  var hidden=document.getElementById('cmpProvId');
+  var nameInp=document.getElementById('cmpProv');
+  if(!val){
+    // "Sin vincular" → limpia ID, deja el texto como está
+    if(hidden)hidden.value='';
+    return;
+  }
+  if(val.indexOf('prov:')===0){
+    var pid=parseInt(val.substring(5));
+    var p=(C.proveedores||[]).find(function(x){return x.id===pid;});
+    if(p){
+      if(hidden)hidden.value=pid;
+      if(nameInp)nameInp.value=p.nombre_empresa||'';
+    }
+  }else if(val.indexOf('legacy:')===0){
+    if(hidden)hidden.value='';
+    if(nameInp)nameInp.value=val.substring(7);
+  }
+}
+
 function calcImporteCompra(){
   var fob=parseFloat(document.getElementById('cmpFob').value)||0;
   var tc=parseFloat(document.getElementById('cmpTC').value)||0;
@@ -3318,12 +3384,18 @@ function guardarCompra(keepOpen){
   if(isNaN(tc))tc=null;
   var importeTotal=(fob!==null&&tc!==null)?fob*tc:null;
 
+  // Proveedor texto + ID vinculado (opcional)
+  var provIdRaw=document.getElementById('cmpProvId');
+  var provId=provIdRaw&&provIdRaw.value?parseInt(provIdRaw.value):null;
+  var provName=(document.getElementById('cmpProv').value||'').trim()||null;
+
   var payload={
     fecha_compra:document.getElementById('cmpFecha').value||null,
     tipo_operacion:document.getElementById('cmpTipoOp').value||null,
     pedido:document.getElementById('cmpPedido').value.trim()||null,
     lote:document.getElementById('cmpLote').value.trim()||null,
-    proveedor:document.getElementById('cmpProv').value||null,
+    proveedor:provName,
+    proveedor_id:provId,
     pi_ci:document.getElementById('cmpPiCi').value.trim()||null,
     codigo_pago:document.getElementById('cmpCodPago').value.trim()||null,
     swift_cuit_despachante:document.getElementById('cmpSwift').value.trim()||null,
@@ -7995,6 +8067,1090 @@ function exportTablaDinamicaChile(){
     var headers=[cajaChileDinAgrup].concat(nombresMes.map(function(m){return m+'_'+cajaChileDinMoneda.toUpperCase();})).concat(['TOTAL_'+cajaChileDinMoneda.toUpperCase()]);
     exportExcel(data,headers,'Pivot_Caja_Chile_'+cajaChileDinAnio+'_'+cajaChileDinMoneda.toUpperCase(),'Pivot');
   }
+}
+
+</script>
+</script>
+<script>
+// ============================================================
+// PROVEEDORES — Módulo Comercial
+// Tabs: Datos · Compras · Pagos · Ajustes Contables · Cta Cte
+// ============================================================
+var proveedoresTab='datos';
+var proveedoresFiltros={busca:'',pais:'',ciudad:'',tipoProveedor:'',estado:''};
+var pagosFiltros={busca:'',proveedorId:'',fechaDesde:'',fechaHasta:'',moneda:'',medioPago:'',estado:''};
+var ajustesFiltros={busca:'',proveedorId:'',tipo:'',fechaDesde:'',fechaHasta:''};
+var comprasProvFiltros={busca:'',estadoPago:'',fechaDesde:'',fechaHasta:''};
+var ctaCteProvSelected=null;
+var editProveedorId=null;
+var editPagoId=null;
+var editAjusteId=null;
+var imputacionPagoLineas=[];
+var pagoAsientoPendiente=null;
+
+function pgProveedores(){
+  var tabs='<div class="tabs">'+
+    '<div class="tab'+(proveedoresTab==='datos'?' active':'')+'" onclick="proveedoresTab=\'datos\';go(\'proveedores\')">🏭 Datos</div>'+
+    '<div class="tab'+(proveedoresTab==='compras'?' active':'')+'" onclick="proveedoresTab=\'compras\';go(\'proveedores\')">📥 Compras</div>'+
+    '<div class="tab'+(proveedoresTab==='pagos'?' active':'')+'" onclick="proveedoresTab=\'pagos\';go(\'proveedores\')">💸 Pagos realizados</div>'+
+    '<div class="tab'+(proveedoresTab==='ajustes'?' active':'')+'" onclick="proveedoresTab=\'ajustes\';go(\'proveedores\')">⚖️ Ajustes contables</div>'+
+    '<div class="tab'+(proveedoresTab==='ctacte'?' active':'')+'" onclick="proveedoresTab=\'ctacte\';go(\'proveedores\')">📊 Cuenta Corriente</div>'+
+    '</div>';
+  var contenido='';
+  if(proveedoresTab==='datos')contenido=renderTabProveedoresDatos();
+  else if(proveedoresTab==='compras')contenido=renderTabProveedoresCompras();
+  else if(proveedoresTab==='pagos')contenido=renderTabPagos();
+  else if(proveedoresTab==='ajustes')contenido=renderTabAjustes();
+  else if(proveedoresTab==='ctacte')contenido=renderTabCtaCteProv();
+  return '<div class="pageTitle">🏭 Proveedores</div>'+
+    '<div class="alert awarn">📊 <strong>Módulo Comercial</strong> · Compras generan deuda · Pagos restan deuda según imputación · Cta Cte se calcula en USD.</div>'+
+    tabs+contenido+
+    '<div id="modalProveedor" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalPago" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalAjuste" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
+    '<div id="modalAdjPago" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px"></div>';
+}
+
+// === HELPERS DE CÁLCULO ===
+function comprasDeProveedor(proveedorId){
+  var p=(C.proveedores||[]).find(function(x){return x.id===proveedorId;});
+  if(!p)return [];
+  var nombreP=(p.nombre_empresa||'').toLowerCase().trim();
+  return (C.compras||[]).filter(function(c){
+    if(c.proveedor_id===proveedorId)return true;
+    if(!c.proveedor_id&&nombreP&&(c.proveedor||'').toLowerCase().trim()===nombreP)return true;
+    return false;
+  });
+}
+function pagosDeProveedor(proveedorId){return (C.pagos_proveedores||[]).filter(function(p){return p.proveedor_id===proveedorId;});}
+function ajustesDeProveedor(proveedorId){return (C.ajustes_compras||[]).filter(function(a){return a.proveedor_id===proveedorId;});}
+function imputacionesDePago(pagoId){return (C.pago_imputaciones||[]).filter(function(i){return i.pago_id===pagoId;});}
+function imputacionesDeCompraPago(compraId){return (C.pago_imputaciones||[]).filter(function(i){return i.compra_id===compraId;});}
+function saldoCompra(compra){
+  var total=parseFloat(compra.usd_fob)||0;
+  var aplicado=0;
+  imputacionesDeCompraPago(compra.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+  return total-aplicado;
+}
+function estadoCompraCalc(compra){
+  var total=parseFloat(compra.usd_fob)||0;
+  if(total<=0)return compra.estado_pago||'—';
+  var aplicado=0;
+  imputacionesDeCompraPago(compra.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+  if(Math.abs(total-aplicado)<0.01)return 'Pagado';
+  if(aplicado>0.01)return 'Parcial';
+  return compra.estado_pago||'Pendiente';
+}
+function isCompraVencida(compra){return compra.vencimiento_prov&&compra.vencimiento_prov<hoy()&&saldoCompra(compra)>0.01;}
+function saldoNoAplicadoPago(pago){
+  var total=parseFloat(pago.importe_usd)||0;
+  var aplicado=0;
+  imputacionesDePago(pago.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+  return Math.max(0,total-aplicado);
+}
+function ctaCteProveedor(proveedorId){
+  var compras=comprasDeProveedor(proveedorId);
+  var pagos=pagosDeProveedor(proveedorId);
+  var ajustes=ajustesDeProveedor(proveedorId);
+  var totalFacturado=0,totalPagado=0,totalAjustes=0;
+  var comprasPend=0,comprasVenc=0;
+  var ultimoPago=null;
+  compras.forEach(function(c){
+    totalFacturado+=parseFloat(c.usd_fob)||0;
+    var s=saldoCompra(c);
+    if(s>0.01){comprasPend++;if(isCompraVencida(c))comprasVenc++;}
+  });
+  pagos.forEach(function(p){
+    totalPagado+=parseFloat(p.importe_usd)||0;
+    if(!ultimoPago||p.fecha>ultimoPago)ultimoPago=p.fecha;
+  });
+  ajustes.forEach(function(a){
+    var monto=parseFloat(a.importe_usd)||0;
+    if(a.tipo==='debito')totalAjustes+=monto;
+    else if(a.tipo==='credito')totalAjustes-=monto;
+  });
+  var saldo=totalFacturado+totalAjustes-totalPagado;
+  var pagosNoApl=0;
+  pagos.forEach(function(p){pagosNoApl+=saldoNoAplicadoPago(p);});
+  var estado='Al día';
+  if(comprasVenc>0)estado='Con deuda vencida';
+  else if(saldo>0.01)estado='Con saldo pendiente';
+  else if(saldo<-0.01)estado='Saldo a favor';
+  return {totalFacturado:totalFacturado,totalPagado:totalPagado,totalAjustes:totalAjustes,saldoPendiente:saldo,pagosNoAplicados:pagosNoApl,cantCompras:compras.length,cantComprasPend:comprasPend,cantComprasVenc:comprasVenc,cantAjustes:ajustes.length,ultimoPago:ultimoPago,estado:estado};
+}
+function proveedorOpts(sel,placeholder){
+  var h='<option value="">'+(placeholder||'— elegir proveedor —')+'</option>';
+  (C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).forEach(function(p){
+    h+='<option value="'+p.id+'"'+(p.id==sel?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+(p.pais?' ('+escapeHtml(p.pais)+')':'')+'</option>';
+  });
+  return h;
+}
+function proveedorName(id){
+  var p=(C.proveedores||[]).find(function(x){return x.id===id;});
+  return p?p.nombre_empresa:'—';
+}
+
+// === TAB DATOS ===
+function renderTabProveedoresDatos(){
+  var F=proveedoresFiltros;
+  var fil=(C.proveedores||[]).filter(function(p){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=(p.nombre_empresa||'').toLowerCase().indexOf(b)>-1||(p.dato_fiscal||'').toLowerCase().indexOf(b)>-1||(p.email||'').toLowerCase().indexOf(b)>-1||(p.cuit_rut_taxid||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.pais&&p.pais!==F.pais)return false;
+    if(F.ciudad&&p.ciudad!==F.ciudad)return false;
+    if(F.tipoProveedor&&p.tipo_proveedor!==F.tipoProveedor)return false;
+    if(F.estado&&p.estado!==F.estado)return false;
+    return true;
+  });
+  var paises=Array.from(new Set((C.proveedores||[]).map(function(p){return p.pais;}).filter(Boolean))).sort();
+  var ciudades=Array.from(new Set((C.proveedores||[]).map(function(p){return p.ciudad;}).filter(Boolean))).sort();
+  var tipos=C.cfg_listas.tipo_proveedor||['Fabricante','Distribuidor','Servicios','Logística','Aduana','Otros'];
+  var estados=C.cfg_listas.estado_proveedor||['Activo','Inactivo','Prospecto','Bloqueado'];
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosProveedores()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalProveedor(0)">+ Nuevo Proveedor</button>'+
+    '<button class="btn bs sm" onclick="exportProveedoresExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="proveedoresFiltros.busca=this.value;clearTimeout(window._fprov);window._fprov=setTimeout(function(){go(\'proveedores\')},400)" placeholder="Nombre / fiscal / CUIT / email" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="proveedoresFiltros.pais=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ciudad</div><select onchange="proveedoresFiltros.ciudad=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(ciudades,F.ciudad)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="proveedoresFiltros.tipoProveedor=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoProveedor)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="proveedoresFiltros.estado=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
+    '</div></div>';
+  var rows='';
+  fil.forEach(function(p){
+    var estClass=p.estado==='Activo'?'bg':p.estado==='Prospecto'?'bb':p.estado==='Bloqueado'?'br':'bgr';
+    var cta=ctaCteProveedor(p.id);
+    rows+='<tr>'+
+      '<td style="font-weight:600">'+escapeHtml(p.nombre_empresa||'—')+'</td>'+
+      '<td>'+escapeHtml(p.referente||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(p.cuit_rut_taxid||'—')+'</td>'+
+      '<td>'+(p.pais?escapeHtml(p.pais):'—')+(p.ciudad?'<div style="font-size:10px;color:var(--text2)">'+escapeHtml(p.ciudad)+'</div>':'')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(p.email||'—')+'</td>'+
+      '<td style="font-size:11px">'+escapeHtml(p.telefono||'—')+'</td>'+
+      '<td>'+(p.tipo_proveedor?'<span class="badge by">'+escapeHtml(p.tipo_proveedor)+'</span>':'—')+'</td>'+
+      '<td><span class="badge '+estClass+'">'+escapeHtml(p.estado||'—')+'</span></td>'+
+      '<td class="'+(cta.saldoPendiente>0.01?'red':cta.saldoPendiente<-0.01?'cyan':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtS(cta.saldoPendiente)+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="verCtaCteProveedor('+p.id+')" title="Ver cta cte">📊</button> '+
+        '<button class="miniBtn" onclick="abrirModalProveedor('+p.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteProveedor('+p.id+')" title="Eliminar">🗑</button>'+
+      '</td>'+
+      '</tr>';
+  });
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Total Proveedores</div><div class="val">'+(C.proveedores||[]).length+'</div></div>'+
+    '<div class="card"><div class="lbl">Filtrados</div><div class="val cyan">'+fil.length+'</div></div>'+
+    '<div class="card"><div class="lbl">Activos</div><div class="val green">'+(C.proveedores||[]).filter(function(p){return p.estado==='Activo';}).length+'</div></div>'+
+    '<div class="card"><div class="lbl">Bloqueados</div><div class="val red">'+(C.proveedores||[]).filter(function(p){return p.estado==='Bloqueado';}).length+'</div></div>'+
+    '</div>'+filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Listado de Proveedores</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.proveedores||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">🏭 Sin proveedores cargados. <a href="#" onclick="abrirModalProveedor(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr><th>Empresa</th><th>Referente</th><th>CUIT/RUT</th><th>País/Ciudad</th><th>Email</th><th>Tel</th><th>Tipo</th><th>Estado</th><th style="text-align:right">Saldo USD</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+
+function limpiarFiltrosProveedores(){proveedoresFiltros={busca:'',pais:'',ciudad:'',tipoProveedor:'',estado:''};go('proveedores');}
+
+function exportProveedoresExcel(){
+  var data=(C.proveedores||[]).map(function(p){
+    var cta=ctaCteProveedor(p.id);
+    return {Empresa:p.nombre_empresa,Referente:p.referente,DatoFiscal:p.dato_fiscal,CUIT:p.cuit_rut_taxid,Direccion:p.direccion,CP:p.codigo_postal,Ciudad:p.ciudad,Pais:p.pais,Email:p.email,Telefono:p.telefono,Tipo:p.tipo_proveedor,Estado:p.estado,CondPago:p.condicion_pago,Moneda:p.moneda_habitual,Facturado_USD:cta.totalFacturado,Pagado_USD:cta.totalPagado,Ajustes_USD:cta.totalAjustes,Saldo_USD:cta.saldoPendiente,Observaciones:p.observaciones};
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Proveedores_'+hoy(),'Proveedores');
+}
+
+function abrirModalProveedor(id){
+  editProveedorId=id;
+  var p=id===0?{nombre_empresa:'',referente:'',dato_fiscal:'',cuit_rut_taxid:'',direccion:'',codigo_postal:'',ciudad:'',pais:'',email:'',telefono:'',tipo_proveedor:'',estado:'Activo',condicion_pago:'',moneda_habitual:'USD',observaciones:'',url:''}:(C.proveedores||[]).find(function(x){return x.id===id;})||{};
+  var tipos=C.cfg_listas.tipo_proveedor||['Fabricante','Distribuidor','Servicios','Logística','Aduana','Otros'];
+  var estados=C.cfg_listas.estado_proveedor||['Activo','Inactivo','Prospecto','Bloqueado'];
+  var cond=C.cfg_listas.condicion_pago_proveedor||['Anticipo','Contado','30 días','60 días','90 días','Mixto'];
+  var monedas=C.cfg_listas.moneda_proveedor||['USD','CLP','ARS','EUR','CNY'];
+  function opts(arr,sel,ph){
+    var h='<option value="">'+(ph||'— elegir —')+'</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var titulo=id===0?'➕ Nuevo Proveedor':'✏ Editar Proveedor';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalProveedor()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:20px">'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🏢 Datos generales</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Nombre de empresa *</label><input type="text" id="pvNombre" value="'+escapeHtml(p.nombre_empresa||'')+'"/></div>'+
+    '<div class="f"><label>Nombre referente</label><input type="text" id="pvRef" value="'+escapeHtml(p.referente||'')+'"/></div>'+
+    '</div><div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Dato fiscal (Razón social)</label><input type="text" id="pvFiscal" value="'+escapeHtml(p.dato_fiscal||'')+'"/></div>'+
+    '<div class="f"><label>CUIT / RUT / Tax ID</label><input type="text" id="pvCuit" value="'+escapeHtml(p.cuit_rut_taxid||'')+'"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📍 Ubicación</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f" style="grid-column:span 2"><label>Dirección</label><input type="text" id="pvDir" value="'+escapeHtml(p.direccion||'')+'"/></div>'+
+    '<div class="f"><label>Código postal</label><input type="text" id="pvCp" value="'+escapeHtml(p.codigo_postal||'')+'"/></div>'+
+    '<div class="f"><label>Ciudad</label><input type="text" id="pvCiudad" value="'+escapeHtml(p.ciudad||'')+'"/></div>'+
+    '</div><div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>País</label><input type="text" id="pvPais" value="'+escapeHtml(p.pais||'')+'"/></div>'+
+    '<div class="f"><label>Email</label><input type="email" id="pvEmail" value="'+escapeHtml(p.email||'')+'"/></div>'+
+    '<div class="f"><label>Teléfono</label><input type="text" id="pvTel" value="'+escapeHtml(p.telefono||'')+'"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">⚙ Clasificación</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Tipo de proveedor</label><select id="pvTipo">'+opts(tipos,p.tipo_proveedor)+'</select></div>'+
+    '<div class="f"><label>Estado</label><select id="pvEstado">'+opts(estados,p.estado||'Activo','')+'</select></div>'+
+    '</div><div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Condición de pago</label><select id="pvCondPago">'+opts(cond,p.condicion_pago)+'</select></div>'+
+    '<div class="f"><label>Moneda habitual</label><select id="pvMoneda">'+opts(monedas,p.moneda_habitual||'USD','')+'</select></div>'+
+    '</div><div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>URL</label><input type="text" id="pvUrl" value="'+escapeHtml(p.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observaciones internas</label><input type="text" id="pvObs" value="'+escapeHtml(p.observaciones||'')+'"/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarProveedor()">💾 '+(id===0?'Crear proveedor':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarProveedor(true)">💾➕ Crear + Nuevo</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalProveedor()">Cancelar</button>'+
+    '</div></div></div>';
+  var modal=document.getElementById('modalProveedor');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function cerrarModalProveedor(){
+  var m=document.getElementById('modalProveedor');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editProveedorId=null;
+}
+
+function guardarProveedor(keepOpen){
+  if(lockSubmit('guardarProveedor'))return;
+  var payload={
+    nombre_empresa:document.getElementById('pvNombre').value.trim(),
+    referente:document.getElementById('pvRef').value.trim()||null,
+    dato_fiscal:document.getElementById('pvFiscal').value.trim()||null,
+    cuit_rut_taxid:document.getElementById('pvCuit').value.trim()||null,
+    direccion:document.getElementById('pvDir').value.trim()||null,
+    codigo_postal:document.getElementById('pvCp').value.trim()||null,
+    ciudad:document.getElementById('pvCiudad').value.trim()||null,
+    pais:document.getElementById('pvPais').value.trim()||null,
+    email:document.getElementById('pvEmail').value.trim()||null,
+    telefono:document.getElementById('pvTel').value.trim()||null,
+    tipo_proveedor:document.getElementById('pvTipo').value||null,
+    estado:document.getElementById('pvEstado').value||'Activo',
+    condicion_pago:document.getElementById('pvCondPago').value||null,
+    moneda_habitual:document.getElementById('pvMoneda').value||'USD',
+    url:document.getElementById('pvUrl').value.trim()||null,
+    observaciones:document.getElementById('pvObs').value.trim()||null
+  };
+  if(!payload.nombre_empresa){unlockSubmit('guardarProveedor');toast('Nombre de empresa obligatorio','error');return;}
+  if(editProveedorId===0){
+    sbPost('proveedores',payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarProveedor');return;}
+      auditLog('create','Proveedor',(payload.nombre_empresa||'-')+' · '+(payload.pais||''));
+      toast('Proveedor creado','success');
+      unlockSubmit('guardarProveedor');
+      if(keepOpen){cerrarModalProveedor();loadAll().then(function(){abrirModalProveedor(0);});}
+      else{cerrarModalProveedor();reload('proveedores');}
+    });
+  }else{
+    sbPatch('proveedores',editProveedorId,payload).then(function(res){
+      if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarProveedor');return;}
+      auditLog('update','Proveedor','ID '+editProveedorId+' · '+(payload.nombre_empresa||'-'));
+      toast('Proveedor actualizado','success');
+      unlockSubmit('guardarProveedor');
+      cerrarModalProveedor();reload('proveedores');
+    });
+  }
+}
+
+function deleteProveedor(id){
+  var p=(C.proveedores||[]).find(function(x){return x.id===id;});
+  if(!p)return;
+  var nC=comprasDeProveedor(id).length,nP=pagosDeProveedor(id).length,nA=ajustesDeProveedor(id).length;
+  if(nC>0||nP>0||nA>0){toast('No se puede eliminar: tiene '+nC+' compras, '+nP+' pagos y '+nA+' ajustes vinculados. Marcalo como Inactivo.','error');return;}
+  confirmAction({
+    title:'Eliminar proveedor',
+    message:'Esta acción es permanente. Sólo se permite si no tiene compras, pagos ni ajustes registrados.',
+    details:[{label:'Empresa',value:p.nombre_empresa||'—'},{label:'País',value:p.pais||'—'},{label:'Email',value:p.email||'—'}],
+    danger:true,okText:'Sí, eliminar proveedor',
+    onOk:function(){
+      sbDelete('proveedores',id).then(function(){
+        auditLog('delete','Proveedor','ID '+id+' · '+(p.nombre_empresa||'-'));
+        toast('Proveedor eliminado','success');reload('proveedores');
+      });
+    }
+  });
+}
+
+function verCtaCteProveedor(id){ctaCteProvSelected=id;proveedoresTab='ctacte';go('proveedores');}
+
+// === TAB COMPRAS ===
+function renderTabProveedoresCompras(){
+  var F=comprasProvFiltros;
+  var todas=(C.compras||[]).slice();
+  todas=todas.filter(function(c){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=(c.pedido||'').toLowerCase().indexOf(b)>-1||(c.proveedor||'').toLowerCase().indexOf(b)>-1||(c.lote||'').toLowerCase().indexOf(b)>-1||(c.notas||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.estadoPago&&c.estado_pago!==F.estadoPago)return false;
+    if(F.fechaDesde&&(c.fecha_compra||'')<F.fechaDesde)return false;
+    if(F.fechaHasta&&(c.fecha_compra||'')>F.fechaHasta)return false;
+    return true;
+  });
+  todas.sort(function(a,b){return (b.fecha_compra||'').localeCompare(a.fecha_compra||'');});
+  var totFob=0,totalPag=0;
+  todas.forEach(function(c){
+    totFob+=parseFloat(c.usd_fob)||0;
+    var aplicado=0;
+    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+    totalPag+=aplicado;
+  });
+  var estadosPago=C.cfg_listas.estado_pago_compra||['No Pagar','Enviado a Pagar','Pagado','En Revisión','Pendiente'];
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosComprasProv()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCompra(0)">+ Nueva Compra</button>'+
+    '<button class="btn bs sm" onclick="exportComprasProvExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (pedido/proveedor/lote)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="comprasProvFiltros.busca=this.value;clearTimeout(window._fcp);window._fcp=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Pago</div><select onchange="comprasProvFiltros.estadoPago=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosPago,F.estadoPago)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="comprasProvFiltros.fechaDesde=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="comprasProvFiltros.fechaHasta=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '</div></div>';
+  var rows='';
+  todas.forEach(function(c){
+    var est=estadoCompraCalc(c);
+    var saldo=saldoCompra(c);
+    var estClass=est==='Pagado'?'bg':est==='Parcial'?'by':'br';
+    var venc=isCompraVencida(c);
+    var nombreProv=c.proveedor_id?proveedorName(c.proveedor_id):(c.proveedor||'—');
+    var iconLink=c.proveedor_id?' <span class="badge bb" style="font-size:9px" title="Vinculado">🔗</span>':'';
+    var aplicado=0;
+    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+    rows+='<tr>'+
+      '<td>'+fmtD(c.fecha_compra)+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'—')+'</td>'+
+      '<td>'+escapeHtml(nombreProv)+iconLink+'</td>'+
+      '<td>'+(c.tipo_operacion?'<span class="badge bb">'+escapeHtml(c.tipo_operacion)+'</span>':'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(c.usd_fob)+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(aplicado)+'</td>'+
+      '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
+      '<td>'+fmtD(c.vencimiento_prov)+(venc?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td>'+
+      '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
+      '<td><button class="miniBtn" onclick="abrirModalCompra('+c.id+')" title="Editar">✏</button></td>'+
+      '</tr>';
+  });
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Compras (filtro)</div><div class="val">'+todas.length+'</div><div class="sub">de '+(C.compras||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total USD FOB</div><div class="val cyan">'+fmtN(totFob)+'</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Pagado USD</div><div class="val green">'+fmtN(totalPag)+'</div></div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Saldo pendiente</div><div class="val red">'+fmtN(totFob-totalPag)+'</div></div>'+
+    '</div>'+
+    '<div class="alert ainfo" style="margin-bottom:14px">💡 Las compras se gestionan en <a href="#" onclick="go(\'compras\');return false;" style="color:var(--cyan)">Compras-Logística</a> y aparecen automáticamente acá. Podés crear nuevas también — abre el mismo formulario.</div>'+
+    filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Compras (todas)</h3><span style="font-size:12px;color:var(--text2)">'+todas.length+' resultados</span></div>'+
+    (todas.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin compras con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1200px"><thead><tr><th>Fecha</th><th>Pedido</th><th>Proveedor</th><th>Tipo Op.</th><th style="text-align:right">USD FOB</th><th style="text-align:right">Pagado USD</th><th style="text-align:right">Saldo USD</th><th>Vencimiento</th><th>Estado</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+function limpiarFiltrosComprasProv(){comprasProvFiltros={busca:'',estadoPago:'',fechaDesde:'',fechaHasta:''};go('proveedores');}
+function exportComprasProvExcel(){
+  var data=(C.compras||[]).map(function(c){
+    var aplicado=0;
+    imputacionesDeCompraPago(c.id).forEach(function(i){aplicado+=parseFloat(i.importe_aplicado_usd)||0;});
+    return {Fecha:c.fecha_compra,Pedido:c.pedido,Proveedor:c.proveedor_id?proveedorName(c.proveedor_id):c.proveedor,Vinculado:c.proveedor_id?'Sí':'No',TipoOp:c.tipo_operacion,USD_FOB:c.usd_fob,Pagado_USD:aplicado,Saldo_USD:(parseFloat(c.usd_fob)||0)-aplicado,EstadoCalc:estadoCompraCalc(c),Vencimiento:c.vencimiento_prov,FechaPago:c.fecha_pago,Notas:c.notas};
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Compras_Proveedores_'+hoy(),'Compras');
+}
+
+// === TAB PAGOS ===
+function renderTabPagos(){
+  var F=pagosFiltros;
+  var fil=(C.pagos_proveedores||[]).filter(function(p){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=proveedorName(p.proveedor_id).toLowerCase().indexOf(b)>-1||(p.observacion||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.proveedorId&&p.proveedor_id!=F.proveedorId)return false;
+    if(F.fechaDesde&&p.fecha<F.fechaDesde)return false;
+    if(F.fechaHasta&&p.fecha>F.fechaHasta)return false;
+    if(F.moneda&&p.moneda!==F.moneda)return false;
+    if(F.medioPago&&p.medio_pago!==F.medioPago)return false;
+    if(F.estado){
+      var aplicado=imputacionesDePago(p.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+      var totalP=parseFloat(p.importe_usd)||0;
+      var estCalc=Math.abs(totalP-aplicado)<0.01&&totalP>0?'Imputado':aplicado>0?'Parcial':'Pendiente de imputación';
+      if(estCalc!==F.estado)return false;
+    }
+    return true;
+  });
+  var totalUsd=0,totalNoApl=0;
+  fil.forEach(function(p){totalUsd+=parseFloat(p.importe_usd)||0;totalNoApl+=saldoNoAplicadoPago(p);});
+  var monedas=C.cfg_listas.moneda_proveedor||['USD','CLP','ARS','EUR','CNY'];
+  var medios=C.cfg_listas.medio_pago||['Transferencia','SWIFT','Efectivo','Cheque','Otro'];
+  function selOpts(arr,sel){
+    var h='<option value="">— Todos —</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosPagos()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalPago(0)">+ Nuevo Pago</button>'+
+    '<button class="btn bs sm" onclick="exportPagosExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="pagosFiltros.busca=this.value;clearTimeout(window._fpag);window._fpag=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Proveedor</div><select onchange="pagosFiltros.proveedorId=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(p){return '<option value="'+p.id+'"'+(p.id==F.proveedorId?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="pagosFiltros.fechaDesde=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="pagosFiltros.fechaHasta=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="pagosFiltros.moneda=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Medio</div><select onchange="pagosFiltros.medioPago=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(medios,F.medioPago)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="pagosFiltros.estado=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Imputado','Parcial','Pendiente de imputación'],F.estado)+'</select></div>'+
+    '</div></div>';
+  var rows='';
+  fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(p){
+    var aplicado=imputacionesDePago(p.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    var totalP=parseFloat(p.importe_usd)||0;
+    var noApl=Math.max(0,totalP-aplicado);
+    var estCalc=Math.abs(totalP-aplicado)<0.01&&totalP>0?'Imputado':aplicado>0?'Parcial':'Pendiente de imputación';
+    var estClass=estCalc==='Imputado'?'bg':estCalc==='Parcial'?'by':'br';
+    var nAdj=(C.proveedor_adjuntos||[]).filter(function(a){return a.tipo==='pago'&&a.registro_id===p.id;}).length;
+    var nImp=imputacionesDePago(p.id).length;
+    var astBadge=p.asiento_id?'<span class="badge bb" style="font-size:9px" title="Vinculado a asiento bancario">🔗 AST</span>':'';
+    rows+='<tr>'+
+      '<td>'+fmtD(p.fecha)+'</td>'+
+      '<td style="font-weight:600">'+escapeHtml(proveedorName(p.proveedor_id))+'</td>'+
+      '<td>'+(p.medio_pago?'<span class="badge bb">'+escapeHtml(p.medio_pago)+'</span>':'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(p.importe)+'</td>'+
+      '<td>'+(p.moneda||'USD')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(p.tipo_cambio?fmtN(p.tipo_cambio):'—')+'</td>'+
+      '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(p.importe_usd)+'</td>'+
+      '<td><span class="badge '+estClass+'">'+estCalc+'</span> '+astBadge+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(aplicado)+'</td>'+
+      '<td class="'+(noApl>0.01?'yellow':'')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(noApl)+'</td>'+
+      '<td style="text-align:center">'+nImp+'</td>'+
+      '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosPago('+p.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosPago('+p.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirModalPago('+p.id+')" title="Editar/Imputar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deletePago('+p.id+')" title="Eliminar">🗑</button>'+
+      '</td></tr>';
+  });
+  return '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Pagos (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.pagos_proveedores||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total Pagado USD</div><div class="val cyan">'+fmtN(totalUsd)+'</div></div>'+
+    '<div class="card" style="border-color:var(--yellow)"><div class="lbl">No Aplicado USD</div><div class="val yellow">'+fmtN(totalNoApl)+'</div><div class="sub">a imputar</div></div>'+
+    '</div>'+filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Pagos a Proveedores</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.pagos_proveedores||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">💸 Sin pagos cargados. <a href="#" onclick="abrirModalPago(0);return false;" style="color:var(--cyan)">Registrar el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Medio</th><th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th><th>Estado</th><th style="text-align:right">Aplicado USD</th><th style="text-align:right">No Apl.</th><th>#Imp</th><th>📎</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+function limpiarFiltrosPagos(){pagosFiltros={busca:'',proveedorId:'',fechaDesde:'',fechaHasta:'',moneda:'',medioPago:'',estado:''};go('proveedores');}
+function exportPagosExcel(){
+  var data=(C.pagos_proveedores||[]).map(function(p){
+    var aplicado=imputacionesDePago(p.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    return {Fecha:p.fecha,Proveedor:proveedorName(p.proveedor_id),Medio:p.medio_pago,Importe:p.importe,Moneda:p.moneda,TC:p.tipo_cambio,Importe_USD:p.importe_usd,Aplicado_USD:aplicado,NoAplicado_USD:saldoNoAplicadoPago(p),Observacion:p.observacion};
+  });
+  exportExcel(data,Object.keys(data[0]||{}),'Pagos_Proveedores_'+hoy(),'Pagos');
+}
+
+// === MODAL PAGO + IMPUTACIONES ===
+function abrirModalPago(id,opciones){
+  editPagoId=id;
+  imputacionPagoLineas=[];
+  var p;
+  if(id===0){
+    p={fecha:(opciones&&opciones.fecha)||hoy(),proveedor_id:(opciones&&opciones.proveedorId)||'',medio_pago:(opciones&&opciones.asientoId)?'Transferencia':'',importe:(opciones&&opciones.importeUSD)||'',moneda:'USD',tipo_cambio:'',importe_usd:(opciones&&opciones.importeUSD)||'',asiento_id:(opciones&&opciones.asientoId)||null,observacion:'',url:''};
+    if(opciones&&opciones.asientoId)pagoAsientoPendiente=opciones.asientoId;
+  }else{
+    p=(C.pagos_proveedores||[]).find(function(x){return x.id===id;})||{};
+    imputacionPagoLineas=imputacionesDePago(id).map(function(i){return {compraId:i.compra_id,importeUSD:parseFloat(i.importe_aplicado_usd)||0,imputacionId:i.id};});
+  }
+  var monedas=C.cfg_listas.moneda_proveedor||['USD','CLP','ARS','EUR','CNY'];
+  var medios=C.cfg_listas.medio_pago||['Transferencia','SWIFT','Efectivo','Cheque','Otro'];
+  function opts(arr,sel,ph){
+    var h='<option value="">'+(ph||'— elegir —')+'</option>';
+    arr.forEach(function(x){h+='<option value="'+escapeHtml(x)+'"'+(x===sel?' selected':'')+'>'+escapeHtml(x)+'</option>';});
+    return h;
+  }
+  var titulo=id===0?'➕ Nuevo Pago a Proveedor':'✏ Editar Pago';
+  var bancoBadge=p.asiento_id?'<span class="badge bb" style="font-size:10px;margin-left:8px">🔗 desde asiento bancario</span>':'';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:900px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+bancoBadge+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalPago()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:20px">'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="pgF" value="'+(p.fecha||'')+'"/></div>'+
+    '<div class="f"><label>Proveedor *</label><select id="pgProv" onchange="renderImputacionesPagoEditor()">'+proveedorOpts(p.proveedor_id,'— elegir —')+'</select></div>'+
+    '<div class="f"><label>Medio de pago</label><select id="pgMedio">'+opts(medios,p.medio_pago)+'</select></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Importe</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Importe *</label><input type="number" id="pgImp" value="'+(p.importe||'')+'" step="0.01" min="0" oninput="calcImporteUSDPago()"/></div>'+
+    '<div class="f"><label>Moneda</label><select id="pgMoneda" onchange="calcImporteUSDPago()">'+opts(monedas,p.moneda||'USD','')+'</select></div>'+
+    '<div class="f"><label>Tipo de cambio</label><input type="number" id="pgTC" value="'+(p.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDPago()" placeholder="Si moneda ≠ USD"/></div>'+
+    '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="pgUSD" readonly value="'+(p.importe_usd?fmtN(p.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🎯 Imputar a compras pendientes</div>'+
+    '<div id="imputacionesPagoEditor"></div>'+
+    '<div class="fg2" style="margin-top:14px;margin-bottom:14px">'+
+    '<div class="f"><label>URL/Comprobante</label><input type="text" id="pgUrl" value="'+escapeHtml(p.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observación</label><input type="text" id="pgObs" value="'+escapeHtml(p.observacion||'')+'"/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarPago()">💾 '+(id===0?'Crear pago':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarPago(true)">💾➕ Crear + Nuevo</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalPago()">Cancelar</button>'+
+    '</div></div></div>';
+  var modal=document.getElementById('modalPago');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+  setTimeout(function(){renderImputacionesPagoEditor();calcImporteUSDPago();},10);
+}
+function cerrarModalPago(){
+  var m=document.getElementById('modalPago');
+  if(m){m.style.display='none';m.innerHTML='';}
+  editPagoId=null;imputacionPagoLineas=[];
+}
+function calcImporteUSDPago(){
+  var imp=parseFloat(document.getElementById('pgImp').value)||0;
+  var mon=document.getElementById('pgMoneda').value;
+  var tc=parseFloat(document.getElementById('pgTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  document.getElementById('pgUSD').value=usd>0?fmtN(usd):'';
+  var tcInput=document.getElementById('pgTC');
+  if(mon==='USD'){tcInput.disabled=true;tcInput.value='';}else{tcInput.disabled=false;}
+  renderImputacionesPagoEditor();
+}
+function renderImputacionesPagoEditor(){
+  var div=document.getElementById('imputacionesPagoEditor');
+  if(!div)return;
+  var proveedorId=parseInt(document.getElementById('pgProv').value)||0;
+  if(!proveedorId){div.innerHTML='<div class="alert ainfo">💡 Seleccioná un proveedor para imputar a sus compras pendientes.</div>';return;}
+  var compras=comprasDeProveedor(proveedorId).filter(function(c){return saldoCompra(c)>0.01;});
+  imputacionPagoLineas.forEach(function(line){
+    if(!compras.find(function(c){return c.id===line.compraId;})){
+      var c=(C.compras||[]).find(function(x){return x.id===line.compraId;});
+      if(c)compras.push(c);
+    }
+  });
+  compras.sort(function(a,b){return (a.vencimiento_prov||a.fecha_compra||'').localeCompare(b.vencimiento_prov||b.fecha_compra||'');});
+  var imp=parseFloat(document.getElementById('pgImp').value)||0;
+  var mon=document.getElementById('pgMoneda').value;
+  var tc=parseFloat(document.getElementById('pgTC').value)||0;
+  var importeUSDPago=mon==='USD'?imp:(tc>0?imp/tc:0);
+  var totalImputado=imputacionPagoLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+  var noAplicado=Math.max(0,importeUSDPago-totalImputado);
+  var excedido=totalImputado>importeUSDPago+0.01;
+  if(compras.length===0){div.innerHTML='<div class="alert ainfo">Este proveedor no tiene compras pendientes. El pago quedará como <strong>"Pendiente de imputación"</strong>.</div>';return;}
+  var filasHTML='';
+  compras.forEach(function(c){
+    var saldo=saldoCompra(c);
+    var line=imputacionPagoLineas.find(function(l){return l.compraId===c.id;});
+    var saldoDispEditor=saldo+(line?line.importeUSD:0);
+    var checked=!!line;
+    var venc=c.vencimiento_prov&&c.vencimiento_prov<hoy();
+    filasHTML+='<tr style="border-top:1px solid var(--border)">'+
+      '<td style="padding:8px 10px"><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleImputacionPago('+c.id+',this.checked,'+saldoDispEditor+')"/></td>'+
+      '<td style="padding:8px 10px;font-family:monospace;font-size:11px">'+escapeHtml(c.pedido||'#'+c.id)+'</td>'+
+      '<td style="padding:8px 10px">'+fmtD(c.fecha_compra)+'</td>'+
+      '<td style="padding:8px 10px">'+(c.vencimiento_prov?fmtD(c.vencimiento_prov):'—')+(venc?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td>'+
+      '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums">'+fmtN(c.usd_fob)+'</td>'+
+      '<td style="padding:8px 10px;text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">'+fmtN(saldoDispEditor)+'</td>'+
+      '<td style="padding:8px 10px">'+(checked?'<input type="number" step="0.01" min="0" max="'+saldoDispEditor+'" value="'+(line?line.importeUSD:'')+'" oninput="setImputacionPagoMonto('+c.id+',this.value,'+saldoDispEditor+')" style="width:110px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:11px;outline:none;text-align:right"/>':'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '</tr>';
+  });
+  div.innerHTML='<div style="background:var(--bg3);border-radius:8px;padding:0;border:1px solid var(--border);overflow:hidden">'+
+    '<table style="width:100%;font-size:11px"><thead><tr style="background:var(--bg);font-size:10px;text-transform:uppercase;color:var(--text2);letter-spacing:.4px">'+
+    '<th style="padding:8px 10px;text-align:left">Aplicar</th><th style="padding:8px 10px;text-align:left">Pedido</th><th style="padding:8px 10px;text-align:left">Fecha</th><th style="padding:8px 10px;text-align:left">Vto.</th><th style="padding:8px 10px;text-align:right">USD FOB</th><th style="padding:8px 10px;text-align:right">Saldo USD</th><th style="padding:8px 10px;text-align:right">Aplicar USD</th>'+
+    '</tr></thead><tbody>'+filasHTML+'</tbody></table></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:8px;border:1px solid '+(excedido?'var(--red)':noAplicado<0.01&&totalImputado>0?'var(--green)':'var(--border)')+'">'+
+    '<div style="font-size:11px;color:var(--text2)"><strong style="color:var(--cyan)">Pago USD:</strong> '+fmtN(importeUSDPago)+' · <strong style="color:var(--green)">Imputado:</strong> '+fmtN(totalImputado)+' · <strong style="color:'+(noAplicado>0.01?'var(--yellow)':'var(--green)')+'">No aplicado:</strong> '+fmtN(noAplicado)+'</div>'+
+    (excedido?'<span class="badge br" style="font-size:10px">⚠ Imputado &gt; Pago</span>':noAplicado<0.01&&totalImputado>0?'<span class="badge bg" style="font-size:10px">✓ Totalmente imputado</span>':noAplicado>0&&totalImputado>0?'<span class="badge by" style="font-size:10px">⚠ '+fmtN(noAplicado)+' sin aplicar</span>':'<span class="badge bgr" style="font-size:10px">Sin imputar</span>')+
+    '</div>';
+}
+function toggleImputacionPago(compraId,checked,saldoMax){
+  if(checked){
+    if(!imputacionPagoLineas.find(function(l){return l.compraId===compraId;})){
+      var imp=parseFloat(document.getElementById('pgImp').value)||0;
+      var mon=document.getElementById('pgMoneda').value;
+      var tc=parseFloat(document.getElementById('pgTC').value)||0;
+      var importeUSDPago=mon==='USD'?imp:(tc>0?imp/tc:0);
+      var totalImp=imputacionPagoLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+      var quedaPorAplicar=Math.max(0,importeUSDPago-totalImp);
+      var sugerido=Math.min(saldoMax,quedaPorAplicar);
+      imputacionPagoLineas.push({compraId:compraId,importeUSD:sugerido});
+    }
+  }else{
+    imputacionPagoLineas=imputacionPagoLineas.filter(function(l){return l.compraId!==compraId;});
+  }
+  renderImputacionesPagoEditor();
+}
+function setImputacionPagoMonto(compraId,monto,saldoMax){
+  var m=parseFloat(monto)||0;
+  if(m<0)m=0;if(m>saldoMax)m=saldoMax;
+  var line=imputacionPagoLineas.find(function(l){return l.compraId===compraId;});
+  if(line)line.importeUSD=m;
+  clearTimeout(window._impPagDeb);
+  window._impPagDeb=setTimeout(renderImputacionesPagoEditor,300);
+}
+function guardarPago(keepOpen){
+  if(lockSubmit('guardarPago'))return;
+  var imp=parseFloat(document.getElementById('pgImp').value)||0;
+  var mon=document.getElementById('pgMoneda').value;
+  var tc=parseFloat(document.getElementById('pgTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  var proveedor=parseInt(document.getElementById('pgProv').value);
+  if(!proveedor){unlockSubmit('guardarPago');toast('Elegí un proveedor','error');return;}
+  if(!document.getElementById('pgF').value){unlockSubmit('guardarPago');toast('Falta fecha','error');return;}
+  if(imp<=0){unlockSubmit('guardarPago');toast('Importe debe ser > 0','error');return;}
+  if(mon!=='USD'&&tc<=0){unlockSubmit('guardarPago');toast('Para '+mon+' necesitás un tipo de cambio','error');return;}
+  var totalImp=imputacionPagoLineas.reduce(function(s,l){return s+(parseFloat(l.importeUSD)||0);},0);
+  if(totalImp>usd+0.01){unlockSubmit('guardarPago');toast('Las imputaciones suman más que el pago','error');return;}
+  var estado='Pendiente de imputación';
+  if(Math.abs(usd-totalImp)<0.01&&totalImp>0)estado='Imputado';
+  else if(totalImp>0)estado='Parcial';
+  var pagoEditando=editPagoId>0?(C.pagos_proveedores||[]).find(function(x){return x.id===editPagoId;}):null;
+  var payload={fecha:document.getElementById('pgF').value,proveedor_id:proveedor,medio_pago:document.getElementById('pgMedio').value||null,importe:imp,moneda:mon,tipo_cambio:mon==='USD'?null:tc,importe_usd:usd,observacion:document.getElementById('pgObs').value.trim()||null,url:document.getElementById('pgUrl').value.trim()||null,estado:estado};
+  if(pagoEditando&&pagoEditando.asiento_id)payload.asiento_id=pagoEditando.asiento_id;
+  if(editPagoId===0&&pagoAsientoPendiente)payload.asiento_id=pagoAsientoPendiente;
+  var savePromise=editPagoId===0?sbPost('pagos_proveedores',payload):sbPatch('pagos_proveedores',editPagoId,payload);
+  savePromise.then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarPago');return;}
+    var pago=Array.isArray(res)?res[0]:res;
+    var pagoId=pago&&pago.id?pago.id:editPagoId;
+    if(!pagoId){toast('Error obteniendo ID del pago','error');unlockSubmit('guardarPago');return;}
+    var paso1=editPagoId>0?sbDeleteWhere('pago_imputaciones','pago_id',pagoId):Promise.resolve();
+    paso1.then(function(){
+      var nuevas=imputacionPagoLineas.filter(function(l){return l.importeUSD>0.001;}).map(function(l){
+        var compra=(C.compras||[]).find(function(c){return c.id===l.compraId;});
+        return {pago_id:pagoId,compra_id:l.compraId,importe_aplicado_usd:l.importeUSD,importe_aplicado_moneda_compra:compra&&compra.tipo_cambio?l.importeUSD*parseFloat(compra.tipo_cambio):l.importeUSD,created_by:CU?CU.u:null};
+      });
+      if(nuevas.length===0)return Promise.resolve();
+      return sbPost('pago_imputaciones',nuevas);
+    }).then(function(){
+      var compraIds=imputacionPagoLineas.map(function(l){return l.compraId;});
+      if(pagoEditando){imputacionesDePago(editPagoId).forEach(function(i){if(compraIds.indexOf(i.compra_id)===-1)compraIds.push(i.compra_id);});}
+      return sbGet('pago_imputaciones','select=*').then(function(allImp){
+        C.pago_imputaciones=Array.isArray(allImp)?allImp:[];
+        var chain=Promise.resolve();
+        compraIds.forEach(function(cid){
+          chain=chain.then(function(){
+            var compra=(C.compras||[]).find(function(c){return c.id===cid;});
+            if(!compra)return;
+            return sbPatch('compras',cid,{estado_pago:estadoCompraCalc(compra)});
+          });
+        });
+        return chain;
+      });
+    }).then(function(){
+      auditLog('create','Pago Proveedor','USD '+usd+' a '+proveedorName(proveedor)+' · '+estado);
+      toast('Pago guardado · '+estado,'success');
+      pagoAsientoPendiente=null;
+      unlockSubmit('guardarPago');
+      if(keepOpen){cerrarModalPago();loadAll().then(function(){abrirModalPago(0);});}
+      else{cerrarModalPago();reload('proveedores');}
+    }).catch(function(e){toast('Error guardando imputaciones: '+(e.message||e),'error');unlockSubmit('guardarPago');});
+  }).catch(function(e){toast('Error: '+(e.message||e),'error');unlockSubmit('guardarPago');});
+}
+function deletePago(id){
+  var p=(C.pagos_proveedores||[]).find(function(x){return x.id===id;});
+  if(!p)return;
+  if(!confirm('¿Eliminar este pago? Las imputaciones se borran y los saldos de compras se recalculan.'))return;
+  var imps=imputacionesDePago(id);
+  var compraIds=imps.map(function(i){return i.compra_id;});
+  var adjs=(C.proveedor_adjuntos||[]).filter(function(a){return a.tipo==='pago'&&a.registro_id===id;});
+  var pAdj=Promise.all(adjs.map(function(a){return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+a.storage_path,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});}));
+  pAdj.then(function(){
+    sbDeleteWhere('proveedor_adjuntos','registro_id',id).then(function(){
+      sbDeleteWhere('pago_imputaciones','pago_id',id).then(function(){
+        sbDelete('pagos_proveedores',id).then(function(){
+          sbGet('pago_imputaciones','select=*').then(function(allImp){
+            C.pago_imputaciones=Array.isArray(allImp)?allImp:[];
+            var chain=Promise.resolve();
+            compraIds.forEach(function(cid){
+              chain=chain.then(function(){
+                var compra=(C.compras||[]).find(function(c){return c.id===cid;});
+                if(!compra)return;
+                return sbPatch('compras',cid,{estado_pago:estadoCompraCalc(compra)});
+              });
+            });
+            return chain;
+          }).then(function(){auditLog('delete','Pago Proveedor','ID '+id);toast('Pago eliminado','success');reload('proveedores');});
+        });
+      });
+    });
+  });
+}
+
+// === TAB AJUSTES CONTABLES ===
+function renderTabAjustes(){
+  var F=ajustesFiltros;
+  var fil=(C.ajustes_compras||[]).filter(function(a){
+    if(F.busca){
+      var b=F.busca.toLowerCase();
+      var match=proveedorName(a.proveedor_id).toLowerCase().indexOf(b)>-1||(a.concepto||'').toLowerCase().indexOf(b)>-1||(a.observacion||'').toLowerCase().indexOf(b)>-1;
+      if(!match)return false;
+    }
+    if(F.proveedorId&&a.proveedor_id!=F.proveedorId)return false;
+    if(F.tipo&&a.tipo!==F.tipo)return false;
+    if(F.fechaDesde&&a.fecha<F.fechaDesde)return false;
+    if(F.fechaHasta&&a.fecha>F.fechaHasta)return false;
+    return true;
+  });
+  var totDeb=0,totCre=0;
+  fil.forEach(function(a){var u=parseFloat(a.importe_usd)||0;if(a.tipo==='debito')totDeb+=u;else if(a.tipo==='credito')totCre+=u;});
+  function tipoSelOpts(sel){
+    var opts=[{value:'',label:'— Todos —'},{value:'debito',label:'Débito (↑ deuda)'},{value:'credito',label:'Crédito (↓ deuda)'}];
+    return opts.map(function(o){return '<option value="'+o.value+'"'+(o.value===sel?' selected':'')+'>'+o.label+'</option>';}).join('');
+  }
+  var hayF=Object.keys(F).some(function(k){return F[k];});
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
+    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+    '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
+    (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosAjustes()">✕ Limpiar</button>':'')+
+    '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalAjuste(0)">+ Nuevo Ajuste</button>'+
+    '<button class="btn bs sm" onclick="exportAjustesExcel()">⬇ Excel</button>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
+    '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ajustesFiltros.busca=this.value;clearTimeout(window._faj);window._faj=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Proveedor</div><select onchange="ajustesFiltros.proveedorId=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(p){return '<option value="'+p.id+'"'+(p.id==F.proveedorId?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="ajustesFiltros.tipo=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+tipoSelOpts(F.tipo)+'</select></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="ajustesFiltros.fechaDesde=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="ajustesFiltros.fechaHasta=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
+    '</div></div>';
+  var rows='';
+  fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(a){
+    var tipoLbl=a.tipo==='debito'?'<span class="badge br">↑ Débito</span>':'<span class="badge bg">↓ Crédito</span>';
+    rows+='<tr>'+
+      '<td>'+fmtD(a.fecha)+'</td>'+
+      '<td style="font-weight:600">'+escapeHtml(proveedorName(a.proveedor_id))+'</td>'+
+      '<td>'+tipoLbl+'</td>'+
+      '<td>'+escapeHtml(a.concepto||'—')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(a.importe)+'</td>'+
+      '<td>'+(a.moneda||'USD')+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(a.tipo_cambio?fmtN(a.tipo_cambio):'—')+'</td>'+
+      '<td class="'+(a.tipo==='debito'?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+(a.tipo==='debito'?'+':'-')+fmtN(a.importe_usd)+'</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+escapeHtml(a.observacion||'—')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        (a.url?'<a href="'+escapeHtml(a.url)+'" target="_blank" class="miniBtn" title="Doc">📄</a> ':'')+
+        '<button class="miniBtn" onclick="abrirModalAjuste('+a.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteAjuste('+a.id+')" title="Eliminar">🗑</button>'+
+      '</td></tr>';
+  });
+  return '<div class="alert ainfo" style="margin-bottom:14px">⚖️ <strong>Ajustes contables</strong> son notas de débito (aumentan deuda con el proveedor) o crédito (la reducen) que NO modifican las compras originales. Útiles para penalidades, descuentos posteriores, diferencias de cambio, etc.</div>'+
+    '<div class="cards" style="margin-bottom:14px">'+
+    '<div class="card"><div class="lbl">Ajustes (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.ajustes_compras||[]).length+'</div></div>'+
+    '<div class="card" style="border-color:var(--red)"><div class="lbl">Total Débitos USD</div><div class="val red">+'+fmtN(totDeb)+'</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Total Créditos USD</div><div class="val green">-'+fmtN(totCre)+'</div></div>'+
+    '<div class="card"><div class="lbl">Neto USD</div><div class="val">'+fmtS(totDeb-totCre)+'</div></div>'+
+    '</div>'+filtrosHTML+
+    '<div class="twrap"><div class="thead2"><h3>Ajustes Contables</h3><span style="font-size:12px;color:var(--text2)">'+fil.length+' resultados</span></div>'+
+    ((C.ajustes_compras||[]).length===0?
+      '<div style="padding:32px;text-align:center;color:var(--text2)">⚖️ Sin ajustes cargados. <a href="#" onclick="abrirModalAjuste(0);return false;" style="color:var(--cyan)">Crear el primero →</a></div>':
+      fil.length===0?
+      '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados</div>':
+      '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Tipo</th><th>Concepto</th><th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">Impacto USD</th><th>Observación</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div>')+
+    '</div>';
+}
+function limpiarFiltrosAjustes(){ajustesFiltros={busca:'',proveedorId:'',tipo:'',fechaDesde:'',fechaHasta:''};go('proveedores');}
+function exportAjustesExcel(){
+  var data=(C.ajustes_compras||[]).map(function(a){return {Fecha:a.fecha,Proveedor:proveedorName(a.proveedor_id),Tipo:a.tipo,Concepto:a.concepto,Importe:a.importe,Moneda:a.moneda,TC:a.tipo_cambio,Importe_USD:a.importe_usd,Observacion:a.observacion,URL:a.url};});
+  exportExcel(data,Object.keys(data[0]||{}),'Ajustes_Contables_'+hoy(),'Ajustes');
+}
+
+function abrirModalAjuste(id){
+  editAjusteId=id;
+  var a=id===0?{fecha:hoy(),proveedor_id:'',tipo:'debito',concepto:'',importe:'',moneda:'USD',tipo_cambio:'',importe_usd:'',observacion:'',url:''}:(C.ajustes_compras||[]).find(function(x){return x.id===id;})||{};
+  var monedas=C.cfg_listas.moneda_proveedor||['USD','CLP','ARS','EUR','CNY'];
+  var conceptos=C.cfg_listas.concepto_ajuste_compra||['Nota de débito','Nota de crédito','Bonificación','Penalidad','Diferencia de cambio','Devolución','Otro'];
+  function opts(arr,sel,ph){
+    var h='<option value="">'+(ph||'— elegir —')+'</option>';
+    arr.forEach(function(x){h+='<option value="'+escapeHtml(x)+'"'+(x===sel?' selected':'')+'>'+escapeHtml(x)+'</option>';});
+    return h;
+  }
+  var titulo=id===0?'➕ Nuevo Ajuste Contable':'✏ Editar Ajuste';
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:800px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:5">'+
+    '<h3 style="font-size:15px;font-weight:600">'+titulo+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalAjuste()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:20px">'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha *</label><input type="date" id="ajF" value="'+(a.fecha||'')+'"/></div>'+
+    '<div class="f"><label>Proveedor *</label><select id="ajProv">'+proveedorOpts(a.proveedor_id,'— elegir —')+'</select></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>Tipo *</label><select id="ajTipo"><option value="debito"'+(a.tipo==='debito'?' selected':'')+'>↑ Débito (aumenta deuda)</option><option value="credito"'+(a.tipo==='credito'?' selected':'')+'>↓ Crédito (reduce deuda)</option></select></div>'+
+    '<div class="f"><label>Concepto *</label><select id="ajConcepto">'+opts(conceptos,a.concepto)+'</select></div>'+
+    '</div>'+
+    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div class="f"><label>Importe *</label><input type="number" id="ajImp" value="'+(a.importe||'')+'" step="0.01" min="0" oninput="calcImporteUSDAjuste()"/></div>'+
+    '<div class="f"><label>Moneda</label><select id="ajMoneda" onchange="calcImporteUSDAjuste()">'+opts(monedas,a.moneda||'USD','')+'</select></div>'+
+    '<div class="f"><label>Tipo de cambio</label><input type="number" id="ajTC" value="'+(a.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDAjuste()" placeholder="Si moneda ≠ USD"/></div>'+
+    '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="ajUSD" readonly value="'+(a.importe_usd?fmtN(a.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>URL/Documento</label><input type="text" id="ajUrl" value="'+escapeHtml(a.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="f"><label>Observación</label><input type="text" id="ajObs" value="'+escapeHtml(a.observacion||'')+'"/></div>'+
+    '</div>'+
+    '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
+    '<button class="btn bp" onclick="guardarAjuste()">💾 '+(id===0?'Crear ajuste':'Guardar cambios')+'</button>'+
+    (id===0?'<button class="btn bv" onclick="guardarAjuste(true)">💾➕ Crear + Nuevo</button>':'')+
+    '<button class="btn bs" onclick="cerrarModalAjuste()">Cancelar</button>'+
+    '</div></div></div>';
+  var modal=document.getElementById('modalAjuste');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+  setTimeout(calcImporteUSDAjuste,10);
+}
+function cerrarModalAjuste(){var m=document.getElementById('modalAjuste');if(m){m.style.display='none';m.innerHTML='';}editAjusteId=null;}
+function calcImporteUSDAjuste(){
+  var imp=parseFloat(document.getElementById('ajImp').value)||0;
+  var mon=document.getElementById('ajMoneda').value;
+  var tc=parseFloat(document.getElementById('ajTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  document.getElementById('ajUSD').value=usd>0?fmtN(usd):'';
+  var tcInp=document.getElementById('ajTC');
+  if(mon==='USD'){tcInp.disabled=true;tcInp.value='';}else{tcInp.disabled=false;}
+}
+function guardarAjuste(keepOpen){
+  if(lockSubmit('guardarAjuste'))return;
+  var imp=parseFloat(document.getElementById('ajImp').value)||0;
+  var mon=document.getElementById('ajMoneda').value;
+  var tc=parseFloat(document.getElementById('ajTC').value)||0;
+  var usd=mon==='USD'?imp:(tc>0?imp/tc:0);
+  var proveedor=parseInt(document.getElementById('ajProv').value);
+  if(!proveedor){unlockSubmit('guardarAjuste');toast('Elegí un proveedor','error');return;}
+  if(!document.getElementById('ajF').value){unlockSubmit('guardarAjuste');toast('Falta fecha','error');return;}
+  if(imp<=0){unlockSubmit('guardarAjuste');toast('Importe debe ser > 0','error');return;}
+  if(mon!=='USD'&&tc<=0){unlockSubmit('guardarAjuste');toast('Para '+mon+' necesitás un TC','error');return;}
+  var payload={fecha:document.getElementById('ajF').value,proveedor_id:proveedor,tipo:document.getElementById('ajTipo').value,concepto:document.getElementById('ajConcepto').value||null,importe:imp,moneda:mon,tipo_cambio:mon==='USD'?null:tc,importe_usd:usd,observacion:document.getElementById('ajObs').value.trim()||null,url:document.getElementById('ajUrl').value.trim()||null};
+  var savePromise=editAjusteId===0?sbPost('ajustes_compras',payload):sbPatch('ajustes_compras',editAjusteId,payload);
+  savePromise.then(function(res){
+    if(res&&res.code){toast('Error: '+res.message,'error');unlockSubmit('guardarAjuste');return;}
+    auditLog(editAjusteId===0?'create':'update','Ajuste Compra',payload.tipo+' USD '+usd+' · '+proveedorName(proveedor));
+    toast('Ajuste guardado','success');
+    unlockSubmit('guardarAjuste');
+    if(keepOpen){cerrarModalAjuste();loadAll().then(function(){abrirModalAjuste(0);});}
+    else{cerrarModalAjuste();reload('proveedores');}
+  });
+}
+function deleteAjuste(id){
+  var a=(C.ajustes_compras||[]).find(function(x){return x.id===id;});
+  if(!a)return;
+  if(!confirm('¿Eliminar este ajuste contable? La cta cte se recalcula.'))return;
+  sbDelete('ajustes_compras',id).then(function(){
+    auditLog('delete','Ajuste Compra','ID '+id);
+    toast('Ajuste eliminado','success');reload('proveedores');
+  });
+}
+
+// === TAB CTA CTE ===
+function renderTabCtaCteProv(){
+  var proveedores=(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');});
+  if(proveedores.length===0)return '<div class="alert ainfo">No hay proveedores cargados aún.</div>';
+  var selectorHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<label style="font-size:11px;color:var(--text2);font-weight:600">Proveedor:</label>'+
+    '<select onchange="ctaCteProvSelected=parseInt(this.value)||null;go(\'proveedores\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none;min-width:280px"><option value="">— Resumen general —</option>'+
+    proveedores.map(function(p){return '<option value="'+p.id+'"'+(p.id===ctaCteProvSelected?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+'</option>';}).join('')+
+    '</select>'+
+    '</div>';
+  if(!ctaCteProvSelected){
+    var rows='';
+    var totFact=0,totPag=0,totSaldo=0,totVenc=0;
+    proveedores.forEach(function(p){
+      var c=ctaCteProveedor(p.id);
+      totFact+=c.totalFacturado;totPag+=c.totalPagado;totSaldo+=c.saldoPendiente;
+      if(c.cantComprasVenc>0)totVenc++;
+      var estClass=c.estado==='Al día'?'bg':c.estado==='Con deuda vencida'?'br':c.estado==='Saldo a favor'?'bb':'by';
+      rows+='<tr><td style="font-weight:600">'+escapeHtml(p.nombre_empresa||'—')+'</td>'+
+        '<td>'+escapeHtml(p.pais||'—')+'</td>'+
+        '<td style="text-align:center">'+c.cantCompras+'</td>'+
+        '<td style="text-align:center">'+c.cantComprasPend+'</td>'+
+        '<td style="text-align:center;color:'+(c.cantComprasVenc>0?'var(--red)':'inherit')+'">'+c.cantComprasVenc+'</td>'+
+        '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(c.totalFacturado)+'</td>'+
+        '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--green)">'+fmtN(c.totalPagado)+'</td>'+
+        '<td style="font-variant-numeric:tabular-nums;text-align:right;color:'+(c.totalAjustes>0?'var(--red)':c.totalAjustes<0?'var(--green)':'inherit')+'">'+fmtS(c.totalAjustes)+'</td>'+
+        '<td class="'+(c.saldoPendiente>0.01?'red':c.saldoPendiente<-0.01?'cyan':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtS(c.saldoPendiente)+'</td>'+
+        '<td><span class="badge '+estClass+'">'+c.estado+'</span></td>'+
+        '<td>'+(c.ultimoPago?fmtD(c.ultimoPago):'—')+'</td>'+
+        '<td><button class="miniBtn" onclick="verCtaCteProveedor('+p.id+')" title="Detalle">🔍</button></td>'+
+        '</tr>';
+    });
+    return selectorHTML+
+      '<div class="cards" style="margin-bottom:14px">'+
+      '<div class="card"><div class="lbl">Proveedores</div><div class="val">'+proveedores.length+'</div></div>'+
+      '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total Facturado USD</div><div class="val cyan">'+fmtN(totFact)+'</div></div>'+
+      '<div class="card" style="border-color:var(--green)"><div class="lbl">Total Pagado USD</div><div class="val green">'+fmtN(totPag)+'</div></div>'+
+      '<div class="card" style="border-color:var(--red)"><div class="lbl">Saldo Pendiente USD</div><div class="val red">'+fmtN(totSaldo)+'</div></div>'+
+      '<div class="card" style="border-color:var(--yellow)"><div class="lbl">Prov. con vencidos</div><div class="val yellow">'+totVenc+'</div></div>'+
+      '</div>'+
+      '<div class="twrap"><div class="thead2"><h3>Resumen Cuenta Corriente · Todos los proveedores</h3></div>'+
+      '<div style="overflow-x:auto"><table style="min-width:1400px"><thead><tr><th>Proveedor</th><th>País</th><th>#Compras</th><th>Pend.</th><th>Venc.</th><th style="text-align:right">Facturado USD</th><th style="text-align:right">Pagado USD</th><th style="text-align:right">Ajustes USD</th><th style="text-align:right">Saldo USD</th><th>Estado</th><th>Últ. Pago</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }
+  // Detalle de un proveedor
+  var prov=proveedores.find(function(p){return p.id===ctaCteProvSelected;});
+  if(!prov)return selectorHTML+'<div class="alert aerr">Proveedor no encontrado.</div>';
+  var c=ctaCteProveedor(prov.id);
+  var compras=comprasDeProveedor(prov.id).slice().sort(function(a,b){return (b.fecha_compra||'').localeCompare(a.fecha_compra||'');});
+  var pagos=pagosDeProveedor(prov.id).slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  var ajustes=ajustesDeProveedor(prov.id).slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+
+  // Tabla compras
+  var rowsC='';
+  compras.forEach(function(co){
+    var est=estadoCompraCalc(co);
+    var saldo=saldoCompra(co);
+    var estClass=est==='Pagado'?'bg':est==='Parcial'?'by':'br';
+    var venc=isCompraVencida(co);
+    var aplic=0;imputacionesDeCompraPago(co.id).forEach(function(i){aplic+=parseFloat(i.importe_aplicado_usd)||0;});
+    rowsC+='<tr><td>'+fmtD(co.fecha_compra)+'</td><td style="font-family:monospace;font-size:11px">'+escapeHtml(co.pedido||'#'+co.id)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(co.usd_fob)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--green)">'+fmtN(aplic)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:'+(saldo>0.01?'var(--red)':'var(--green)')+';font-weight:600">'+fmtN(saldo)+'</td><td>'+fmtD(co.vencimiento_prov)+(venc?' <span class="badge br" style="font-size:9px">VENC</span>':'')+'</td><td><span class="badge '+estClass+'">'+est+'</span></td></tr>';
+  });
+
+  // Tabla pagos
+  var rowsP='';
+  pagos.forEach(function(pa){
+    var aplic=imputacionesDePago(pa.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
+    var totalP=parseFloat(pa.importe_usd)||0;
+    var estCalc=Math.abs(totalP-aplic)<0.01&&totalP>0?'Imputado':aplic>0?'Parcial':'Pendiente';
+    var estClass=estCalc==='Imputado'?'bg':estCalc==='Parcial'?'by':'br';
+    rowsP+='<tr><td>'+fmtD(pa.fecha)+'</td><td>'+(pa.medio_pago||'—')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(pa.importe)+' '+(pa.moneda||'USD')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan);font-weight:600">'+fmtN(pa.importe_usd)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(aplic)+'</td><td><span class="badge '+estClass+'">'+estCalc+'</span></td></tr>';
+  });
+
+  // Tabla ajustes
+  var rowsA='';
+  ajustes.forEach(function(a){
+    var tipoLbl=a.tipo==='debito'?'<span class="badge br">↑ Déb</span>':'<span class="badge bg">↓ Cré</span>';
+    rowsA+='<tr><td>'+fmtD(a.fecha)+'</td><td>'+tipoLbl+'</td><td>'+escapeHtml(a.concepto||'—')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(a.importe)+' '+(a.moneda||'USD')+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:'+(a.tipo==='debito'?'var(--red)':'var(--green)')+';font-weight:600">'+(a.tipo==='debito'?'+':'-')+fmtN(a.importe_usd)+'</td><td style="font-size:11px;color:var(--text2)">'+escapeHtml(a.observacion||'—')+'</td></tr>';
+  });
+
+  var infoBox='<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:10px;padding:14px;margin-bottom:14px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;margin-bottom:10px">'+
+    '<div><h2 style="font-size:18px;margin:0;font-weight:700">'+escapeHtml(prov.nombre_empresa)+'</h2>'+
+    '<div style="font-size:11px;color:var(--text2);margin-top:3px">'+(prov.dato_fiscal?escapeHtml(prov.dato_fiscal)+' · ':'')+(prov.cuit_rut_taxid?escapeHtml(prov.cuit_rut_taxid)+' · ':'')+(prov.pais?escapeHtml(prov.pais):'')+'</div></div>'+
+    '<div style="display:flex;gap:6px"><button class="btn bs sm" onclick="abrirModalProveedor('+prov.id+')">✏ Editar</button><button class="btn bp sm" onclick="abrirModalPago(0,{proveedorId:'+prov.id+'})">+ Pago</button><button class="btn bv sm" onclick="abrirModalAjuste(0)">+ Ajuste</button></div>'+
+    '</div>'+
+    '<div class="cards">'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Facturado USD</div><div class="val cyan">'+fmtN(c.totalFacturado)+'</div><div class="sub">'+c.cantCompras+' compras</div></div>'+
+    '<div class="card" style="border-color:var(--green)"><div class="lbl">Pagado USD</div><div class="val green">'+fmtN(c.totalPagado)+'</div></div>'+
+    '<div class="card"><div class="lbl">Ajustes USD</div><div class="val '+(c.totalAjustes>0?'red':c.totalAjustes<0?'green':'')+'">'+fmtS(c.totalAjustes)+'</div><div class="sub">'+c.cantAjustes+' mov.</div></div>'+
+    '<div class="card" style="border-color:'+(c.saldoPendiente>0.01?'var(--red)':c.saldoPendiente<-0.01?'var(--cyan)':'var(--green)')+'"><div class="lbl">Saldo USD</div><div class="val '+(c.saldoPendiente>0.01?'red':c.saldoPendiente<-0.01?'cyan':'green')+'">'+fmtS(c.saldoPendiente)+'</div><div class="sub">'+c.estado+'</div></div>'+
+    (c.cantComprasVenc>0?'<div class="card" style="border-color:var(--red)"><div class="lbl">Compras vencidas</div><div class="val red">'+c.cantComprasVenc+'</div></div>':'')+
+    (c.pagosNoAplicados>0.01?'<div class="card" style="border-color:var(--yellow)"><div class="lbl">Pagos no imputados</div><div class="val yellow">'+fmtN(c.pagosNoAplicados)+'</div></div>':'')+
+    '</div></div>';
+
+  return selectorHTML+infoBox+
+    '<div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>📥 Compras ('+compras.length+')</h3></div>'+
+    (compras.length===0?'<div style="padding:18px;text-align:center;color:var(--text2)">Sin compras</div>':
+      '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Pedido</th><th style="text-align:right">USD FOB</th><th style="text-align:right">Pagado</th><th style="text-align:right">Saldo</th><th>Vto.</th><th>Estado</th></tr></thead><tbody>'+rowsC+'</tbody></table></div>')+
+    '</div>'+
+    '<div class="twrap" style="margin-bottom:14px"><div class="thead2"><h3>💸 Pagos realizados ('+pagos.length+')</h3></div>'+
+    (pagos.length===0?'<div style="padding:18px;text-align:center;color:var(--text2)">Sin pagos</div>':
+      '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Medio</th><th style="text-align:right">Importe</th><th style="text-align:right">USD</th><th style="text-align:right">Aplicado</th><th>Estado</th></tr></thead><tbody>'+rowsP+'</tbody></table></div>')+
+    '</div>'+
+    '<div class="twrap"><div class="thead2"><h3>⚖️ Ajustes contables ('+ajustes.length+')</h3></div>'+
+    (ajustes.length===0?'<div style="padding:18px;text-align:center;color:var(--text2)">Sin ajustes</div>':
+      '<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th style="text-align:right">Importe</th><th style="text-align:right">Impacto USD</th><th>Obs.</th></tr></thead><tbody>'+rowsA+'</tbody></table></div>')+
+    '</div>';
+}
+
+// === ADJUNTOS DE PAGOS ===
+function verAdjuntosPago(id){
+  var modal=document.getElementById('modalAdjPago');
+  modal.innerHTML=renderModalAdjPago(id);
+  modal.style.display='flex';
+}
+function cerrarModalAdjPago(){var m=document.getElementById('modalAdjPago');if(m){m.style.display='none';m.innerHTML='';}}
+function renderModalAdjPago(id){
+  var pago=(C.pagos_proveedores||[]).find(function(p){return p.id===id;});
+  if(!pago)return '';
+  var adjs=(C.proveedor_adjuntos||[]).filter(function(a){return a.tipo==='pago'&&a.registro_id===id;});
+  var rows='';
+  adjs.forEach(function(a){
+    rows+='<tr><td>'+escapeHtml(a.nombre_archivo||'—')+'</td><td style="font-size:11px;color:var(--text2)">'+(a.tamano_bytes?Math.round(a.tamano_bytes/1024)+' KB':'—')+'</td><td>'+fmtD(a.uploaded_at?a.uploaded_at.substring(0,10):'')+'</td><td>'+escapeHtml(a.uploaded_by||'—')+'</td><td style="white-space:nowrap">'+(a.storage_url?'<a href="'+escapeHtml(a.storage_url)+'" target="_blank" class="miniBtn">👁</a> ':'')+'<button class="miniBtn" style="color:var(--red)" onclick="eliminarAdjPago('+a.id+',\''+escapeHtml(a.storage_path||'')+'\')">🗑</button></td></tr>';
+  });
+  return '<div style="background:var(--bg2);border:1px solid var(--cyan);border-radius:12px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);position:sticky;top:0">'+
+    '<h3 style="font-size:14px;font-weight:600">📎 Adjuntos · Pago #'+id+' · '+escapeHtml(proveedorName(pago.proveedor_id))+' · USD '+fmtN(pago.importe_usd)+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalAdjPago()" style="font-size:20px">✕</button>'+
+    '</div><div style="padding:16px">'+
+    '<input type="file" id="adjPagoFile" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:12px;margin-bottom:10px"/>'+
+    '<button class="btn bp sm" onclick="subirAdjuntosPago('+id+')">⬆ Subir archivos</button>'+
+    '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0">'+
+    (adjs.length===0?'<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">📭 Sin archivos adjuntos</div>':
+      '<table style="width:100%;font-size:12px"><thead><tr style="font-size:10px;color:var(--text2);text-transform:uppercase"><th style="text-align:left;padding:6px 4px">Archivo</th><th>Tamaño</th><th>Fecha</th><th>Subido por</th><th>Acc.</th></tr></thead><tbody>'+rows+'</tbody></table>')+
+    '</div></div>';
+}
+function subirAdjuntosPago(pagoId){
+  var fi=document.getElementById('adjPagoFile');
+  if(!fi||!fi.files||fi.files.length===0){toast('Elegí al menos un archivo','error');return;}
+  var files=Array.from(fi.files);
+  toast('Subiendo '+files.length+' archivo(s)...','info');
+  var chain=Promise.resolve();
+  var ok=0,fail=0;
+  files.forEach(function(f){
+    chain=chain.then(function(){
+      return subirUnArchivoPago(pagoId,f).then(function(){ok++;}).catch(function(e){console.error('Error:',e);fail++;});
+    });
+  });
+  chain.then(function(){
+    toast(ok+' subido(s)'+(fail>0?', '+fail+' fallaron':''),fail>0?'error':'success');
+    reload('proveedores');
+  });
+}
+function subirUnArchivoPago(pagoId,file){
+  var ts=Date.now();
+  var safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var path='pagos/'+pagoId+'/'+ts+'_'+safeName;
+  return fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+path,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},body:file}).then(function(r){
+    if(!r.ok)throw new Error('Storage upload failed');
+    var publicUrl=SB_URL+'/storage/v1/object/public/'+ADJ_BUCKET+'/'+path;
+    return sbPost('proveedor_adjuntos',{tipo:'pago',registro_id:pagoId,nombre_archivo:file.name,tipo_mime:file.type||null,tamano_bytes:file.size,storage_path:path,storage_url:publicUrl,uploaded_by:CU?CU.u:null});
+  });
+}
+function eliminarAdjPago(adjId,storagePath){
+  if(!confirm('¿Eliminar este adjunto?'))return;
+  fetch(SB_URL+'/storage/v1/object/'+ADJ_BUCKET+'/'+storagePath,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}}).then(function(){
+    sbDelete('proveedor_adjuntos',adjId).then(function(){toast('Adjunto eliminado','success');reload('proveedores');});
+  });
 }
 
 </script>
