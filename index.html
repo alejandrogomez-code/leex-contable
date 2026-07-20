@@ -433,7 +433,8 @@ var USERS=[
   {id:1,u:'leex',p:'2026',name:'Administrador',role:'admin',ini:'AD'},
   {id:2,u:'lector1',p:'leex123',name:'Lectura 1',role:'reader',ini:'L1'},
   {id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'},
-  {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'}
+  {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'},
+  {id:5,u:'chile',p:'leexchile2026',name:'Proyecto Chile',role:'chile',ini:'CH'}
 ];
 var CU=null;
 
@@ -530,13 +531,24 @@ function login(){
     document.getElementById('urole').textContent='Logística';
     document.getElementById('urole').style.color='var(--lime)';
   }
+  // Si es rol chile, ocultar todo lo que no sea Proyectos-Chile
+  if(user.role==='chile'){
+    document.querySelectorAll('[data-sec]').forEach(function(el){
+      if(el.getAttribute('data-sec')!=='proyectos')el.style.display='none';
+    });
+    document.getElementById('urole').textContent='Proyecto Chile';
+    document.getElementById('urole').style.color='var(--cyan)';
+  }
   loadAll().then(function(){
     // Setear ejercicio actual = año en curso, si existe
     var thisYear=new Date().getFullYear();
     if(C.ejercicios.find(function(e){return e.año===thisYear;}))ejercicioActual=thisYear;
     else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
     if(typeof renderSelectorPaletas==='function')renderSelectorPaletas();
-    go(CU&&CU.role==='logistica'?'compras':'dashboard');
+    var pgInicial='dashboard';
+    if(CU&&CU.role==='logistica')pgInicial='compras';
+    else if(CU&&CU.role==='chile')pgInicial='chile';
+    go(pgInicial);
   });
 }
 function logout(){CU=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none';}
@@ -655,6 +667,10 @@ function go(page){
     // Bloqueo: logistica solo accede a compras, stock y proveedores
     if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'&&page!=='proveedores'){
       page='compras';
+    }
+    // Bloqueo: rol chile solo accede a la página chile
+    if(CU&&CU.role==='chile'&&page!=='chile'){
+      page='chile';
     }
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
     var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
@@ -4932,6 +4948,24 @@ function pgChileDashboard(){
     headerBtns+
     '</div>';
 
+  // Rol chile: dashboard recortado (solo Stock unidades vigentes + Gasto mensual USD · Oficina + DEAM)
+  if(CU&&CU.role==='chile'){
+    // Recortar stockHTML dejando solo la primera card (Stock · unidades vigentes)
+    var stockRecortadoHTML='<div style="margin-bottom:14px">'+
+      '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;max-width:520px">'+
+        '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Stock · unidades vigentes</div>'+
+        '<div style="font-size:13px">'+
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Disponible</span><span style="font-weight:600">'+(sxe['Disponible']||0)+'</span></div>'+
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>En demo</span><span style="font-weight:600">'+(sxe['En demo']||0)+'</span></div>'+
+          '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>Reservado</span><span style="font-weight:600">'+(sxe['Reservado']||0)+'</span></div>'+
+          '<div style="display:flex;justify-content:space-between;padding:6px 0"><span>No conforme</span><span style="font-weight:600">'+(sxe['No conforme']||0)+'</span></div>'+
+          '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px;font-weight:700"><span>Total</span><span>'+totalStock+'</span></div>'+
+        '</div>'+
+      '</div>'+
+      '</div>';
+    return '<div id="chileDashboardPrint">'+header+stockRecortadoHTML+gastosHTML+'</div>';
+  }
+
   return '<div id="chileDashboardPrint">'+header+stockHTML+comprasHTML+gastosHTML+sintesisHTML+'</div>';
 }
 
@@ -5038,12 +5072,15 @@ function exportDashboardChile(){
 }
 
 function pgChile(){
-  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  var esRolChile=CU&&CU.role==='chile';
+  if(!isAdmin()&&!esRolChile)return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  // Rol chile no ve el tab "Caja Leex" — si estaba en ese tab lo llevamos al dashboard
+  if(esRolChile&&chileTab==='leex')chileTab='dashboard';
   var tabs='<div class="tabs">'+
     '<div class="tab'+(chileTab==='dashboard'?' active':'')+'" onclick="chileTab=\'dashboard\';go(\'chile\')">📊 Dashboard</div>'+
     '<div class="tab'+(chileTab==='oficina'?' active':'')+'" onclick="chileTab=\'oficina\';go(\'chile\')">💰 Caja Oficina Chile</div>'+
     '<div class="tab'+(chileTab==='deam'?' active':'')+'" onclick="chileTab=\'deam\';go(\'chile\')">🇦🇷 Caja DEAM</div>'+
-    '<div class="tab'+(chileTab==='leex'?' active':'')+'" onclick="chileTab=\'leex\';go(\'chile\')">🛒 Caja Leex</div>'+
+    (esRolChile?'':'<div class="tab'+(chileTab==='leex'?' active':'')+'" onclick="chileTab=\'leex\';go(\'chile\')">🛒 Caja Leex</div>')+
     '</div>';
   var contenido='';
   if(chileTab==='dashboard')contenido=pgChileDashboard();
