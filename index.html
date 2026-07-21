@@ -5090,6 +5090,26 @@ function renderCajaChile(){
   var totImp=0,totIva=0;
   fil.forEach(function(r){totImp+=parseFloat(r.importe_clp)||0;totIva+=parseFloat(r.importe_iva_clp)||0;});
 
+  // Gastado USD sin IVA: neto/TC fila por fila. Las filas sin tipo_cambio_usd no aportan.
+  var totUsdSinIva=0,sinTc=0;
+  fil.forEach(function(r){
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    var neto=parseFloat(r.importe_clp)||0;
+    if(tc>0)totUsdSinIva+=neto/tc;
+    else if(neto)sinTc++;
+  });
+
+  // IVA Ventas: sobre TODAS las ventas Chile, desglosado por moneda.
+  // No depende de los filtros de la caja (son datos de otro módulo).
+  var ivaVtaMon={};
+  (C.ventas_chile||[]).forEach(function(v){
+    var iva=parseFloat(v.importe_iva)||0;
+    if(!iva)return;
+    var mon=v.moneda||'—';
+    ivaVtaMon[mon]=(ivaVtaMon[mon]||0)+iva;
+  });
+  var ivaVtaTxt=Object.keys(ivaVtaMon).sort().map(function(m){return m+' '+fmtN(ivaVtaMon[m]);}).join(' · ');
+
   function sortBtn(col,label){
     var arrow=S.col===col?(S.asc?' ↑':' ↓'):'';
     return '<a href="#" onclick="cajaChileSort.col=\''+col+'\';cajaChileSort.asc='+(S.col===col?!S.asc:true)+';go(\'chile\');return false;" style="color:inherit;text-decoration:none">'+label+arrow+'</a>';
@@ -5159,7 +5179,12 @@ function renderCajaChile(){
   // === Totales ===
   var totales='<div class="cards" style="margin:14px 0">'+
     '<div class="card"><div class="lbl">Total Importe $ Chile</div><div class="val cyan">$'+fmtN(totImp)+'</div><div class="sub">filtrado</div></div>'+
-    '<div class="card"><div class="lbl">Total IVA $ Chile</div><div class="val yellow">$'+fmtN(totIva)+'</div></div>'+
+    '<div class="card"><div class="lbl">Gastado USD sin IVA</div><div class="val green">$'+fmtN(totUsdSinIva)+'</div>'+
+      '<div class="sub">filtrado'+(sinTc>0?' · '+sinTc+' sin T.C.':'')+'</div></div>'+
+    '<div class="card"><div class="lbl">IVA Compras</div><div class="val yellow">$'+fmtN(totIva)+'</div><div class="sub">CLP · filtrado</div></div>'+
+    '<div class="card"><div class="lbl">IVA Ventas</div>'+
+      '<div class="val" style="font-size:15px;line-height:1.5;word-break:break-word">'+(ivaVtaTxt||'—')+'</div>'+
+      '<div class="sub">todas las ventas Chile</div></div>'+
     '<div class="card"><div class="lbl">Registros</div><div class="val">'+fil.length+'</div><div class="sub">de '+C.caja_oficina_chile.length+'</div></div>'+
     '</div>';
 
@@ -9726,6 +9751,7 @@ function renderTabVentasChile(){
       '<td style="font-family:monospace;font-size:11px">'+escapeHtml(v.numero_factura||'—')+'</td>'+
       '<td>'+(v.tipo_operacion?'<span class="badge bb">'+escapeHtml(v.tipo_operacion)+'</span>':'—')+'</td>'+
       '<td style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(v.importe_total)+'</td>'+
+      '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--yellow)">'+(parseFloat(v.importe_iva)?fmtN(v.importe_iva):'—')+'</td>'+
       '<td>'+(v.moneda||'USD')+'</td>'+
       '<td style="font-variant-numeric:tabular-nums;text-align:right;color:var(--cyan)">'+(v.tipo_cambio?fmtN(v.tipo_cambio):'—')+'</td>'+
       '<td class="cyan" style="font-variant-numeric:tabular-nums;text-align:right;font-weight:600">'+fmtN(v.importe_usd)+'</td>'+
@@ -9757,9 +9783,9 @@ function renderTabVentasChile(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVentaChile(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
       '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
-      '<th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
+      '<th style="text-align:right">Importe</th><th style="text-align:right">IVA</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
       '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>📎</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
@@ -9774,7 +9800,7 @@ function exportVentasExcelChile(){
   var data=(C.ventas_chile||[]).map(function(v){
     return {
       Fecha:v.fecha,Cliente:clienteNameChile(v.cliente_id),NFactura:v.numero_factura,
-      TipoOp:v.tipo_operacion,Importe:v.importe_total,Moneda:v.moneda,TC:v.tipo_cambio,
+      TipoOp:v.tipo_operacion,Importe:v.importe_total,IVA:v.importe_iva,Moneda:v.moneda,TC:v.tipo_cambio,
       ImporteUSD:v.importe_usd,Vencimiento:v.fecha_vencimiento,EstadoEntrega:v.estado_entrega,
       EstadoCobro:estadoVentaCalcChile(v),SaldoUSD:saldoVentaChile(v),Observacion:v.observacion
     };
@@ -9824,8 +9850,9 @@ function abrirModalVentaChile(id){
     '</div>'+
 
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">💵 Importe</div>'+
-    '<div class="fg4" style="margin-bottom:14px">'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px">'+
     '<div class="f"><label>Importe total *</label><input type="number" id="vImpCh" value="'+(v.importe_total||'')+'" step="0.01" min="0" oninput="calcImporteUSDChileVentaChile()"/></div>'+
+    '<div class="f"><label>IVA <span id="vIvaMonCh" style="font-size:9px;color:var(--text2)">('+escapeHtml(v.moneda||'USD')+')</span></label><input type="number" id="vIvaCh" value="'+(v.importe_iva||'')+'" step="0.01" min="0" placeholder="0"/></div>'+
     '<div class="f"><label>Moneda</label><select id="vMonedaCh" onchange="calcImporteUSDChileVentaChile()">'+opts(monedas,v.moneda||'USD','')+'</select></div>'+
     '<div class="f"><label>Tipo de cambio</label><input type="number" id="vTCCh" value="'+(v.tipo_cambio||'')+'" step="0.0001" min="0" oninput="calcImporteUSDChileVentaChile()" placeholder="Solo si moneda ≠ USD"/></div>'+
     '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="vUSDCh" readonly value="'+(v.importe_usd?fmtN(v.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
@@ -9862,6 +9889,9 @@ function calcImporteUSDChileVentaChile(){
   var tc=parseFloat(document.getElementById('vTCCh').value)||0;
   var usd=calcImporteUSDChile(imp,mon,tc);
   document.getElementById('vUSDCh').value=usd>0?fmtN(usd):'';
+  // El IVA se carga en la misma moneda que la venta
+  var ivaLbl=document.getElementById('vIvaMonCh');
+  if(ivaLbl)ivaLbl.textContent='('+mon+')';
   // Auto-llenar TC=1 si moneda=USD para evitar errores
   var tcInput=document.getElementById('vTCCh');
   if(mon==='USD'){tcInput.disabled=true;tcInput.value='';}
@@ -9873,10 +9903,12 @@ function guardarVentaChile(keepOpen){
   var mon=document.getElementById('vMonedaCh').value;
   var tc=parseFloat(document.getElementById('vTCCh').value)||0;
   var usd=calcImporteUSDChile(imp,mon,tc);
+  var iva=parseFloat(document.getElementById('vIvaCh').value)||0;
   var cliente=parseInt(document.getElementById('vClienteCh').value);
   if(!cliente){toast('Elegí un cliente','error');return;}
   if(!document.getElementById('vFCh').value){toast('Falta fecha','error');return;}
   if(imp<=0){toast('El importe debe ser mayor a 0','error');return;}
+  if(iva<0){toast('El IVA no puede ser negativo','error');return;}
   if(mon!=='USD'&&tc<=0){toast('Para moneda '+mon+' necesitás un tipo de cambio','error');return;}
 
   var payload={
@@ -9885,6 +9917,7 @@ function guardarVentaChile(keepOpen){
     numero_factura:document.getElementById('vNumFCh').value.trim()||null,
     tipo_operacion:document.getElementById('vTipoOpCh').value||null,
     importe_total:imp,
+    importe_iva:iva,
     moneda:mon,
     tipo_cambio:mon==='USD'?null:tc,
     importe_usd:usd,
