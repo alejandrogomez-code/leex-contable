@@ -171,6 +171,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .by{background:rgba(251,191,36,.15);color:var(--yellow)}
 .bb{background:rgba(14,165,233,.15);color:var(--cyan)}
 .bgr{background:rgba(149,167,189,.15);color:var(--text2)}
+.bpu{background:rgba(167,139,250,.15);color:#a78bfa}
 
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
 .panel h3{font-size:14px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
@@ -4739,11 +4740,12 @@ function pgChileDashboard(){
   var anioActual=new Date().getFullYear();
 
   // ============ STOCK CHILE ============
-  var stockVig=(C.stock_items_chile||[]).filter(function(it){return it.estado!=='Baja';});
+  var stockVig=(C.stock_items_chile||[]).filter(function(it){return it.estado!=='Baja'&&it.estado!=='Vendido';});
   var sxe={Disponible:0,'En demo':0,Reservado:0,'No conforme':0};
   stockVig.forEach(function(it){var e=it.estado||'(sin estado)';sxe[e]=(sxe[e]||0)+1;});
   var totalStock=stockVig.length;
   var totalBajas=(C.stock_items_chile||[]).filter(function(it){return it.estado==='Baja';}).length;
+  var totalVendidos=(C.stock_items_chile||[]).filter(function(it){return it.estado==='Vendido';}).length;
 
   // Valor total del stock en USD (manual, persistido en localStorage)
   if(chileValorStock===null){
@@ -4840,9 +4842,10 @@ function pgChileDashboard(){
         filaEstado('En demo',(sxe['En demo']||0),'var(--yellow)')+
         filaEstado('No conforme',(sxe['No conforme']||0),'var(--red)',true)+
         '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px;font-weight:700"><span>Total vigente</span><span>'+totalStock+'</span></div>'+
+        (totalVendidos>0?'<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:11px;color:var(--text2)"><span>Vendidas</span><span>'+totalVendidos+'</span></div>':'')+
         (totalBajas>0?'<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:11px;color:var(--text2)"><span>Dadas de baja</span><span>'+totalBajas+'</span></div>':'')+
       '</div>'+
-      (totalStock===0&&totalBajas===0?'<div class="no-print" style="margin-top:12px;padding:8px 10px;background:rgba(0,180,216,.08);border-left:3px solid var(--cyan);border-radius:4px;font-size:11px;color:var(--text2)">Todavía no hay items cargados en Stock Chile.</div>':'')+
+      (totalStock===0&&totalBajas===0&&totalVendidos===0?'<div class="no-print" style="margin-top:12px;padding:8px 10px;background:rgba(0,180,216,.08);border-left:3px solid var(--cyan);border-radius:4px;font-size:11px;color:var(--text2)">Todavía no hay items cargados en Stock Chile.</div>':'')+
     '</div>'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px">'+
       '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Valor stock USD</div>'+
@@ -4941,7 +4944,7 @@ function exportDashboardChile(){
   var anioActual=new Date().getFullYear();
 
   // --- Hoja 1: Stock Chile ---
-  var stockVig=(C.stock_items_chile||[]).filter(function(it){return it.estado!=='Baja';});
+  var stockVig=(C.stock_items_chile||[]).filter(function(it){return it.estado!=='Baja'&&it.estado!=='Vendido';});
   var sxe={};
   stockVig.forEach(function(it){var e=it.estado||'(sin estado)';sxe[e]=(sxe[e]||0)+1;});
   var stockData=[
@@ -4950,6 +4953,7 @@ function exportDashboardChile(){
     {Concepto:'En demo',Unidades:sxe['En demo']||0},
     {Concepto:'No conforme',Unidades:sxe['No conforme']||0},
     {Concepto:'TOTAL vigente',Unidades:stockVig.length},
+    {Concepto:'Vendidas',Unidades:(C.stock_items_chile||[]).filter(function(it){return it.estado==='Vendido';}).length},
     {Concepto:'Dadas de baja',Unidades:(C.stock_items_chile||[]).filter(function(it){return it.estado==='Baja';}).length},
     {Concepto:'',Unidades:''},
     {Concepto:'Valor total stock USD (manual)',Unidades:chileValorStock||0}
@@ -8184,7 +8188,7 @@ function renderStockGeneralChile(){
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Baja'];
+  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Vendido','Baja'];
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items_chile.filter(function(it){
@@ -8206,7 +8210,7 @@ function renderStockGeneralChile(){
   });
 
   // Métricas por estado
-  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Baja':0};
+  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Vendido':0,'Baja':0};
   fil.forEach(function(it){if(counts[it.estado]!==undefined)counts[it.estado]++;});
 
   function selOpts(arr,sel){
@@ -8272,6 +8276,7 @@ function renderStockGeneralChile(){
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
     '<div class="card"><div class="lbl">No conforme</div><div class="val red">'+counts['No conforme']+'</div></div>'+
+    '<div class="card"><div class="lbl">Vendido</div><div class="val" style="color:#a78bfa">'+counts['Vendido']+'</div></div>'+
     '<div class="card"><div class="lbl">Baja</div><div class="val">'+counts['Baja']+'</div></div>'+
     '</div>'+
     filtrosHTML+
@@ -8298,6 +8303,7 @@ function estadoStockBadgeChile(e){
   if(e==='Reservado')return '<span class="badge bb">'+e+'</span>';
   if(e==='En demo')return '<span class="badge by">'+e+'</span>';
   if(e==='No conforme')return '<span class="badge br">'+e+'</span>';
+  if(e==='Vendido')return '<span class="badge bpu">'+e+'</span>';
   if(e==='Baja')return '<span class="badge bgr">'+e+'</span>';
   return '<span class="badge bgr">—</span>';
 }
@@ -8440,9 +8446,9 @@ function abrirModalStockItemChile(id){
   }
 
   // Si el item está en estado Baja, no permitimos editar el estado (se cambia desde la baja)
-  var enBaja=it.estado==='Baja';
+  var enBaja=it.estado==='Baja'||it.estado==='Vendido';
   var estadoSelector=enBaja?
-    '<input type="text" value="Baja (gestionar desde Baja de Stock)" readonly style="color:var(--text2)"/>':
+    '<input type="text" value="'+(it.estado==='Vendido'?'Vendido (gestionar desde la venta)':'Baja (gestionar desde Baja de Stock)')+'" readonly style="color:var(--text2)"/>':
     '<select id="siEstadoCh">'+opts(ESTADOS_VIGENTES,it.estado||'Disponible','')+'</select>';
 
   var titulo=id===0?'➕ Nueva Alta de Stock':'✏ Editar Item #'+id;
@@ -8510,7 +8516,8 @@ function cerrarModalStockItemChile(){
 }
 
 function guardarStockItemChile(keepOpen){
-  var enBaja=editStockIdChile>0&&(C.stock_items_chile.find(function(x){return x.id===editStockIdChile;})||{}).estado==='Baja';
+  var estActual=editStockIdChile>0?(C.stock_items_chile.find(function(x){return x.id===editStockIdChile;})||{}).estado:null;
+  var enBaja=estActual==='Baja'||estActual==='Vendido';
   var payload={
     pn_fabrica:document.getElementById('siPnCh').value.trim()||null,
     sku_leex:document.getElementById('siSkuCh').value.trim()||null,
@@ -9294,12 +9301,14 @@ function confirmarImportStockChile(){
 // cobro_imputaciones_chile / cliente_adjuntos_chile
 // ============================================================
 var clientesTabChile='datos';   // datos | ventas | cobros | ctacte
-var clientesFiltrosChile={busca:'',pais:'',ciudad:'',contactoLeex:'',tipoCliente:'',estado:''};
+var clientesFiltrosChile={busca:'',pais:'',ciudad:'',tipoCliente:'',estado:''};
 var ventasFiltrosChile={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',estadoEntrega:'',estadoCobro:'',tipoOp:''};
 var cobrosFiltrosChile={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',medioCobro:'',estado:''};
 var ctaCteSelectedClienteChile=null;     // detalle expandido
 var editClienteIdChile=null;
 var editVentaIdChile=null;
+var ventaStockSelChile=[];     // ids de stock_items_chile elegidos en el modal de venta
+var ventaStockBuscaChile='';   // filtro del selector de equipos
 var editCobroIdChile=null;
 var imputacionLineasChile=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
@@ -9431,7 +9440,6 @@ function renderTabClientesDatosChile(){
     }
     if(F.pais&&c.pais!==F.pais)return false;
     if(F.ciudad&&c.ciudad!==F.ciudad)return false;
-    if(F.contactoLeex&&c.contacto_leex!==F.contactoLeex)return false;
     if(F.tipoCliente&&c.tipo_cliente!==F.tipoCliente)return false;
     if(F.estado&&c.estado!==F.estado)return false;
     return true;
@@ -9439,7 +9447,6 @@ function renderTabClientesDatosChile(){
   // Listas únicas para filtros
   var paises=Array.from(new Set((C.clientes_chile||[]).map(function(c){return c.pais;}).filter(Boolean))).sort();
   var ciudades=Array.from(new Set((C.clientes_chile||[]).map(function(c){return c.ciudad;}).filter(Boolean))).sort();
-  var contactos=C.cfg_listas.contacto_leex||[];
   var tipos=C.cfg_listas.tipo_cliente||[];
   var estados=C.cfg_listas.estado_cliente||['Activo','Inactivo','Prospecto','Bloqueado'];
 
@@ -9460,7 +9467,6 @@ function renderTabClientesDatosChile(){
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (nombre/fiscal/email)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="clientesFiltrosChile.busca=this.value;clearTimeout(window._fcli);window._fcli=setTimeout(function(){go(\'chile\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="clientesFiltrosChile.pais=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ciudad</div><select onchange="clientesFiltrosChile.ciudad=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(ciudades,F.ciudad)+'</select></div>'+
-    '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Contacto Leex</div><select onchange="clientesFiltrosChile.contactoLeex=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(contactos,F.contactoLeex)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="clientesFiltrosChile.tipoCliente=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoCliente)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="clientesFiltrosChile.estado=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
     '</div></div>';
@@ -9476,7 +9482,6 @@ function renderTabClientesDatosChile(){
       '<td>'+(c.pais?escapeHtml(c.pais):'—')+(c.ciudad?'<div style="font-size:10px;color:var(--text2)">'+escapeHtml(c.ciudad)+'</div>':'')+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(c.email||'—')+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(c.telefono||'—')+'</td>'+
-      '<td>'+(c.contacto_leex?'<span class="badge bb">'+escapeHtml(c.contacto_leex)+'</span>':'—')+'</td>'+
       '<td>'+(c.tipo_cliente?'<span class="badge by">'+escapeHtml(c.tipo_cliente)+'</span>':'—')+'</td>'+
       '<td><span class="badge '+estClass+'">'+escapeHtml(c.estado||'—')+'</span></td>'+
       '<td class="'+(cta.saldoPendiente>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtS(cta.saldoPendiente)+'</td>'+
@@ -9502,13 +9507,13 @@ function renderTabClientesDatosChile(){
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
       '<div style="overflow-x:auto"><table style="min-width:1300px"><thead><tr>'+
       '<th>Empresa</th><th>Referente</th><th>Fiscal/CUIT</th><th>País / Ciudad</th><th>Email</th><th>Tel</th>'+
-      '<th>Contacto Leex</th><th>Tipo</th><th>Estado</th><th style="text-align:right">Saldo USD</th><th>Acc.</th>'+
+      '<th>Tipo</th><th>Estado</th><th style="text-align:right">Saldo USD</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
 
 function limpiarFiltrosClientesChile(){
-  clientesFiltrosChile={busca:'',pais:'',ciudad:'',contactoLeex:'',tipoCliente:'',estado:''};
+  clientesFiltrosChile={busca:'',pais:'',ciudad:'',tipoCliente:'',estado:''};
   go('chile');
 }
 
@@ -9518,7 +9523,7 @@ function exportClientesExcelChile(){
     return {
       Empresa:c.nombre_empresa,Referente:c.referente,DatoFiscal:c.dato_fiscal,CUIT:c.cuit_rut_taxid,
       Direccion:c.direccion,CP:c.codigo_postal,Ciudad:c.ciudad,Pais:c.pais,
-      Email:c.email,Telefono:c.telefono,ContactoLeex:c.contacto_leex,Tipo:c.tipo_cliente,
+      Email:c.email,Telefono:c.telefono,Tipo:c.tipo_cliente,
       Estado:c.estado,CondPago:c.condicion_pago,MonedaHabitual:c.moneda_habitual,
       Facturado_USD:cta.totalFacturado,Cobrado_USD:cta.totalCobrado,Saldo_USD:cta.saldoPendiente,
       Observaciones:c.observaciones
@@ -9535,12 +9540,11 @@ function abrirModalClienteChile(id){
   var c=id===0?{
     nombre_empresa:'',referente:'',dato_fiscal:'',cuit_rut_taxid:'',
     direccion:'',codigo_postal:'',ciudad:'',pais:'',
-    email:'',telefono:'',contacto_leex:'',tipo_cliente:'',
+    email:'',telefono:'',tipo_cliente:'',
     estado:'Activo',condicion_pago:'',moneda_habitual:'USD',
     observaciones:'',url:''
   }:(C.clientes_chile||[]).find(function(x){return x.id===id;})||{};
 
-  var contactos=C.cfg_listas.contacto_leex||[];
   var tipos=C.cfg_listas.tipo_cliente||[];
   var estados=C.cfg_listas.estado_cliente||['Activo','Inactivo','Prospecto','Bloqueado'];
   var cond=C.cfg_listas.condicion_pago||['Contado','30 días','60 días','Anticipo','Mixto'];
@@ -9585,7 +9589,6 @@ function abrirModalClienteChile(id){
 
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">⚙ Clasificación</div>'+
     '<div class="fg3" style="margin-bottom:14px">'+
-    '<div class="f"><label>Contacto Leex</label><select id="clContLeexCh">'+opts(contactos,c.contacto_leex)+'</select></div>'+
     '<div class="f"><label>Tipo de cliente</label><select id="clTipoCh">'+opts(tipos,c.tipo_cliente)+'</select></div>'+
     '<div class="f"><label>Estado</label><select id="clEstadoCh">'+opts(estados,c.estado||'Activo','')+'</select></div>'+
     '</div>'+
@@ -9628,7 +9631,6 @@ function guardarClienteChile(keepOpen){
     pais:document.getElementById('clPaisCh').value.trim()||null,
     email:document.getElementById('clEmailCh').value.trim()||null,
     telefono:document.getElementById('clTelCh').value.trim()||null,
-    contacto_leex:document.getElementById('clContLeexCh').value||null,
     tipo_cliente:document.getElementById('clTipoCh').value||null,
     estado:document.getElementById('clEstadoCh').value||'Activo',
     condicion_pago:document.getElementById('clCondPagoCh').value||null,
@@ -9745,6 +9747,7 @@ function renderTabVentasChile(){
     var estClass=est==='Cobrado'?'bg':est==='Parcial'?'by':'br';
     var venc=isVentaVencidaChile(v);
     var nAdj=(C.cliente_adjuntos_chile||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
+    var nEq=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).length;
     rows+='<tr>'+
       '<td>'+fmtD(v.fecha)+'</td>'+
       '<td style="font-weight:600">'+escapeHtml(clienteNameChile(v.cliente_id))+'</td>'+
@@ -9759,6 +9762,7 @@ function renderTabVentasChile(){
       '<td>'+(v.estado_entrega?'<span class="badge by">'+escapeHtml(v.estado_entrega)+'</span>':'—')+'</td>'+
       '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
       '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
+      '<td style="text-align:center">'+(nEq>0?'<span class="badge bpu">📦 '+nEq+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalVentaChile('+v.id+')" title="Editar">✏</button> '+
@@ -9783,10 +9787,10 @@ function renderTabVentasChile(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVentaChile(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1700px"><thead><tr>'+
       '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
       '<th style="text-align:right">Importe</th><th style="text-align:right">IVA</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
-      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>📎</th><th>Acc.</th>'+
+      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th>📎</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -9809,10 +9813,97 @@ function exportVentasExcelChile(){
 }
 
 // ============================================================
+// VENTAS CHILE <-> STOCK CHILE
+// Al guardar la venta, los equipos elegidos pasan a estado Vendido con venta_id.
+// Al sacarlos de la venta (o borrarla) vuelven a Disponible.
+// ============================================================
+
+// Elegibles: los libres que no esten dados de baja ni vendidos, mas los que ya
+// pertenecen a ESTA venta (para poder desmarcarlos cuando se edita).
+function stockElegibleVentaChile(){
+  return (C.stock_items_chile||[]).filter(function(it){
+    if(it.venta_id&&it.venta_id===editVentaIdChile)return true;
+    return !it.venta_id&&it.estado!=='Baja'&&it.estado!=='Vendido';
+  });
+}
+
+function filasStockVentaChile(){
+  var b=(ventaStockBuscaChile||{}).toLowerCase?ventaStockBuscaChile.toLowerCase():"";
+  var items=stockElegibleVentaChile().filter(function(it){
+    if(!b)return true;
+    var t=((it.sku_leex||'')+' '+(it.pn_fabrica||'')+' '+(it.modelo||'')+' '+(it.sn||'')).toLowerCase();
+    return t.indexOf(b)>-1;
+  });
+  if(items.length===0)return '<div style="padding:14px;text-align:center;color:var(--text2);font-size:11px">'+(b?'Sin equipos que coincidan con la búsqueda':'No hay equipos disponibles en el stock Chile')+'</div>';
+  var h='';
+  items.sort(function(a,b2){return (a.sku_leex||'').localeCompare(b2.sku_leex||'');});
+  items.forEach(function(it){
+    var chk=ventaStockSelChile.indexOf(it.id)>-1;
+    h+='<label style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;cursor:pointer;font-size:11px" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'+
+      '<input type="checkbox"'+(chk?' checked':'')+' onchange="toggleStockVentaChile('+it.id+',this.checked)" style="margin:0"/>'+
+      '<span style="font-family:monospace;min-width:90px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
+      '<span style="font-family:monospace;color:var(--text2)">'+escapeHtml(it.sn||'—')+'</span>'+
+      estadoStockBadgeChile(it.estado)+
+    '</label>';
+  });
+  return h;
+}
+
+function resumenStockVentaChile(){
+  var n=ventaStockSelChile.length;
+  if(n===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
+  return '<span style="color:#a78bfa;font-weight:600">'+n+' equipo'+(n===1?'':'s')+' seleccionado'+(n===1?'':'s')+'</span> · al guardar pasan a estado Vendido';
+}
+
+function toggleStockVentaChile(id,checked){
+  var i=ventaStockSelChile.indexOf(id);
+  if(checked&&i===-1)ventaStockSelChile.push(id);
+  else if(!checked&&i>-1)ventaStockSelChile.splice(i,1);
+  var r=document.getElementById("vStockResumenCh");
+  if(r)r.innerHTML=resumenStockVentaChile();
+}
+
+// Repinta SOLO la lista, no el modal entero: si repintara todo se perderian
+// los campos que el usuario ya cargo.
+function renderSelectorStockVentaChile(){
+  var l=document.getElementById("vStockListaCh");
+  if(l)l.innerHTML=filasStockVentaChile();
+  var r=document.getElementById("vStockResumenCh");
+  if(r)r.innerHTML=resumenStockVentaChile();
+}
+
+// Aplica la diferencia entre lo que la venta tenia y lo que quedo seleccionado.
+function sincronizarStockVentaChile(ventaId,sel){
+  if(!ventaId)return Promise.resolve({agregados:0,liberados:0});
+  var antes=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
+  var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
+  var chain=Promise.resolve();
+  agregar.forEach(function(itemId){
+    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId});});
+  });
+  quitar.forEach(function(itemId){
+    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Disponible',venta_id:null});});
+  });
+  return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
+}
+
+// Texto para el toast posterior al guardado
+function resumenSyncStockChile(r){
+  var p=[];
+  if(r.agregados)p.push(r.agregados+' equipo'+(r.agregados===1?'':'s')+' marcado'+(r.agregados===1?'':'s')+' como Vendido');
+  if(r.liberados)p.push(r.liberados+' liberado'+(r.liberados===1?'':'s')+' a Disponible');
+  return p.length?' · '+p.join(' · '):'';
+}
+// ============================================================
 // MODAL: VENTA
 // ============================================================
 function abrirModalVentaChile(id){
   editVentaIdChile=id;
+  // precargar los equipos ya vinculados a esta venta (vacio en el alta)
+  ventaStockSelChile=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===id;}).map(function(it){return it.id;});
+  ventaStockBuscaChile='';
   var v=id===0?{
     fecha:hoy(),cliente_id:'',numero_factura:'',tipo_operacion:'',
     importe_total:'',moneda:'USD',tipo_cambio:'',importe_usd:'',
@@ -9858,6 +9949,11 @@ function abrirModalVentaChile(id){
     '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="vUSDCh" readonly value="'+(v.importe_usd?fmtN(v.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
     '</div>'+
 
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📦 Equipos del stock <span style="text-transform:none;letter-spacing:0;font-weight:400">· opcional</span></div>'+
+    '<input type="text" placeholder="🔍 Filtrar por SKU, PN, modelo o SN..." oninput="ventaStockBuscaChile=this.value;renderSelectorStockVentaChile()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;margin-bottom:6px"/>'+
+    '<div id="vStockListaCh" style="max-height:190px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px">'+filasStockVentaChile()+'</div>'+
+    '<div id="vStockResumenCh" style="font-size:11px;color:var(--text2);margin:6px 0 14px">'+resumenStockVentaChile()+'</div>'+
+
     '<div class="fg2" style="margin-bottom:14px">'+
     '<div class="f"><label>Estado entrega</label><select id="vEntregaCh">'+opts(estadosEntrega,v.estado_entrega||'Pendiente','')+'</select></div>'+
     '<div class="f"><label>URL</label><input type="text" id="vUrlCh" value="'+escapeHtml(v.url||'')+'" placeholder="https://..."/></div>'+
@@ -9881,6 +9977,7 @@ function cerrarModalVentaChile(){
   var m=document.getElementById('modalVentaCh');
   if(m){m.style.display='none';m.innerHTML='';}
   editVentaIdChile=null;
+  ventaStockSelChile=[];ventaStockBuscaChile='';
 }
 
 function calcImporteUSDChileVentaChile(){
@@ -9928,21 +10025,30 @@ function guardarVentaChile(keepOpen){
     url:document.getElementById('vUrlCh').value.trim()||null
   };
   if(editVentaIdChile===0){
+    var selNueva=ventaStockSelChile.slice();
     sbPost('ventas_chile',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Venta creada','success');
-      if(keepOpen){
-        cerrarModalVentaChile();
-        loadAll().then(function(){abrirModalVentaChile(0);});
-      }else{
-        cerrarModalVentaChile();reload('chile');
-      }
+      var creada=Array.isArray(res)?res[0]:res;
+      return sincronizarStockVentaChile(creada&&creada.id,selNueva).then(function(r){
+        toast('Venta creada'+resumenSyncStockChile(r),'success');
+        if(keepOpen){
+          cerrarModalVentaChile();
+          loadAll().then(function(){abrirModalVentaChile(0);});
+        }else{
+          cerrarModalVentaChile();reload('chile');
+        }
+      });
     });
   }else{
     delete payload.estado_cobro;
+    var selEdit=ventaStockSelChile.slice();
+    var idEdit=editVentaIdChile;
     sbPatch('ventas_chile',editVentaIdChile,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Venta actualizada','success');cerrarModalVentaChile();reload('chile');
+      return sincronizarStockVentaChile(idEdit,selEdit).then(function(r){
+        toast('Venta actualizada'+resumenSyncStockChile(r),'success');
+        cerrarModalVentaChile();reload('chile');
+      });
     });
   }
 }
@@ -9950,11 +10056,14 @@ function guardarVentaChile(keepOpen){
 function deleteVentaChile(id){
   var v=(C.ventas_chile||[]).find(function(x){return x.id===id;});
   if(!v)return;
+  var equipos=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===id;});
+  var avisoEq=equipos.length?
+    '\n📦 '+equipos.length+' equipo(s) del stock vuelven a Disponible.':'';
   var imps=imputacionesDeVentaChile(id);
   if(imps.length>0){
-    if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.\n\n¿Continuar?'))return;
+    if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.'+avisoEq+'\n\n¿Continuar?'))return;
   }else{
-    if(!confirm('¿Eliminar la venta '+(v.numero_factura||'#'+id)+'?'))return;
+    if(!confirm('¿Eliminar la venta '+(v.numero_factura||'#'+id)+'?'+avisoEq))return;
   }
   // Borrar adjuntos
   var adjs=(C.cliente_adjuntos_chile||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===id;});
@@ -9967,8 +10076,15 @@ function deleteVentaChile(id){
     sbDeleteWhere('cliente_adjuntos_chile','registro_id',id).then(function(){
       // Borrar imputaciones (CASCADE en BD, pero por las dudas)
       sbDeleteWhere('cobro_imputaciones_chile','venta_id',id).then(function(){
-        sbDelete('ventas_chile',id).then(function(){
-          toast('Venta eliminada','success');reload('chile');
+        // liberar los equipos antes de borrar la venta
+        var libera=Promise.resolve();
+        equipos.forEach(function(it){
+          libera=libera.then(function(){return sbPatch('stock_items_chile',it.id,{estado:'Disponible',venta_id:null});});
+        });
+        libera.then(function(){
+          sbDelete('ventas_chile',id).then(function(){
+            toast('Venta eliminada'+(equipos.length?' · '+equipos.length+' equipo(s) liberado(s)':''),'success');reload('chile');
+          });
         });
       });
     });
