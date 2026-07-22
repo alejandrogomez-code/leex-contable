@@ -5008,6 +5008,11 @@ function exportDashboardChile(){
 function pgChile(){
   if(!isAdminOrChile())return ejGlobalBar()+'<div class="pageTitle">Proyectos / Chile</div><div class="alert ainfo">No tenés acceso a esta sección.</div>';
 
+  // El rol chile no ve Caja Leex. Además del botón hay que blindar el estado:
+  // si chileTesTab quedó en 'leex', el contenido se renderizaría igual.
+  var esRolChile=CU&&CU.role==='chile';
+  if(esRolChile&&chileTesTab==='leex')chileTesTab='oficina';
+
   function tab(id,label){
     return '<div class="tab'+(chileTab===id?' active':'')+'" onclick="chileTab=\''+id+'\';go(\'chile\')">'+label+'</div>';
   }
@@ -5029,7 +5034,7 @@ function pgChile(){
       subTab('oficina','💰 Caja Oficina Chile')+
       subTab('deam','🇦🇷 Caja DEAM')+
       subTab('ibs','🏢 Caja IBS')+
-      subTab('leex','🛒 Caja Leex')+
+      (esRolChile?'':subTab('leex','🛒 Caja Leex'))+
       '</div>';
     var cuerpo='';
     if(chileTesTab==='oficina'){
@@ -5051,7 +5056,7 @@ function pgChile(){
 
   return ejGlobalBar()+
     '<div class="pageTitle">🇨🇱 Proyecto Chile</div>'+
-    '<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · No impacta contabilidad. Caja Leex se sincroniza desde Compras (tipo=Chile).</div>'+
+    '<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · No impacta contabilidad.'+(esRolChile?'':' Caja Leex se sincroniza desde Compras (tipo=Chile).')+'</div>'+
     tabs+contenido+
     // Contenedores de los modales de caja. Los de Stock/Clientes Chile los emiten
     // pgStockChile() y pgClientesChile() dentro de 'contenido'.
