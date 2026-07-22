@@ -436,7 +436,8 @@ var USERS=[
   {id:3,u:'lector2',p:'leex456',name:'Lectura 2',role:'reader',ini:'L2'},
   {id:4,u:'logistica',p:'leex2026',name:'Logística',role:'logistica',ini:'LG'},
   {id:5,u:'chile',p:'leexchile2026',name:'Proyecto Chile',role:'chile',ini:'CH'},
-  {id:6,u:'chile2',p:'leexchile2027',name:'Proyecto Chile 2',role:'chile',ini:'C2'}
+  {id:6,u:'chile2',p:'leexchile2027',name:'Proyecto Chile 2',role:'chile',ini:'C2'},
+  {id:7,u:'contabilidad',p:'leex2026',name:'Contabilidad',role:'contabilidad',ini:'CT'}
 ];
 var CU=null;
 
@@ -533,7 +534,7 @@ function login(){
   document.getElementById('app').style.display='block';
   document.getElementById('uav').textContent=user.ini;
   document.getElementById('uname').textContent=user.name;
-  document.getElementById('urole').textContent=user.role==='admin'?'Administrador':'Solo Lectura';
+  document.getElementById('urole').textContent=user.role==='admin'?'Administrador':(user.role==='contabilidad'?'Contabilidad':'Solo Lectura');
   if(user.role!=='admin')document.getElementById('niAdmin').style.display='none';
   // Si es logística, ocultar todo lo que no sea Compras-Logística
   if(user.role==='logistica'){
@@ -566,6 +567,9 @@ function login(){
 }
 function logout(){CU=null;document.getElementById('loginScreen').style.display='flex';document.getElementById('app').style.display='none';}
 function isAdmin(){return CU&&CU.role==='admin';}
+// Puede cargar y modificar datos en todas las secciones operativas.
+// Configuración y Usuarios siguen exigiendo isAdmin().
+function puedeEditar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad');}
 
 // ============================================================
 // DATA LOAD
@@ -938,7 +942,7 @@ function pgDashboard(){
 // PÁGINA: IMPORTAR EXTRACTO
 // ============================================================
 function pgImportar(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Importar Extracto</div><div class="alert ainfo">Solo administradores pueden importar extractos.</div>';
 
   var ej=getEjercicio(ejercicioActual);
@@ -1460,7 +1464,7 @@ function generarAsientoDesdeMov(mov,cuentaContrapartida,descripcion,categoria,re
 // PÁGINA: MOVIMIENTOS BANCO  (con sistema de adjuntos)
 // ============================================================
 function pgBanco(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var filtrados=C.movs.filter(function(m){
     var y=getEjYear(m.fecha);
     if(y!==ejercicioActual)return false;
@@ -1840,7 +1844,7 @@ function cerrarModalAdjuntos(){
 function renderModalAdjuntos(){
   var m=C.movs.find(function(x){return x.id===modalAdjMovId;});
   if(!m)return;
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var adjs=(C.adjuntos||[]).filter(function(a){return a.movimiento_id===modalAdjMovId;});
 
   var listaHTML='';
@@ -2228,7 +2232,7 @@ function cerrarModalSinMov(){
 // PÁGINA: GASTOS (wizard que genera asiento)
 // ============================================================
 function pgGastos(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   // Listar asientos cuya línea de DEBE sea una cuenta de tipo Gasto, en el ejercicio actual
   var gastosVista=[];
   C.asientos.forEach(function(a){
@@ -2326,7 +2330,7 @@ function registrarGastoRapido(){
 // PÁGINA: REGLAS AUTOMÁTICAS
 // ============================================================
 function pgReglas(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var rows='';
   C.reglas.forEach(function(r){
     var cta=getCta(r.cuenta_contrapartida);
@@ -2392,7 +2396,7 @@ function saveRegla(){
 // PÁGINA: LIBRO DIARIO
 // ============================================================
 function pgLibro(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var fil=C.asientos.filter(function(a){
     if(a.ejercicio_año!==ejercicioActual)return false;
     if(!aBusca)return true;
@@ -2539,7 +2543,7 @@ function pgMayor(){
 // PÁGINA: NUEVO ASIENTO MANUAL
 // ============================================================
 function pgNuevoAsiento(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   if(ro)return ejGlobalBar()+'<div class="pageTitle">Nuevo Asiento</div><div class="alert ainfo">Solo administradores</div>';
   var ej=getEjercicio(ejercicioActual);
   if(ej&&ej.estado==='cerrado'){
@@ -2713,8 +2717,8 @@ function pgBalance(){
     .concat(patEx).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
 
   var lockBanner='';
-  if(ej&&ej.estado==='cerrado')lockBanner='<div class="lockBanner">🔒 Ejercicio cerrado al '+ej.fecha_cierre+' · Resultado neto: <strong>'+fmtS(ej.resultado_neto||0)+'</strong>'+(isAdmin()?'<button class="unlockBtn" onclick="desbloquearEjercicio('+año+')">🔓 Desbloquear</button>':'')+'</div>';
-  else if(ej&&ej.estado==='desbloqueado')lockBanner='<div class="lockBanner" style="border-color:var(--yellow);color:var(--yellow)">⚠️ Ejercicio DESBLOQUEADO temporalmente. Re-cerrá cuando termines.'+(isAdmin()?'<button class="unlockBtn" onclick="reCerrarEjercicio('+año+')">🔒 Re-cerrar</button>':'')+'</div>';
+  if(ej&&ej.estado==='cerrado')lockBanner='<div class="lockBanner">🔒 Ejercicio cerrado al '+ej.fecha_cierre+' · Resultado neto: <strong>'+fmtS(ej.resultado_neto||0)+'</strong>'+(puedeEditar()?'<button class="unlockBtn" onclick="desbloquearEjercicio('+año+')">🔓 Desbloquear</button>':'')+'</div>';
+  else if(ej&&ej.estado==='desbloqueado')lockBanner='<div class="lockBanner" style="border-color:var(--yellow);color:var(--yellow)">⚠️ Ejercicio DESBLOQUEADO temporalmente. Re-cerrá cuando termines.'+(puedeEditar()?'<button class="unlockBtn" onclick="reCerrarEjercicio('+año+')">🔒 Re-cerrar</button>':'')+'</div>';
 
   return ejGlobalBar()+
     '<div class="pageTitle">🏛️ Balance — '+año+
@@ -2793,7 +2797,7 @@ function pgResultados(){
 // PÁGINA: EJERCICIOS (gestión de cierres)
 // ============================================================
 function pgEjercicios(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var rows='';
   C.ejercicios.forEach(function(e){
     var nAsientos=C.asientos.filter(function(a){return a.ejercicio_año===e.año;}).length;
@@ -2949,7 +2953,7 @@ function cerrarEjercicio(año){
 }
 
 function desbloquearEjercicio(año){
-  if(!isAdmin()){toast('Solo admin','error');return;}
+  if(!puedeEditar()){toast('Solo admin','error');return;}
   if(!confirm('¿Desbloquear el ejercicio '+año+'?\n\nVas a poder modificar/agregar asientos. Cuando termines, hay que volver a cerrarlo.'))return;
   sbPatchWhere('ejercicios','año',año,{estado:'desbloqueado'}).then(function(){
     toast('Ejercicio '+año+' desbloqueado','info');
@@ -2992,7 +2996,7 @@ function reCerrarEjercicio(año){
 // PÁGINA: PLAN DE CUENTAS
 // ============================================================
 function pgCuentas(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var filtroTipo=window._cuentasFiltro||'';
   var fil=C.cuentas.filter(function(c){return !filtroTipo||c.tipo===filtroTipo;});
   var rows='';
@@ -3067,7 +3071,7 @@ function deleteCuenta(id,cod){
 // PÁGINA: PROYECTOS / COMEX (gestión, no contabilidad)
 // ============================================================
 function pgProyectos(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var proy=C.proyectos.find(function(p){return p.id===selProyId;})||null;
   var cards='';
   C.proyectos.forEach(function(p){
@@ -3310,6 +3314,8 @@ function removeCfg(tipo,val){
 // PÁGINA: USUARIOS
 // ============================================================
 function pgUsuarios(){
+  if(!isAdmin())return ejGlobalBar()+'<div class="pageTitle">👤 Usuarios</div>'+
+    '<div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
   var rows='';
   USERS.forEach(function(u){rows+='<tr><td style="font-family:monospace">'+u.u+'</td><td>'+u.name+'</td><td><span class="badge '+(u.role==='admin'?'bb':'by')+'">'+(u.role==='admin'?'Admin':'Lectura')+'</span></td><td style="font-family:monospace;color:var(--text2)">'+u.p+'</td></tr>';});
   return ejGlobalBar()+
@@ -3325,7 +3331,7 @@ function pgUsuarios(){
 // PÁGINA: COMPRAS / LOGÍSTICA  (gestión, no contabilidad)
 // ============================================================
 function pgCompras(){
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var F=comprasFiltros;
   var fil=C.compras.filter(function(c){
     if(F.fechaDesde&&(!c.fecha_compra||c.fecha_compra<F.fechaDesde))return false;
@@ -3721,7 +3727,7 @@ function cerrarModalAdjCompra(){
 function renderModalAdjCompra(){
   var c=C.compras.find(function(x){return x.id===modalAdjCompraId;});
   if(!c)return;
-  var ro=!isAdmin();
+  var ro=!puedeEditar();
   var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===modalAdjCompraId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -4680,9 +4686,9 @@ function eliminarAdjStock(adjId){
 }
 
 // Helper: ¿es admin o logistica?
-function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica');}
+function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica'||CU.role==='contabilidad');}
 // Helper: es admin o rol chile? (escritura en los modulos del Proyecto Chile)
-function isAdminOrChile(){return CU&&(CU.role==='admin'||CU.role==='chile');}
+function isAdminOrChile(){return CU&&(CU.role==='admin'||CU.role==='chile'||CU.role==='contabilidad');}
 
 </script>
 <script>
@@ -6314,7 +6320,7 @@ var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal
 
 function pgClientes(){
   // Solo admin tiene acceso por ahora
-  if(!isAdmin()){
+  if(!puedeEditar()){
     return ejGlobalBar()+'<div class="pageTitle">👥 Clientes</div>'+
       '<div class="alert ainfo">Solo administradores. Pronto sistema de permisos por usuario.</div>';
   }
@@ -12208,7 +12214,7 @@ var agingTab='proveedores';
 var agingFiltros={moneda:'',pais:'',entidad:''};
 
 function pgAging(){
-  if(!isAdmin())return '<div class="pageTitle">📊 Aging</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  if(!puedeEditar())return '<div class="pageTitle">📊 Aging</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
   var tabs='<div class="tabs">'+
     '<div class="tab'+(agingTab==='proveedores'?' active':'')+'" onclick="agingTab=\'proveedores\';go(\'aging\')">🏭 Proveedores</div>'+
     '<div class="tab'+(agingTab==='clientes'?' active':'')+'" onclick="agingTab=\'clientes\';go(\'aging\')">👥 Clientes</div>'+
@@ -12449,7 +12455,7 @@ var tesoTab='semanal';
 var tesoPeriodos=8;
 
 function pgTesoreria(){
-  if(!isAdmin())return '<div class="pageTitle">💰 Tesorería</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  if(!puedeEditar())return '<div class="pageTitle">💰 Tesorería</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
   var tabs='<div class="tabs">'+
     '<div class="tab'+(tesoTab==='semanal'?' active':'')+'" onclick="tesoTab=\'semanal\';tesoPeriodos=8;go(\'tesoreria\')">📅 Vista semanal</div>'+
     '<div class="tab'+(tesoTab==='mensual'?' active':'')+'" onclick="tesoTab=\'mensual\';tesoPeriodos=6;go(\'tesoreria\')">📆 Vista mensual</div>'+
@@ -12675,7 +12681,7 @@ function exportFlujoExcel(){
 
 // === WIDGET para Dashboard: próximos 30 días ===
 function renderWidgetFlujo30dias(){
-  if(!isAdmin())return '';
+  if(!puedeEditar())return '';
   var saldos=saldoTesoreriaActual();
   var hoyD=new Date();hoyD.setHours(0,0,0,0);
   var en30=new Date(hoyD);en30.setDate(hoyD.getDate()+30);
