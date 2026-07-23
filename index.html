@@ -3971,6 +3971,7 @@ function renderStockGeneral(){
       '<td>'+fmtD(it.fecha_baja)+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(it.pedido_compra||'—')+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(it.responsable_alta||'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(it.valor_costo_usd!=null&&it.valor_costo_usd!==''?'$'+fmtN(it.valor_costo_usd):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+adjCell+'</td>'+
       (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
       '</tr>';
@@ -3978,6 +3979,7 @@ function renderStockGeneral(){
 
   return '<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Total filtrado</div><div class="val">'+fil.length+'</div><div class="sub">unidades</div></div>'+
+    '<div class="card"><div class="lbl">Valor vigente USD</div><div class="val green">$'+fmtN(fil.reduce(function(a,it){return a+(it.estado!=='Baja'&&it.estado!=='Vendido'?(parseFloat(it.valor_costo_usd)||0):0);},0))+'</div><div class="sub">costo · sin Baja ni Vendido</div></div>'+
     '<div class="card"><div class="lbl">Disponible</div><div class="val green">'+counts['Disponible']+'</div></div>'+
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
@@ -3991,10 +3993,10 @@ function renderStockGeneral(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📦 Sin items en stock. '+(!ro?'<a href="#" onclick="stockTab=\'alta\';go(\'stock\');return false;" style="color:var(--cyan)">Dar de alta el primero →</a>':'')+'</div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
         '<th>Estado</th><th>SKU</th><th>PN Fábrica</th><th>Modelo</th><th>SN</th>'+
         '<th>Ubicación</th><th>Tipo</th><th>Verif.</th><th>F.Alta</th><th>F.Baja</th>'+
-        '<th>Pedido</th><th>Resp.</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
+        '<th>Pedido</th><th>Resp.</th><th style="text-align:right">Costo USD</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -4196,6 +4198,10 @@ function abrirModalStockItem(id){
     '</select></div>'+
     '</div>'+
 
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>💵 Valor costo (USD) <span style="font-size:9px;color:var(--text2)">· para valuar el stock</span></label><input type="number" id="siCosto" step="0.01" min="0" placeholder="0" value="'+(it.valor_costo_usd||'')+'"/></div>'+
+    '<div class="f"></div>'+
+    '</div>'+
     '<div class="f" style="margin-bottom:14px"><label>Observaciones</label><textarea id="siObs" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none;font-family:inherit;resize:vertical">'+escapeHtml(it.observaciones||'')+'</textarea></div>'+
 
     (id>0?
@@ -4235,7 +4241,8 @@ function guardarStockItem(keepOpen){
     fecha_alta:document.getElementById('siFecha').value||null,
     responsable_alta:document.getElementById('siResp').value.trim()||null,
     verificacion:document.getElementById('siVerif').value||'Pendiente',
-    observaciones:document.getElementById('siObs').value.trim()||null
+    observaciones:document.getElementById('siObs').value.trim()||null,
+    valor_costo_usd:parseFloat(document.getElementById('siCosto').value)||null
   };
   // Solo seteamos el estado si NO está en baja
   if(!enBaja){
@@ -4863,9 +4870,10 @@ function pgChileDashboard(){
         '<label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Valor total stock (USD) <span style="font-size:9px">· ingreso manual</span></label>'+
         '<input type="number" value="'+chileValorStock+'" step="0.01" min="0" placeholder="0" oninput="actualizarValorStock(this.value)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:14px;outline:none;width:200px;font-weight:600"/>'+
       '</div>'+
-      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock vigente</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Stock vigente (manual)</div>'+
       '<div style="font-size:22px;font-weight:700;color:var(--green);margin-bottom:6px">$'+fmtN(valorTotal)+'</div>'+
       '<div style="font-size:11px;color:var(--text2)">'+totalStock+' unidades en total</div>'+
+      (function(){var cc=stockVig.reduce(function(a,it){return a+(parseFloat(it.valor_costo_usd)||0);},0);var nc=stockVig.filter(function(it){return it.valor_costo_usd!=null&&it.valor_costo_usd!=='';}).length;return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Costo cargado (automático)</div><div style="font-size:18px;font-weight:700;color:var(--cyan)">$'+fmtN(cc)+'</div><div style="font-size:10px;color:var(--text2)">'+nc+' de '+totalStock+' con costo</div></div>';})()+
     '</div>'+
     '</div>';
 
@@ -6320,6 +6328,7 @@ var editClienteId=null;
 var editVentaId=null;
 var ventaStockSel=[];     // ids de stock_items elegidos en el modal de venta
 var ventaStockBusca='';   // filtro del selector de equipos
+var ventaStockPrecios={};  // {itemId: precio de venta USD}
 var editCobroId=null;
 var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
@@ -6771,6 +6780,7 @@ function renderTabVentas(){
     var venc=isVentaVencida(v);
     var nAdj=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
     var nEq=(C.stock_items||[]).filter(function(it){return it.venta_id===v.id;}).length;
+    var gan=(C.stock_items||[]).filter(function(it){return it.venta_id===v.id;}).reduce(function(a,it){return a+((parseFloat(it.precio_venta_usd)||0)-(parseFloat(it.valor_costo_usd)||0));},0);
     rows+='<tr>'+
       '<td>'+fmtD(v.fecha)+'</td>'+
       '<td style="font-weight:600">'+escapeHtml(clienteName(v.cliente_id))+'</td>'+
@@ -6785,6 +6795,7 @@ function renderTabVentas(){
       '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
       '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
       '<td style="text-align:center">'+(nEq>0?'<span class="badge bpu">📦 '+nEq+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600" class="'+(nEq>0?(gan<0?'red':'green'):'')+'">'+(nEq>0?fmtS(gan):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalVenta('+v.id+')" title="Editar">✏</button> '+
@@ -6801,6 +6812,7 @@ function renderTabVentas(){
   return '<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Ventas (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.ventas||[]).length+'</div></div>'+
     '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total USD</div><div class="val cyan">'+fmtN(totalUsd)+'</div></div>'+
+    (function(){var g=fil.reduce(function(a,v){return a+(C.stock_items||[]).filter(function(it){return it.venta_id===v.id;}).reduce(function(b,it){return b+((parseFloat(it.precio_venta_usd)||0)-(parseFloat(it.valor_costo_usd)||0));},0);},0);return '<div class="card"><div class="lbl">Ganancia (filtro)</div><div class="val '+(g<0?'red':'green')+'">'+fmtS(g)+'</div><div class="sub">venta − costo de equipos</div></div>';})()+
     totalesPorMoneda+
     '</div>'+
     filtrosHTML+
@@ -6809,10 +6821,10 @@ function renderTabVentas(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVenta(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1720px"><thead><tr>'+
       '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
       '<th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
-      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th>📎</th><th>Acc.</th>'+
+      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th style="text-align:right">Ganancia</th><th>📎</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -6860,25 +6872,49 @@ function filasStockVenta(){
   items.sort(function(a,b2){return (a.sku_leex||'').localeCompare(b2.sku_leex||'');});
   items.forEach(function(it){
     var chk=ventaStockSel.indexOf(it.id)>-1;
-    h+='<label style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;cursor:pointer;font-size:11px">'+
+    var costo=parseFloat(it.valor_costo_usd)||0;
+    var costoTxt=(it.valor_costo_usd!=null&&it.valor_costo_usd!=='')?'$'+fmtN(costo):'s/c';
+    var prc=ventaStockPrecios[it.id];
+    var ganTxt=(chk&&prc>0)?fmtS(prc-costo):'—';
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;font-size:11px;flex-wrap:wrap">'+
       '<input type="checkbox"'+(chk?' checked':'')+' onchange="toggleStockVenta('+it.id+',this.checked)" style="margin:0"/>'+
-      '<span style="font-family:monospace;min-width:90px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
-      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
+      '<span style="font-family:monospace;min-width:84px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
+      '<span style="flex:1;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
       '<span style="font-family:monospace;color:var(--text2)">'+escapeHtml(it.sn||'—')+'</span>'+
+      '<span style="color:var(--text2);min-width:66px;text-align:right" title="costo">'+costoTxt+'</span>'+
       estadoStockBadge(it.estado)+
-    '</label>';
+      (chk?'<input type="number" step="0.01" min="0" placeholder="precio venta" value="'+(prc!=null&&prc!==''?prc:'')+'" oninput="setPrecioStockVenta('+it.id+',this.value)" style="width:104px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;outline:none"/>':'')+
+      (chk?'<span id="vGan-'+it.id+'" style="min-width:80px;text-align:right;font-weight:600;color:'+((prc>0&&prc-costo<0)?'var(--red)':'var(--green)')+'">'+ganTxt+'</span>':'')+
+    '</div>';
   });
   return h;
 }
 function resumenStockVenta(){
-  var n=ventaStockSel.length;
-  if(n===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
-  return '<span style="color:#a78bfa;font-weight:600">'+n+' equipo'+(n===1?'':'s')+' seleccionado'+(n===1?'':'s')+'</span> · al guardar pasan a estado Vendido';
+  var sel=ventaStockSel;
+  if(sel.length===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
+  var tv=0,tc=0,sinCosto=0;
+  sel.forEach(function(id){
+    var it=(C.stock_items||[]).find(function(x){return x.id===id;})||{};
+    var prc=parseFloat(ventaStockPrecios[id])||0;
+    var costo=parseFloat(it.valor_costo_usd)||0;
+    if(!(it.valor_costo_usd!=null&&it.valor_costo_usd!==''))sinCosto++;
+    tv+=prc;tc+=costo;
+  });
+  var gan=tv-tc;
+  return '<span style="color:#a78bfa;font-weight:600">'+sel.length+' equipo'+(sel.length===1?'':'s')+'</span>'+' · Venta $'+fmtN(tv)+' · Costo $'+fmtN(tc)+' · <span style="font-weight:700;color:'+(gan<0?'var(--red)':'var(--green)')+'">Ganancia '+fmtS(gan)+'</span>'+(sinCosto>0?' <span style="color:var(--yellow)">· '+sinCosto+' sin costo</span>':'');
 }
 function toggleStockVenta(id,checked){
   var i=ventaStockSel.indexOf(id);
   if(checked&&i===-1)ventaStockSel.push(id);
-  else if(!checked&&i>-1)ventaStockSel.splice(i,1);
+  else if(!checked&&i>-1){ventaStockSel.splice(i,1);delete ventaStockPrecios[id];}
+  renderSelectorStockVenta();
+}
+function setPrecioStockVenta(id,val){
+  ventaStockPrecios[id]=parseFloat(val)||0;
+  var it=(C.stock_items||[]).find(function(x){return x.id===id;})||{};
+  var costo=parseFloat(it.valor_costo_usd)||0;
+  var g=document.getElementById("vGan-"+id);
+  if(g){var prc=ventaStockPrecios[id];g.textContent=prc>0?fmtS(prc-costo):"—";g.style.color=(prc>0&&prc-costo<0)?"var(--red)":"var(--green)";}
   var r=document.getElementById("vStockResumen");
   if(r)r.innerHTML=resumenStockVenta();
 }
@@ -6888,17 +6924,26 @@ function renderSelectorStockVenta(){
   var r=document.getElementById("vStockResumen");
   if(r)r.innerHTML=resumenStockVenta();
 }
-function sincronizarStockVenta(ventaId,sel){
+function sincronizarStockVenta(ventaId,sel,precios){
   if(!ventaId)return Promise.resolve({agregados:0,liberados:0});
-  var antes=(C.stock_items||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  var itemsAntes=(C.stock_items||[]).filter(function(it){return it.venta_id===ventaId;});
+  var antes=itemsAntes.map(function(it){return it.id;});
   var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
   var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
   var chain=Promise.resolve();
   agregar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Vendido',venta_id:ventaId});});
+    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
+  });
+  sel.forEach(function(itemId){
+    if(antes.indexOf(itemId)===-1)return;
+    var it=itemsAntes.find(function(x){return x.id===itemId;})||{};
+    var nuevo=precios[itemId]||null;
+    if((parseFloat(it.precio_venta_usd)||null)!==(parseFloat(nuevo)||null)){
+      chain=chain.then(function(){return sbPatch('stock_items',itemId,{precio_venta_usd:nuevo});});
+    }
   });
   quitar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Disponible',venta_id:null});});
+    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
   });
   return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
 }
@@ -6911,6 +6956,8 @@ function resumenSyncStock(r){
 function abrirModalVenta(id){
   editVentaId=id;
   ventaStockSel=(C.stock_items||[]).filter(function(it){return it.venta_id===id;}).map(function(it){return it.id;});
+  ventaStockPrecios={};
+  (C.stock_items||[]).forEach(function(it){if(it.venta_id===id&&it.precio_venta_usd!=null)ventaStockPrecios[it.id]=parseFloat(it.precio_venta_usd)||0;});
   ventaStockBusca='';
   var v=id===0?{
     fecha:hoy(),cliente_id:'',numero_factura:'',tipo_operacion:'',
@@ -6984,7 +7031,7 @@ function cerrarModalVenta(){
   var m=document.getElementById('modalVenta');
   if(m){m.style.display='none';m.innerHTML='';}
   editVentaId=null;
-  ventaStockSel=[];ventaStockBusca='';
+  ventaStockSel=[];ventaStockBusca='';ventaStockPrecios={};
 }
 
 function calcImporteUSDVenta(){
@@ -7009,6 +7056,7 @@ function guardarVenta(keepOpen){
   if(!document.getElementById('vF').value){toast('Falta fecha','error');return;}
   if(imp<=0){toast('El importe debe ser mayor a 0','error');return;}
   if(mon!=='USD'&&tc<=0){toast('Para moneda '+mon+' necesitás un tipo de cambio','error');return;}
+  for(var _i=0;_i<ventaStockSel.length;_i++){if(!(parseFloat(ventaStockPrecios[ventaStockSel[_i]])>0)){toast('Poné el precio de venta de todos los equipos seleccionados','error');return;}}
 
   var payload={
     fecha:document.getElementById('vF').value,
@@ -7030,7 +7078,7 @@ function guardarVenta(keepOpen){
     sbPost('ventas',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       var creada=Array.isArray(res)?res[0]:res;
-      return sincronizarStockVenta(creada&&creada.id,selNueva).then(function(r){
+      return sincronizarStockVenta(creada&&creada.id,selNueva,ventaStockPrecios).then(function(r){
         toast('Venta creada'+resumenSyncStock(r),'success');
         if(keepOpen){
           cerrarModalVenta();
@@ -7046,7 +7094,7 @@ function guardarVenta(keepOpen){
     var idEdit=editVentaId;
     sbPatch('ventas',editVentaId,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      return sincronizarStockVenta(idEdit,selEdit).then(function(r){
+      return sincronizarStockVenta(idEdit,selEdit,ventaStockPrecios).then(function(r){
         toast('Venta actualizada'+resumenSyncStock(r),'success');
         cerrarModalVenta();reload('clientes');
       });
@@ -8380,6 +8428,7 @@ function renderStockGeneralChile(){
       '<td>'+fmtD(it.fecha_baja)+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(it.pedido_compra||'—')+'</td>'+
       '<td style="font-size:11px">'+escapeHtml(it.responsable_alta||'—')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(it.valor_costo_usd!=null&&it.valor_costo_usd!==''?'$'+fmtN(it.valor_costo_usd):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+adjCell+'</td>'+
       (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
       '</tr>';
@@ -8387,6 +8436,7 @@ function renderStockGeneralChile(){
 
   return '<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Total filtrado</div><div class="val">'+fil.length+'</div><div class="sub">unidades</div></div>'+
+    '<div class="card"><div class="lbl">Valor vigente USD</div><div class="val green">$'+fmtN(fil.reduce(function(a,it){return a+(it.estado!=='Baja'&&it.estado!=='Vendido'?(parseFloat(it.valor_costo_usd)||0):0);},0))+'</div><div class="sub">costo · sin Baja ni Vendido</div></div>'+
     '<div class="card"><div class="lbl">Disponible</div><div class="val green">'+counts['Disponible']+'</div></div>'+
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
@@ -8400,10 +8450,10 @@ function renderStockGeneralChile(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📦 Sin items en stock. '+(!ro?'<a href="#" onclick="stockTabChile=\'alta\';go(\'chile\');return false;" style="color:var(--cyan)">Dar de alta el primero →</a>':'')+'</div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
         '<th>Estado</th><th>SKU</th><th>PN Fábrica</th><th>Modelo</th><th>SN</th>'+
         '<th>Ubicación</th><th>Tipo</th><th>Verif.</th><th>F.Alta</th><th>F.Baja</th>'+
-        '<th>Pedido</th><th>Resp.</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
+        '<th>Pedido</th><th>Resp.</th><th style="text-align:right">Costo USD</th><th>📎</th>'+(ro?'':'<th>Acc.</th>')+
         '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -8605,6 +8655,10 @@ function abrirModalStockItemChile(id){
     '</select></div>'+
     '</div>'+
 
+    '<div class="fg2" style="margin-bottom:14px">'+
+    '<div class="f"><label>💵 Valor costo (USD) <span style="font-size:9px;color:var(--text2)">· para valuar el stock</span></label><input type="number" id="siCostoCh" step="0.01" min="0" placeholder="0" value="'+(it.valor_costo_usd||'')+'"/></div>'+
+    '<div class="f"></div>'+
+    '</div>'+
     '<div class="f" style="margin-bottom:14px"><label>Observaciones</label><textarea id="siObsCh" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none;font-family:inherit;resize:vertical">'+escapeHtml(it.observaciones||'')+'</textarea></div>'+
 
     (id>0?
@@ -8644,7 +8698,8 @@ function guardarStockItemChile(keepOpen){
     fecha_alta:document.getElementById('siFechaCh').value||null,
     responsable_alta:document.getElementById('siRespCh').value.trim()||null,
     verificacion:document.getElementById('siVerifCh').value||'Pendiente',
-    observaciones:document.getElementById('siObsCh').value.trim()||null
+    observaciones:document.getElementById('siObsCh').value.trim()||null,
+    valor_costo_usd:parseFloat(document.getElementById('siCostoCh').value)||null
   };
   // Solo seteamos el estado si NO está en baja
   if(!enBaja){
@@ -9424,6 +9479,7 @@ var editClienteIdChile=null;
 var editVentaIdChile=null;
 var ventaStockSelChile=[];     // ids de stock_items_chile elegidos en el modal de venta
 var ventaStockBuscaChile='';   // filtro del selector de equipos
+var ventaStockPreciosChile={};  // {itemId: precio de venta USD}
 var editCobroIdChile=null;
 var imputacionLineasChile=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
@@ -9863,6 +9919,7 @@ function renderTabVentasChile(){
     var venc=isVentaVencidaChile(v);
     var nAdj=(C.cliente_adjuntos_chile||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
     var nEq=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).length;
+    var gan=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).reduce(function(a,it){return a+((parseFloat(it.precio_venta_usd)||0)-(parseFloat(it.valor_costo_usd)||0));},0);
     rows+='<tr>'+
       '<td>'+fmtD(v.fecha)+'</td>'+
       '<td style="font-weight:600">'+escapeHtml(clienteNameChile(v.cliente_id))+'</td>'+
@@ -9878,6 +9935,7 @@ function renderTabVentasChile(){
       '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
       '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
       '<td style="text-align:center">'+(nEq>0?'<span class="badge bpu">📦 '+nEq+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600" class="'+(nEq>0?(gan<0?'red':'green'):'')+'">'+(nEq>0?fmtS(gan):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalVentaChile('+v.id+')" title="Editar">✏</button> '+
@@ -9894,6 +9952,7 @@ function renderTabVentasChile(){
   return '<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Ventas (filtro)</div><div class="val">'+fil.length+'</div><div class="sub">de '+(C.ventas_chile||[]).length+'</div></div>'+
     '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total USD</div><div class="val cyan">'+fmtN(totalUsd)+'</div></div>'+
+    (function(){var g=fil.reduce(function(a,v){return a+(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).reduce(function(b,it){return b+((parseFloat(it.precio_venta_usd)||0)-(parseFloat(it.valor_costo_usd)||0));},0);},0);return '<div class="card"><div class="lbl">Ganancia (filtro)</div><div class="val '+(g<0?'red':'green')+'">'+fmtS(g)+'</div><div class="sub">venta − costo de equipos</div></div>';})()+
     totalesPorMoneda+
     '</div>'+
     filtrosHTML+
@@ -9902,10 +9961,10 @@ function renderTabVentasChile(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVentaChile(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1700px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1820px"><thead><tr>'+
       '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
       '<th style="text-align:right">Importe</th><th style="text-align:right">IVA</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
-      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th>📎</th><th>Acc.</th>'+
+      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th style="text-align:right">Ganancia</th><th>📎</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -9943,38 +10002,62 @@ function stockElegibleVentaChile(){
 }
 
 function filasStockVentaChile(){
-  var b=(ventaStockBuscaChile||{}).toLowerCase?ventaStockBuscaChile.toLowerCase():"";
+  var b=(ventaStockBuscaChile||"").toLowerCase();
   var items=stockElegibleVentaChile().filter(function(it){
     if(!b)return true;
     var t=((it.sku_leex||'')+' '+(it.pn_fabrica||'')+' '+(it.modelo||'')+' '+(it.sn||'')).toLowerCase();
     return t.indexOf(b)>-1;
   });
-  if(items.length===0)return '<div style="padding:14px;text-align:center;color:var(--text2);font-size:11px">'+(b?'Sin equipos que coincidan con la búsqueda':'No hay equipos disponibles en el stock Chile')+'</div>';
+  if(items.length===0)return '<div style="padding:14px;text-align:center;color:var(--text2);font-size:11px">'+(b?'Sin equipos que coincidan con la búsqueda':'No hay equipos disponibles en el stock')+'</div>';
   var h='';
   items.sort(function(a,b2){return (a.sku_leex||'').localeCompare(b2.sku_leex||'');});
   items.forEach(function(it){
     var chk=ventaStockSelChile.indexOf(it.id)>-1;
-    h+='<label style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;cursor:pointer;font-size:11px" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'+
+    var costo=parseFloat(it.valor_costo_usd)||0;
+    var costoTxt=(it.valor_costo_usd!=null&&it.valor_costo_usd!=='')?'$'+fmtN(costo):'s/c';
+    var prc=ventaStockPreciosChile[it.id];
+    var ganTxt=(chk&&prc>0)?fmtS(prc-costo):'—';
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;font-size:11px;flex-wrap:wrap">'+
       '<input type="checkbox"'+(chk?' checked':'')+' onchange="toggleStockVentaChile('+it.id+',this.checked)" style="margin:0"/>'+
-      '<span style="font-family:monospace;min-width:90px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
-      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
+      '<span style="font-family:monospace;min-width:84px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
+      '<span style="flex:1;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
       '<span style="font-family:monospace;color:var(--text2)">'+escapeHtml(it.sn||'—')+'</span>'+
+      '<span style="color:var(--text2);min-width:66px;text-align:right" title="costo">'+costoTxt+'</span>'+
       estadoStockBadgeChile(it.estado)+
-    '</label>';
+      (chk?'<input type="number" step="0.01" min="0" placeholder="precio venta" value="'+(prc!=null&&prc!==''?prc:'')+'" oninput="setPrecioStockVentaChile('+it.id+',this.value)" style="width:104px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;outline:none"/>':'')+
+      (chk?'<span id="vGanChile-'+it.id+'" style="min-width:80px;text-align:right;font-weight:600;color:'+((prc>0&&prc-costo<0)?'var(--red)':'var(--green)')+'">'+ganTxt+'</span>':'')+
+    '</div>';
   });
   return h;
 }
 
 function resumenStockVentaChile(){
-  var n=ventaStockSelChile.length;
-  if(n===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
-  return '<span style="color:#a78bfa;font-weight:600">'+n+' equipo'+(n===1?'':'s')+' seleccionado'+(n===1?'':'s')+'</span> · al guardar pasan a estado Vendido';
+  var sel=ventaStockSelChile;
+  if(sel.length===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
+  var tv=0,tc=0,sinCosto=0;
+  sel.forEach(function(id){
+    var it=(C.stock_items_chile||[]).find(function(x){return x.id===id;})||{};
+    var prc=parseFloat(ventaStockPreciosChile[id])||0;
+    var costo=parseFloat(it.valor_costo_usd)||0;
+    if(!(it.valor_costo_usd!=null&&it.valor_costo_usd!==''))sinCosto++;
+    tv+=prc;tc+=costo;
+  });
+  var gan=tv-tc;
+  return '<span style="color:#a78bfa;font-weight:600">'+sel.length+' equipo'+(sel.length===1?'':'s')+'</span>'+' · Venta $'+fmtN(tv)+' · Costo $'+fmtN(tc)+' · <span style="font-weight:700;color:'+(gan<0?'var(--red)':'var(--green)')+'">Ganancia '+fmtS(gan)+'</span>'+(sinCosto>0?' <span style="color:var(--yellow)">· '+sinCosto+' sin costo</span>':'');
 }
 
 function toggleStockVentaChile(id,checked){
   var i=ventaStockSelChile.indexOf(id);
   if(checked&&i===-1)ventaStockSelChile.push(id);
-  else if(!checked&&i>-1)ventaStockSelChile.splice(i,1);
+  else if(!checked&&i>-1){ventaStockSelChile.splice(i,1);delete ventaStockPreciosChile[id];}
+  renderSelectorStockVentaChile();
+}
+function setPrecioStockVentaChile(id,val){
+  ventaStockPreciosChile[id]=parseFloat(val)||0;
+  var it=(C.stock_items_chile||[]).find(function(x){return x.id===id;})||{};
+  var costo=parseFloat(it.valor_costo_usd)||0;
+  var g=document.getElementById("vGanChile-"+id);
+  if(g){var prc=ventaStockPreciosChile[id];g.textContent=prc>0?fmtS(prc-costo):"—";g.style.color=(prc>0&&prc-costo<0)?"var(--red)":"var(--green)";}
   var r=document.getElementById("vStockResumenCh");
   if(r)r.innerHTML=resumenStockVentaChile();
 }
@@ -9989,17 +10072,26 @@ function renderSelectorStockVentaChile(){
 }
 
 // Aplica la diferencia entre lo que la venta tenia y lo que quedo seleccionado.
-function sincronizarStockVentaChile(ventaId,sel){
+function sincronizarStockVentaChile(ventaId,sel,precios){
   if(!ventaId)return Promise.resolve({agregados:0,liberados:0});
-  var antes=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  var itemsAntes=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;});
+  var antes=itemsAntes.map(function(it){return it.id;});
   var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
   var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
   var chain=Promise.resolve();
   agregar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId});});
+    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
+  });
+  sel.forEach(function(itemId){
+    if(antes.indexOf(itemId)===-1)return;
+    var it=itemsAntes.find(function(x){return x.id===itemId;})||{};
+    var nuevo=precios[itemId]||null;
+    if((parseFloat(it.precio_venta_usd)||null)!==(parseFloat(nuevo)||null)){
+      chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{precio_venta_usd:nuevo});});
+    }
   });
   quitar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Disponible',venta_id:null});});
+    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
   });
   return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
 }
@@ -10018,6 +10110,8 @@ function abrirModalVentaChile(id){
   editVentaIdChile=id;
   // precargar los equipos ya vinculados a esta venta (vacio en el alta)
   ventaStockSelChile=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===id;}).map(function(it){return it.id;});
+  ventaStockPreciosChile={};
+  (C.stock_items_chile||[]).forEach(function(it){if(it.venta_id===id&&it.precio_venta_usd!=null)ventaStockPreciosChile[it.id]=parseFloat(it.precio_venta_usd)||0;});
   ventaStockBuscaChile='';
   var v=id===0?{
     fecha:hoy(),cliente_id:'',numero_factura:'',tipo_operacion:'',
@@ -10092,7 +10186,7 @@ function cerrarModalVentaChile(){
   var m=document.getElementById('modalVentaCh');
   if(m){m.style.display='none';m.innerHTML='';}
   editVentaIdChile=null;
-  ventaStockSelChile=[];ventaStockBuscaChile='';
+  ventaStockSelChile=[];ventaStockBuscaChile='';ventaStockPreciosChile={};
 }
 
 function calcImporteUSDChileVentaChile(){
@@ -10122,6 +10216,7 @@ function guardarVentaChile(keepOpen){
   if(imp<=0){toast('El importe debe ser mayor a 0','error');return;}
   if(iva<0){toast('El IVA no puede ser negativo','error');return;}
   if(mon!=='USD'&&tc<=0){toast('Para moneda '+mon+' necesitás un tipo de cambio','error');return;}
+  for(var _i=0;_i<ventaStockSelChile.length;_i++){if(!(parseFloat(ventaStockPreciosChile[ventaStockSelChile[_i]])>0)){toast('Poné el precio de venta de todos los equipos seleccionados','error');return;}}
 
   var payload={
     fecha:document.getElementById('vFCh').value,
@@ -10144,7 +10239,7 @@ function guardarVentaChile(keepOpen){
     sbPost('ventas_chile',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       var creada=Array.isArray(res)?res[0]:res;
-      return sincronizarStockVentaChile(creada&&creada.id,selNueva).then(function(r){
+      return sincronizarStockVentaChile(creada&&creada.id,selNueva,ventaStockPreciosChile).then(function(r){
         toast('Venta creada'+resumenSyncStockChile(r),'success');
         if(keepOpen){
           cerrarModalVentaChile();
@@ -10160,7 +10255,7 @@ function guardarVentaChile(keepOpen){
     var idEdit=editVentaIdChile;
     sbPatch('ventas_chile',editVentaIdChile,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      return sincronizarStockVentaChile(idEdit,selEdit).then(function(r){
+      return sincronizarStockVentaChile(idEdit,selEdit,ventaStockPreciosChile).then(function(r){
         toast('Venta actualizada'+resumenSyncStockChile(r),'success');
         cerrarModalVentaChile();reload('chile');
       });
