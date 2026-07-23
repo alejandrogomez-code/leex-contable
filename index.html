@@ -3894,7 +3894,7 @@ function renderStockGeneral(){
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Baja'];
+  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Vendido','Baja'];
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items.filter(function(it){
@@ -3916,7 +3916,7 @@ function renderStockGeneral(){
   });
 
   // Métricas por estado
-  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Baja':0};
+  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Vendido':0,'Baja':0};
   fil.forEach(function(it){if(counts[it.estado]!==undefined)counts[it.estado]++;});
 
   function selOpts(arr,sel){
@@ -3982,6 +3982,7 @@ function renderStockGeneral(){
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
     '<div class="card"><div class="lbl">No conforme</div><div class="val red">'+counts['No conforme']+'</div></div>'+
+    '<div class="card"><div class="lbl">Vendido</div><div class="val" style="color:#a78bfa">'+counts['Vendido']+'</div></div>'+
     '<div class="card"><div class="lbl">Baja</div><div class="val">'+counts['Baja']+'</div></div>'+
     '</div>'+
     filtrosHTML+
@@ -4008,6 +4009,7 @@ function estadoStockBadge(e){
   if(e==='Reservado')return '<span class="badge bb">'+e+'</span>';
   if(e==='En demo')return '<span class="badge by">'+e+'</span>';
   if(e==='No conforme')return '<span class="badge br">'+e+'</span>';
+  if(e==='Vendido')return '<span class="badge bpu">'+e+'</span>';
   if(e==='Baja')return '<span class="badge bgr">'+e+'</span>';
   return '<span class="badge bgr">—</span>';
 }
@@ -4150,9 +4152,9 @@ function abrirModalStockItem(id){
   }
 
   // Si el item está en estado Baja, no permitimos editar el estado (se cambia desde la baja)
-  var enBaja=it.estado==='Baja';
+  var enBaja=it.estado==='Baja'||it.estado==='Vendido';
   var estadoSelector=enBaja?
-    '<input type="text" value="Baja (gestionar desde Baja de Stock)" readonly style="color:var(--text2)"/>':
+    '<input type="text" value="'+(it.estado==='Vendido'?'Vendido (gestionar desde la venta)':'Baja (gestionar desde Baja de Stock)')+'" readonly style="color:var(--text2)"/>':
     '<select id="siEstado">'+opts(ESTADOS_VIGENTES,it.estado||'Disponible','')+'</select>';
 
   var titulo=id===0?'➕ Nueva Alta de Stock':'✏ Editar Item #'+id;
@@ -4220,7 +4222,8 @@ function cerrarModalStockItem(){
 }
 
 function guardarStockItem(keepOpen){
-  var enBaja=editStockId>0&&(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado==='Baja';
+  var estActual=editStockId>0?(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado:null;
+  var enBaja=estActual==='Baja'||estActual==='Vendido';
   var payload={
     pn_fabrica:document.getElementById('siPn').value.trim()||null,
     sku_leex:document.getElementById('siSku').value.trim()||null,
@@ -6315,6 +6318,8 @@ var cobrosFiltros={busca:'',clienteId:'',fechaDesde:'',fechaHasta:'',moneda:'',m
 var ctaCteSelectedCliente=null;     // detalle expandido
 var editClienteId=null;
 var editVentaId=null;
+var ventaStockSel=[];     // ids de stock_items elegidos en el modal de venta
+var ventaStockBusca='';   // filtro del selector de equipos
 var editCobroId=null;
 var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal del modal cobro
 
@@ -6765,6 +6770,7 @@ function renderTabVentas(){
     var estClass=est==='Cobrado'?'bg':est==='Parcial'?'by':'br';
     var venc=isVentaVencida(v);
     var nAdj=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
+    var nEq=(C.stock_items||[]).filter(function(it){return it.venta_id===v.id;}).length;
     rows+='<tr>'+
       '<td>'+fmtD(v.fecha)+'</td>'+
       '<td style="font-weight:600">'+escapeHtml(clienteName(v.cliente_id))+'</td>'+
@@ -6778,6 +6784,7 @@ function renderTabVentas(){
       '<td>'+(v.estado_entrega?'<span class="badge by">'+escapeHtml(v.estado_entrega)+'</span>':'—')+'</td>'+
       '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
       '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
+      '<td style="text-align:center">'+(nEq>0?'<span class="badge bpu">📦 '+nEq+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
         '<button class="miniBtn" onclick="abrirModalVenta('+v.id+')" title="Editar">✏</button> '+
@@ -6802,10 +6809,10 @@ function renderTabVentas(){
       '<div style="padding:32px;text-align:center;color:var(--text2)">📤 Sin ventas cargadas. <a href="#" onclick="abrirModalVenta(0);return false;" style="color:var(--cyan)">Registrar la primera →</a></div>':
       fil.length===0?
       '<div style="padding:24px;text-align:center;color:var(--text2)">Sin resultados con los filtros aplicados</div>':
-      '<div style="overflow-x:auto"><table style="min-width:1500px"><thead><tr>'+
+      '<div style="overflow-x:auto"><table style="min-width:1600px"><thead><tr>'+
       '<th>Fecha</th><th>Cliente</th><th>N° Factura</th><th>Tipo Op.</th>'+
       '<th style="text-align:right">Importe</th><th>Moneda</th><th style="text-align:right">TC</th><th style="text-align:right">USD</th>'+
-      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>📎</th><th>Acc.</th>'+
+      '<th>Vencimiento</th><th>Entrega</th><th>Cobro</th><th style="text-align:right">Saldo USD</th><th>Equipos</th><th>📎</th><th>Acc.</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>')+
     '</div>';
 }
@@ -6830,8 +6837,81 @@ function exportVentasExcel(){
 // ============================================================
 // MODAL: VENTA
 // ============================================================
+// ============================================================
+// VENTAS <-> STOCK (Comercial)
+// Al guardar la venta, los equipos elegidos pasan a estado Vendido con venta_id.
+// Al sacarlos de la venta (o borrarla) vuelven a Disponible.
+// ============================================================
+function stockElegibleVenta(){
+  return (C.stock_items||[]).filter(function(it){
+    if(it.venta_id&&it.venta_id===editVentaId)return true;
+    return !it.venta_id&&it.estado!=='Baja'&&it.estado!=='Vendido';
+  });
+}
+function filasStockVenta(){
+  var b=(ventaStockBusca||"").toLowerCase();
+  var items=stockElegibleVenta().filter(function(it){
+    if(!b)return true;
+    var t=((it.sku_leex||'')+' '+(it.pn_fabrica||'')+' '+(it.modelo||'')+' '+(it.sn||'')).toLowerCase();
+    return t.indexOf(b)>-1;
+  });
+  if(items.length===0)return '<div style="padding:14px;text-align:center;color:var(--text2);font-size:11px">'+(b?'Sin equipos que coincidan con la búsqueda':'No hay equipos disponibles en el stock')+'</div>';
+  var h='';
+  items.sort(function(a,b2){return (a.sku_leex||'').localeCompare(b2.sku_leex||'');});
+  items.forEach(function(it){
+    var chk=ventaStockSel.indexOf(it.id)>-1;
+    h+='<label style="display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;cursor:pointer;font-size:11px">'+
+      '<input type="checkbox"'+(chk?' checked':'')+' onchange="toggleStockVenta('+it.id+',this.checked)" style="margin:0"/>'+
+      '<span style="font-family:monospace;min-width:90px">'+escapeHtml(it.sku_leex||'—')+'</span>'+
+      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(it.modelo||'—')+'</span>'+
+      '<span style="font-family:monospace;color:var(--text2)">'+escapeHtml(it.sn||'—')+'</span>'+
+      estadoStockBadge(it.estado)+
+    '</label>';
+  });
+  return h;
+}
+function resumenStockVenta(){
+  var n=ventaStockSel.length;
+  if(n===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
+  return '<span style="color:#a78bfa;font-weight:600">'+n+' equipo'+(n===1?'':'s')+' seleccionado'+(n===1?'':'s')+'</span> · al guardar pasan a estado Vendido';
+}
+function toggleStockVenta(id,checked){
+  var i=ventaStockSel.indexOf(id);
+  if(checked&&i===-1)ventaStockSel.push(id);
+  else if(!checked&&i>-1)ventaStockSel.splice(i,1);
+  var r=document.getElementById("vStockResumen");
+  if(r)r.innerHTML=resumenStockVenta();
+}
+function renderSelectorStockVenta(){
+  var l=document.getElementById("vStockLista");
+  if(l)l.innerHTML=filasStockVenta();
+  var r=document.getElementById("vStockResumen");
+  if(r)r.innerHTML=resumenStockVenta();
+}
+function sincronizarStockVenta(ventaId,sel){
+  if(!ventaId)return Promise.resolve({agregados:0,liberados:0});
+  var antes=(C.stock_items||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
+  var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
+  var chain=Promise.resolve();
+  agregar.forEach(function(itemId){
+    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Vendido',venta_id:ventaId});});
+  });
+  quitar.forEach(function(itemId){
+    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Disponible',venta_id:null});});
+  });
+  return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
+}
+function resumenSyncStock(r){
+  var p=[];
+  if(r.agregados)p.push(r.agregados+' equipo'+(r.agregados===1?'':'s')+' marcado'+(r.agregados===1?'':'s')+' como Vendido');
+  if(r.liberados)p.push(r.liberados+' liberado'+(r.liberados===1?'':'s')+' a Disponible');
+  return p.length?' · '+p.join(' · '):'';
+}
 function abrirModalVenta(id){
   editVentaId=id;
+  ventaStockSel=(C.stock_items||[]).filter(function(it){return it.venta_id===id;}).map(function(it){return it.id;});
+  ventaStockBusca='';
   var v=id===0?{
     fecha:hoy(),cliente_id:'',numero_factura:'',tipo_operacion:'',
     importe_total:'',moneda:'USD',tipo_cambio:'',importe_usd:'',
@@ -6876,6 +6956,11 @@ function abrirModalVenta(id){
     '<div class="f"><label>Importe USD <span style="font-size:9px;color:var(--text2)">(calc)</span></label><input type="text" id="vUSD" readonly value="'+(v.importe_usd?fmtN(v.importe_usd):'')+'" style="color:var(--cyan);font-weight:600"/></div>'+
     '</div>'+
 
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📦 Equipos del stock <span style="text-transform:none;letter-spacing:0;font-weight:400">· opcional</span></div>'+
+    '<input type="text" placeholder="🔍 Filtrar por SKU, PN, modelo o SN..." oninput="ventaStockBusca=this.value;renderSelectorStockVenta()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:11px;outline:none;margin-bottom:6px"/>'+
+    '<div id="vStockLista" style="max-height:190px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px">'+filasStockVenta()+'</div>'+
+    '<div id="vStockResumen" style="font-size:11px;color:var(--text2);margin:6px 0 14px">'+resumenStockVenta()+'</div>'+
+
     '<div class="fg2" style="margin-bottom:14px">'+
     '<div class="f"><label>Estado entrega</label><select id="vEntrega">'+opts(estadosEntrega,v.estado_entrega||'Pendiente','')+'</select></div>'+
     '<div class="f"><label>URL</label><input type="text" id="vUrl" value="'+escapeHtml(v.url||'')+'" placeholder="https://..."/></div>'+
@@ -6899,6 +6984,7 @@ function cerrarModalVenta(){
   var m=document.getElementById('modalVenta');
   if(m){m.style.display='none';m.innerHTML='';}
   editVentaId=null;
+  ventaStockSel=[];ventaStockBusca='';
 }
 
 function calcImporteUSDVenta(){
@@ -6940,21 +7026,30 @@ function guardarVenta(keepOpen){
     url:document.getElementById('vUrl').value.trim()||null
   };
   if(editVentaId===0){
+    var selNueva=ventaStockSel.slice();
     sbPost('ventas',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Venta creada','success');
-      if(keepOpen){
-        cerrarModalVenta();
-        loadAll().then(function(){abrirModalVenta(0);});
-      }else{
-        cerrarModalVenta();reload('clientes');
-      }
+      var creada=Array.isArray(res)?res[0]:res;
+      return sincronizarStockVenta(creada&&creada.id,selNueva).then(function(r){
+        toast('Venta creada'+resumenSyncStock(r),'success');
+        if(keepOpen){
+          cerrarModalVenta();
+          loadAll().then(function(){abrirModalVenta(0);});
+        }else{
+          cerrarModalVenta();reload('clientes');
+        }
+      });
     });
   }else{
     delete payload.estado_cobro;
+    var selEdit=ventaStockSel.slice();
+    var idEdit=editVentaId;
     sbPatch('ventas',editVentaId,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      toast('Venta actualizada','success');cerrarModalVenta();reload('clientes');
+      return sincronizarStockVenta(idEdit,selEdit).then(function(r){
+        toast('Venta actualizada'+resumenSyncStock(r),'success');
+        cerrarModalVenta();reload('clientes');
+      });
     });
   }
 }
@@ -6962,11 +7057,13 @@ function guardarVenta(keepOpen){
 function deleteVenta(id){
   var v=(C.ventas||[]).find(function(x){return x.id===id;});
   if(!v)return;
+  var equipos=(C.stock_items||[]).filter(function(it){return it.venta_id===id;});
+  var avisoEq=equipos.length?'\n📦 '+equipos.length+' equipo(s) del stock vuelven a Disponible.':'';
   var imps=imputacionesDeVenta(id);
   if(imps.length>0){
-    if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.\n\n¿Continuar?'))return;
+    if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.'+avisoEq+'\n\n¿Continuar?'))return;
   }else{
-    if(!confirm('¿Eliminar la venta '+(v.numero_factura||'#'+id)+'?'))return;
+    if(!confirm('¿Eliminar la venta '+(v.numero_factura||'#'+id)+'?'+avisoEq))return;
   }
   // Borrar adjuntos
   var adjs=(C.cliente_adjuntos||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===id;});
@@ -6979,8 +7076,14 @@ function deleteVenta(id){
     sbDeleteWhere('cliente_adjuntos','registro_id',id).then(function(){
       // Borrar imputaciones (CASCADE en BD, pero por las dudas)
       sbDeleteWhere('cobro_imputaciones','venta_id',id).then(function(){
-        sbDelete('ventas',id).then(function(){
-          toast('Venta eliminada','success');reload('clientes');
+        var libera=Promise.resolve();
+        equipos.forEach(function(it){
+          libera=libera.then(function(){return sbPatch('stock_items',it.id,{estado:'Disponible',venta_id:null});});
+        });
+        libera.then(function(){
+          sbDelete('ventas',id).then(function(){
+            toast('Venta eliminada'+(equipos.length?' · '+equipos.length+' equipo(s) liberado(s)':''),'success');reload('clientes');
+          });
         });
       });
     });
