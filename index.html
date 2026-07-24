@@ -4227,6 +4227,40 @@ function cerrarModalStockItem(){
   editStockId=null;
 }
 
+// ============================================================
+// SINCRONIZACIÓN DE STOCK POR NÚMERO DE SERIE (SN)
+// Los stocks de Compras-Logística (stock_items) y de Chile (stock_items_chile)
+// son tablas separadas. Cuando un equipo comparte SN con su gemelo del otro
+// módulo, todo movimiento (alta, edición, baja, venta) se refleja en ambos.
+// Se copian todos los campos MENOS venta_id y baja_id, que referencian tablas
+// distintas en cada módulo. No crea equipos: solo actualiza los que ya existen
+// del otro lado con el mismo SN.
+// ============================================================
+function syncStockGemelo(tablaOrigen,snKey,patch){
+  if(!snKey)return Promise.resolve();
+  var otra=tablaOrigen==='stock_items'?'stock_items_chile':'stock_items';
+  var arr=otra==='stock_items'?(C.stock_items||[]):(C.stock_items_chile||[]);
+  var gemelos=arr.filter(function(x){return x.sn&&x.sn===snKey;});
+  if(gemelos.length===0)return Promise.resolve();
+  var p=Object.assign({},patch);
+  delete p.id;delete p.venta_id;delete p.baja_id;
+  var chain=Promise.resolve();
+  gemelos.forEach(function(g){chain=chain.then(function(){return sbPatch(otra,g.id,p);});});
+  return chain;
+}
+function sbPostStock(tabla,payload){
+  return sbPost(tabla,payload).then(function(res){
+    return syncStockGemelo(tabla,payload.sn,payload).then(function(){return res;});
+  });
+}
+function sbPatchStock(tabla,id,patch){
+  return sbPatch(tabla,id,patch).then(function(res){
+    var arr=tabla==='stock_items'?(C.stock_items||[]):(C.stock_items_chile||[]);
+    var it=arr.find(function(x){return x.id===id;})||{};
+    var snKey=it.sn||patch.sn;
+    return syncStockGemelo(tabla,snKey,patch).then(function(){return res;});
+  });
+}
 function guardarStockItem(keepOpen){
   var estActual=editStockId>0?(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado:null;
   var enBaja=estActual==='Baja'||estActual==='Vendido';
@@ -4253,14 +4287,14 @@ function guardarStockItem(keepOpen){
     toast('Cargá al menos SKU, PN o SN','error');return;
   }
   if(editStockId===0){
-    sbPost('stock_items',payload).then(function(res){
+    sbPostStock('stock_items',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       toast('Item dado de alta','success');
       cerrarModalStockItem();
       reload('stock');
     }).catch(function(e){toast('Error: '+(e.message||e),'error');});
   }else{
-    sbPatch('stock_items',editStockId,payload).then(function(res){
+    sbPatchStock('stock_items',editStockId,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       toast('Item actualizado','success');
       cerrarModalStockItem();
@@ -4531,7 +4565,7 @@ function confirmarBajaStock(){
     var ok=0,err=0;
     ids.forEach(function(itemId){
       chain=chain.then(function(){
-        return sbPatch('stock_items',itemId,{
+        return sbPatchStock('stock_items',itemId,{
           estado:'Baja',
           baja_id:baja.id,
           fecha_baja:fecha,
@@ -6932,18 +6966,18 @@ function sincronizarStockVenta(ventaId,sel,precios){
   var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
   var chain=Promise.resolve();
   agregar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
+    chain=chain.then(function(){return sbPatchStock('stock_items',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
   });
   sel.forEach(function(itemId){
     if(antes.indexOf(itemId)===-1)return;
     var it=itemsAntes.find(function(x){return x.id===itemId;})||{};
     var nuevo=precios[itemId]||null;
     if((parseFloat(it.precio_venta_usd)||null)!==(parseFloat(nuevo)||null)){
-      chain=chain.then(function(){return sbPatch('stock_items',itemId,{precio_venta_usd:nuevo});});
+      chain=chain.then(function(){return sbPatchStock('stock_items',itemId,{precio_venta_usd:nuevo});});
     }
   });
   quitar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
+    chain=chain.then(function(){return sbPatchStock('stock_items',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
   });
   return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
 }
@@ -7126,7 +7160,7 @@ function deleteVenta(id){
       sbDeleteWhere('cobro_imputaciones','venta_id',id).then(function(){
         var libera=Promise.resolve();
         equipos.forEach(function(it){
-          libera=libera.then(function(){return sbPatch('stock_items',it.id,{estado:'Disponible',venta_id:null});});
+          libera=libera.then(function(){return sbPatchStock('stock_items',it.id,{estado:'Disponible',venta_id:null});});
         });
         libera.then(function(){
           sbDelete('ventas',id).then(function(){
@@ -8710,14 +8744,14 @@ function guardarStockItemChile(keepOpen){
     toast('Cargá al menos SKU, PN o SN','error');return;
   }
   if(editStockIdChile===0){
-    sbPost('stock_items_chile',payload).then(function(res){
+    sbPostStock('stock_items_chile',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       toast('Item dado de alta','success');
       cerrarModalStockItemChile();
       reload('chile');
     }).catch(function(e){toast('Error: '+(e.message||e),'error');});
   }else{
-    sbPatch('stock_items_chile',editStockIdChile,payload).then(function(res){
+    sbPatchStock('stock_items_chile',editStockIdChile,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       toast('Item actualizado','success');
       cerrarModalStockItemChile();
@@ -8988,7 +9022,7 @@ function confirmarBajaStockChile(){
     var ok=0,err=0;
     ids.forEach(function(itemId){
       chain=chain.then(function(){
-        return sbPatch('stock_items_chile',itemId,{
+        return sbPatchStock('stock_items_chile',itemId,{
           estado:'Baja',
           baja_id:baja.id,
           fecha_baja:fecha,
@@ -10080,18 +10114,18 @@ function sincronizarStockVentaChile(ventaId,sel,precios){
   var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
   var chain=Promise.resolve();
   agregar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
+    chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
   });
   sel.forEach(function(itemId){
     if(antes.indexOf(itemId)===-1)return;
     var it=itemsAntes.find(function(x){return x.id===itemId;})||{};
     var nuevo=precios[itemId]||null;
     if((parseFloat(it.precio_venta_usd)||null)!==(parseFloat(nuevo)||null)){
-      chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{precio_venta_usd:nuevo});});
+      chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{precio_venta_usd:nuevo});});
     }
   });
   quitar.forEach(function(itemId){
-    chain=chain.then(function(){return sbPatch('stock_items_chile',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
+    chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
   });
   return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
 }
@@ -10289,7 +10323,7 @@ function deleteVentaChile(id){
         // liberar los equipos antes de borrar la venta
         var libera=Promise.resolve();
         equipos.forEach(function(it){
-          libera=libera.then(function(){return sbPatch('stock_items_chile',it.id,{estado:'Disponible',venta_id:null});});
+          libera=libera.then(function(){return sbPatchStock('stock_items_chile',it.id,{estado:'Disponible',venta_id:null});});
         });
         libera.then(function(){
           sbDelete('ventas_chile',id).then(function(){
