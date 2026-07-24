@@ -690,6 +690,7 @@ function loadAll(){
     C.cobros_chile=Array.isArray(res[43])?res[43]:[];
     C.cobro_imputaciones_chile=Array.isArray(res[44])?res[44]:[];
     C.cliente_adjuntos_chile=Array.isArray(res[45])?res[45]:[];
+    autofillCostosPorSN();
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
@@ -4260,6 +4261,20 @@ function sbPatchStock(tabla,id,patch){
     var snKey=it.sn||patch.sn;
     return syncStockGemelo(tabla,snKey,patch).then(function(){return res;});
   });
+}
+// Al cargar, completa los costos faltantes por SN entre los dos stocks: si un
+// equipo tiene valor_costo_usd y su gemelo (mismo SN en el otro módulo) no, se
+// lo copia. Actualiza C en el acto y persiste en segundo plano. Se auto-termina:
+// una vez copiado, ya no queda ninguno faltante.
+function autofillCostosPorSN(){
+  var g=C.stock_items||[],c=C.stock_items_chile||[];
+  function tieneCosto(x){return x.valor_costo_usd!=null&&x.valor_costo_usd!=='';}
+  function idxCosto(arr){var m={};arr.forEach(function(x){if(x.sn&&tieneCosto(x)&&m[x.sn]==null)m[x.sn]=x.valor_costo_usd;});return m;}
+  var costoG=idxCosto(g),costoC=idxCosto(c),pend=[];
+  c.forEach(function(x){if(x.sn&&!tieneCosto(x)&&costoG[x.sn]!=null){x.valor_costo_usd=costoG[x.sn];pend.push(['stock_items_chile',x.id,costoG[x.sn]]);}});
+  g.forEach(function(x){if(x.sn&&!tieneCosto(x)&&costoC[x.sn]!=null){x.valor_costo_usd=costoC[x.sn];pend.push(['stock_items',x.id,costoC[x.sn]]);}});
+  pend.forEach(function(p){try{sbPatch(p[0],p[1],{valor_costo_usd:p[2]}).catch(function(){});}catch(e){}});
+  return pend.length;
 }
 function guardarStockItem(keepOpen){
   var estActual=editStockId>0?(C.stock_items.find(function(x){return x.id===editStockId;})||{}).estado:null;
