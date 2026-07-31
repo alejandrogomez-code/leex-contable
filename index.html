@@ -538,9 +538,8 @@ function login(){
   if(user.role!=='admin')document.getElementById('niAdmin').style.display='none';
   // Si es logística, ocultar todo lo que no sea Compras-Logística
   if(user.role==='logistica'){
-    var visLog=['logistica','proyectos','clientes'];
     document.querySelectorAll('[data-sec]').forEach(function(el){
-      if(visLog.indexOf(el.getAttribute('data-sec'))===-1)el.style.display='none';
+      if(el.getAttribute('data-sec')==='sistema')el.style.display='none';
     });
     // Mostrar urole en color especial
     document.getElementById('urole').textContent='Logística';
@@ -561,7 +560,7 @@ function login(){
     else if(C.ejercicios.length>0)ejercicioActual=C.ejercicios[C.ejercicios.length-1].año;
     if(typeof renderSelectorPaletas==='function')renderSelectorPaletas();
     var pgInicial='dashboard';
-    if(CU&&CU.role==='logistica')pgInicial='compras';
+    if(CU&&CU.role==='logistica')pgInicial='dashboard';
     else if(CU&&CU.role==='chile')pgInicial='chile';
     go(pgInicial);
   });
@@ -570,7 +569,7 @@ function logout(){CU=null;document.getElementById('loginScreen').style.display='
 function isAdmin(){return CU&&CU.role==='admin';}
 // Puede cargar y modificar datos en todas las secciones operativas.
 // Configuración y Usuarios siguen exigiendo isAdmin().
-function puedeEditar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad');}
+function puedeEditar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad'||CU.role==='logistica');}
 // Puede operar (crear/editar) en los módulos operativos: Compras-Logística,
 // Comercial (Clientes/Proveedores/Aging) y Proyectos. NO toca Contabilidad ni Sistema.
 function puedeOperar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad'||CU.role==='logistica');}
@@ -707,8 +706,8 @@ function loadAll(){
 function go(page){
   try{
     // Bloqueo: logistica solo accede a compras, stock y proveedores
-    if(CU&&CU.role==='logistica'&&['compras','stock','proveedores','clientes','aging','chile'].indexOf(page)===-1){
-      page='compras';
+    if(CU&&CU.role==='logistica'&&(page==='config'||page==='usuarios')){
+      page='dashboard';
     }
     // Bloqueo: rol chile solo accede a la página chile
     if(CU&&CU.role==='chile'&&page!=='chile'){
