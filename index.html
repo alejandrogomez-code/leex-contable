@@ -538,8 +538,9 @@ function login(){
   if(user.role!=='admin')document.getElementById('niAdmin').style.display='none';
   // Si es logística, ocultar todo lo que no sea Compras-Logística
   if(user.role==='logistica'){
+    var visLog=['logistica','proyectos','clientes'];
     document.querySelectorAll('[data-sec]').forEach(function(el){
-      if(el.getAttribute('data-sec')!=='logistica')el.style.display='none';
+      if(visLog.indexOf(el.getAttribute('data-sec'))===-1)el.style.display='none';
     });
     // Mostrar urole en color especial
     document.getElementById('urole').textContent='Logística';
@@ -570,6 +571,9 @@ function isAdmin(){return CU&&CU.role==='admin';}
 // Puede cargar y modificar datos en todas las secciones operativas.
 // Configuración y Usuarios siguen exigiendo isAdmin().
 function puedeEditar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad');}
+// Puede operar (crear/editar) en los módulos operativos: Compras-Logística,
+// Comercial (Clientes/Proveedores/Aging) y Proyectos. NO toca Contabilidad ni Sistema.
+function puedeOperar(){return CU&&(CU.role==='admin'||CU.role==='contabilidad'||CU.role==='logistica');}
 
 // ============================================================
 // DATA LOAD
@@ -703,7 +707,7 @@ function loadAll(){
 function go(page){
   try{
     // Bloqueo: logistica solo accede a compras, stock y proveedores
-    if(CU&&CU.role==='logistica'&&page!=='compras'&&page!=='stock'&&page!=='proveedores'){
+    if(CU&&CU.role==='logistica'&&['compras','stock','proveedores','clientes','aging','chile'].indexOf(page)===-1){
       page='compras';
     }
     // Bloqueo: rol chile solo accede a la página chile
@@ -3332,7 +3336,7 @@ function pgUsuarios(){
 // PÁGINA: COMPRAS / LOGÍSTICA  (gestión, no contabilidad)
 // ============================================================
 function pgCompras(){
-  var ro=!puedeEditar();
+  var ro=!puedeOperar();
   var F=comprasFiltros;
   var fil=C.compras.filter(function(c){
     if(F.fechaDesde&&(!c.fecha_compra||c.fecha_compra<F.fechaDesde))return false;
@@ -3728,7 +3732,7 @@ function cerrarModalAdjCompra(){
 function renderModalAdjCompra(){
   var c=C.compras.find(function(x){return x.id===modalAdjCompraId;});
   if(!c)return;
-  var ro=!puedeEditar();
+  var ro=!puedeOperar();
   var adjs=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===modalAdjCompraId;});
   var listaHTML='';
   if(adjs.length===0){
@@ -4747,7 +4751,7 @@ function eliminarAdjStock(adjId){
 // Helper: ¿es admin o logistica?
 function isAdminOrLog(){return CU&&(CU.role==='admin'||CU.role==='logistica'||CU.role==='contabilidad');}
 // Helper: es admin o rol chile? (escritura en los modulos del Proyecto Chile)
-function isAdminOrChile(){return CU&&(CU.role==='admin'||CU.role==='chile'||CU.role==='contabilidad');}
+function isAdminOrChile(){return CU&&(CU.role==='admin'||CU.role==='chile'||CU.role==='contabilidad'||CU.role==='logistica');}
 
 </script>
 <script>
@@ -6383,7 +6387,7 @@ var imputacionLineas=[];            // [{ventaId, importeUSD}] - estado temporal
 
 function pgClientes(){
   // Solo admin tiene acceso por ahora
-  if(!puedeEditar()){
+  if(!puedeOperar()){
     return ejGlobalBar()+'<div class="pageTitle">👥 Clientes</div>'+
       '<div class="alert ainfo">Solo administradores. Pronto sistema de permisos por usuario.</div>';
   }
@@ -12461,7 +12465,7 @@ var agingTab='proveedores';
 var agingFiltros={moneda:'',pais:'',entidad:''};
 
 function pgAging(){
-  if(!puedeEditar())return '<div class="pageTitle">📊 Aging</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
+  if(!puedeOperar())return '<div class="pageTitle">📊 Aging</div><div class="alert ainfo">Solo administradores tienen acceso a esta sección.</div>';
   var tabs='<div class="tabs">'+
     '<div class="tab'+(agingTab==='proveedores'?' active':'')+'" onclick="agingTab=\'proveedores\';go(\'aging\')">🏭 Proveedores</div>'+
     '<div class="tab'+(agingTab==='clientes'?' active':'')+'" onclick="agingTab=\'clientes\';go(\'aging\')">👥 Clientes</div>'+
