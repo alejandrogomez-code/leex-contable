@@ -359,16 +359,16 @@
     var hoyStr = (function(){var t=new Date();return t.getDate()+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][t.getMonth()]+'-'+t.getFullYear();})();
 
     // --- Logo LEEX (imagen embebida) ---
-    var logoW = 150, logoH = 56;
+    var logoW = 140, logoH = 52;
     var logoSrc = window.LOGO_LEEX_PDF || window.LOGO_LEEX;
     if(logoSrc){
-      try { doc.addImage(logoSrc, 'PNG', x, y-8, logoW, logoH); } catch(e){}
+      try { doc.addImage(logoSrc, 'PNG', x, y-6, logoW, logoH); } catch(e){}
     }
-    // Título
+    // Título (centrado verticalmente respecto al logo)
     doc.setTextColor(17,17,17); doc.setFont('helvetica','bold');
     doc.setFontSize(20);
-    doc.text('COMMERCIAL INVOICE', W-M, y+22, {align:'right'});
-    y += 44;
+    doc.text('COMMERCIAL INVOICE', W-M, y+26, {align:'right'});
+    y += 58;
     doc.setDrawColor(17,17,17); doc.setLineWidth(1.5); doc.line(M, y, W-M, y);
     y += 20;
 
