@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root,[data-theme="oscuro"]{
 --bg:#1e2a3a;--bg2:#263548;--bg3:#2f4158;--border:#3d5268;
@@ -637,6 +638,10 @@ function loadAll(){
       if(r.clave==='saldo_banco_manual')C.config.saldo_banco_manual=parseFloat(r.valor);
       if(r.clave==='saldo_banco_manual_fecha')C.config.saldo_banco_manual_fecha=r.valor;
       if(r.clave==='saldo_banco_manual_actualizado_at')C.config.saldo_banco_manual_actualizado_at=r.valor;
+      if(r.clave==='factura_prefijo')C.config.factura_prefijo=r.valor;
+      if(r.clave==='factura_numero_actual')C.config.factura_numero_actual=parseInt(r.valor,10);
+      if(r.clave==='factura_relleno')C.config.factura_relleno=parseInt(r.valor,10);
+      if(r.clave==='factura_sufijo_serie')C.config.factura_sufijo_serie=r.valor;
     });
     C.cuentas=Array.isArray(res[1])?res[1]:[];
     // Cuentas sistema → map
@@ -3281,6 +3286,7 @@ function pgConfig(){
     '<div class="pageTitle">⚙ Configuración</div>'+
     renderSeccionBackup()+
     cfgBanco+
+    (typeof panelConfigFactura==='function'?panelConfigFactura(ro):'')+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'+
     '<div>'+
     secCfg('Categorías de Asientos','categoria_asiento','bb')+
@@ -6850,6 +6856,7 @@ function renderTabVentas(){
       '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600" class="'+(nEq>0?(gan<0?'red':'green'):'')+'">'+(nEq>0?fmtS(gan):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosCliente(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
+        '<button class="miniBtn" onclick="abrirPreviewFactura('+v.id+')" title="Generar factura">🧾</button> '+
         '<button class="miniBtn" onclick="abrirModalVenta('+v.id+')" title="Editar">✏</button> '+
         '<button class="miniBtn" style="color:var(--red)" onclick="deleteVenta('+v.id+')" title="Eliminar">🗑</button>'+
       '</td>'+
@@ -7071,6 +7078,7 @@ function abrirModalVenta(id){
     '<div class="factions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">'+
     '<button class="btn bp" onclick="guardarVenta()">💾 '+(id===0?'Crear venta':'Guardar cambios')+'</button>'+
     (id===0?'<button class="btn bv" onclick="guardarVenta(true)" title="Crear y cargar otra">💾➕ Crear + Nueva</button>':'')+
+    (id>0?'<button class="btn bg" onclick="cerrarModalVenta();abrirPreviewFactura('+id+')" title="Generar Commercial Invoice">🧾 Generar factura</button>':'')+
     '<button class="btn bs" onclick="cerrarModalVenta()">Cancelar</button>'+
     '</div>'+
     '</div></div>';
@@ -13688,5 +13696,6 @@ window.addEventListener('load',function(){
   document.getElementById('lu').focus();
 });
 </script>
+<script src="factura-leex.js"></script>
 </body>
 </html>
