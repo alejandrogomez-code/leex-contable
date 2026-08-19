@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="logo-leex.js"></script>
 <style>
 :root,[data-theme="oscuro"]{
 --bg:#1e2a3a;--bg2:#263548;--bg3:#2f4158;--border:#3d5268;
@@ -289,11 +290,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <div id="loginScreen">
   <div class="loginBox">
     <div style="text-align:center;margin-bottom:24px">
-      <svg viewBox="0 0 280 90" width="170" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 14 L40 48 L10 82" stroke="#00b4d8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <path d="M52 14 L22 48 L52 82" stroke="#8cc63f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#e8eef5" letter-spacing="3">LEEX</text>
-      </svg>
+      <img id="logoLogin" alt="LEEX" width="170" style="display:inline-block;max-width:100%;height:auto"/>
       <div style="font-size:11px;color:var(--text2);margin-top:8px">Sistema Contable v2</div>
     </div>
     <div class="fg"><label>Usuario</label><input type="text" id="lu" placeholder="usuario"/></div>
@@ -306,11 +303,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <div id="app">
   <div class="sidebar">
     <div class="sbLogo">
-      <svg viewBox="0 0 280 90" width="120" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 14 L40 48 L10 82" stroke="#00b4d8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <path d="M52 14 L22 48 L52 82" stroke="#8cc63f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <text x="68" y="68" font-family="'Segoe UI',Arial,sans-serif" font-size="50" font-weight="800" fill="#e6edf3" letter-spacing="3">LEEX</text>
-      </svg>
+      <img id="logoSidebar" alt="LEEX" width="120" style="display:block;max-width:100%;height:auto"/>
     </div>
 
     <div class="sbSection" data-sec="contabilidad">Operación</div>
@@ -13693,6 +13686,13 @@ function deleteAjusteVenta(id){
 // AUTO-INIT
 // ============================================================
 window.addEventListener('load',function(){
+  (function(){
+    var src = window.LOGO_LEEX;
+    if(src){
+      var a=document.getElementById('logoLogin'); if(a)a.src=src;
+      var b=document.getElementById('logoSidebar'); if(b)b.src=src;
+    }
+  })();
   document.getElementById('lu').focus();
 });
 </script>
