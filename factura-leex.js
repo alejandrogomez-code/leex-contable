@@ -25,6 +25,17 @@
     from: 'Shenzhen, China'
   };
 
+  // ---- Datos bancarios (leyenda al pie de la factura) ----
+  var BANCO = {
+    cuenta: '1200027418',
+    denominacion: 'LEEX LLC',
+    domicilio: '7950 NW 53RD ST STE 337 MIAMI F',
+    ciudad: 'Miami',
+    pais: 'U.S.A.',
+    swift: 'IFBKUS3MXXX',
+    banco: 'INTERNATIONAL FINANCE BANK'
+  };
+
   // ============================================================
   // Config de numeración (lectura desde C.config con defaults)
   // ============================================================
@@ -196,12 +207,8 @@
 
         // Encabezado
         '<div style="display:flex;align-items:center;gap:16px;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:16px">'+
-          '<svg viewBox="0 0 280 90" width="130" xmlns="http://www.w3.org/2000/svg">'+
-            '<path d="M10 14 L40 48 L10 82" stroke="#00b4d8" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'+
-            '<path d="M52 14 L22 48 L52 82" stroke="#8cc63f" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>'+
-            '<text x="68" y="68" font-family="Arial,sans-serif" font-size="50" font-weight="800" fill="#111" letter-spacing="3">LEEX</text>'+
-          '</svg>'+
-          '<div style="font-size:22px;font-weight:700;letter-spacing:1px;color:#111">COMMERCIAL INVOICE</div>'+
+          '<img src="'+(window.LOGO_LEEX||'')+'" alt="LEEX" style="width:150px;height:auto"/>'+
+          '<div style="font-size:22px;font-weight:700;letter-spacing:1px;color:#111;margin-left:auto">COMMERCIAL INVOICE</div>'+
         '</div>'+
 
         // Bloque To / Deliver to
@@ -249,6 +256,18 @@
           '<div>Tel: '+EMISOR.tel+'</div>'+
           '<div>Web: '+EMISOR.web+'</div>'+
           '<div>Add: '+EMISOR.direccion+'</div>'+
+        '</div>'+
+
+        // Leyenda datos bancarios
+        '<div style="border-top:1px solid #d1d5db;margin-top:14px;padding-top:10px;color:#374151;font-size:11px">'+
+          '<div style="font-weight:700;margin-bottom:4px;color:#111">Bank details</div>'+
+          '<div>Cuenta bancaria o IBAN N°: '+BANCO.cuenta+'</div>'+
+          '<div>Denominación: '+BANCO.denominacion+'</div>'+
+          '<div>Domicilio: '+BANCO.domicilio+'</div>'+
+          '<div>Ciudad: '+BANCO.ciudad+'</div>'+
+          '<div>País: '+BANCO.pais+'</div>'+
+          '<div>Código SWIFT: '+BANCO.swift+'</div>'+
+          '<div>Nombre del Banco: '+BANCO.banco+'</div>'+
         '</div>'+
 
       '</div>'+  // fin facturaHoja
@@ -339,13 +358,14 @@
     var c = d.cliente;
     var hoyStr = (function(){var t=new Date();return t.getDate()+'-'+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][t.getMonth()]+'-'+t.getFullYear();})();
 
-    // --- Logo LEEX (dibujado con líneas + texto) ---
-    doc.setLineWidth(5); doc.setLineCap('round');
-    doc.setDrawColor(0,180,216); doc.line(x, y, x+16, y+16); doc.line(x+16, y+16, x, y+32);
-    doc.setDrawColor(140,198,63); doc.line(x+22, y, x+6, y+16); doc.line(x+6, y+16, x+22, y+32);
-    doc.setTextColor(17,17,17); doc.setFont('helvetica','bold'); doc.setFontSize(26);
-    doc.text('LEEX', x+34, y+26);
+    // --- Logo LEEX (imagen embebida) ---
+    var logoW = 150, logoH = 56;
+    var logoSrc = window.LOGO_LEEX_PDF || window.LOGO_LEEX;
+    if(logoSrc){
+      try { doc.addImage(logoSrc, 'PNG', x, y-8, logoW, logoH); } catch(e){}
+    }
     // Título
+    doc.setTextColor(17,17,17); doc.setFont('helvetica','bold');
     doc.setFontSize(20);
     doc.text('COMMERCIAL INVOICE', W-M, y+22, {align:'right'});
     y += 44;
@@ -430,6 +450,23 @@
     doc.text('Web: '+EMISOR.web, M, y); y+=12;
     doc.text('Add: '+EMISOR.direccion, M, y);
 
+    // --- Leyenda datos bancarios ---
+    y += 18;
+    doc.setDrawColor(209,213,219); doc.setLineWidth(0.5); doc.line(M, y, W-M, y); y += 14;
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(17,17,17);
+    doc.text('Bank details', M, y); y += 13;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(55,65,81);
+    var lineasBanco = [
+      'Cuenta bancaria o IBAN N°: '+BANCO.cuenta,
+      'Denominación: '+BANCO.denominacion,
+      'Domicilio: '+BANCO.domicilio,
+      'Ciudad: '+BANCO.ciudad,
+      'País: '+BANCO.pais,
+      'Código SWIFT: '+BANCO.swift,
+      'Nombre del Banco: '+BANCO.banco
+    ];
+    lineasBanco.forEach(function(l){ doc.text(l, M, y); y += 11; });
+
     doc.save('Factura_'+numero.replace(/[^\w\-]/g,'_')+'.pdf');
   }
 
@@ -478,6 +515,15 @@
     aoa.push(['Tel: '+EMISOR.tel]);
     aoa.push(['Web: '+EMISOR.web]);
     aoa.push(['Add: '+EMISOR.direccion]);
+    aoa.push([]);
+    aoa.push(['Bank details']);
+    aoa.push(['Cuenta bancaria o IBAN N°: '+BANCO.cuenta]);
+    aoa.push(['Denominación: '+BANCO.denominacion]);
+    aoa.push(['Domicilio: '+BANCO.domicilio]);
+    aoa.push(['Ciudad: '+BANCO.ciudad]);
+    aoa.push(['País: '+BANCO.pais]);
+    aoa.push(['Código SWIFT: '+BANCO.swift]);
+    aoa.push(['Nombre del Banco: '+BANCO.banco]);
 
     var ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{wch:16},{wch:44},{wch:14},{wch:16},{wch:16}];
