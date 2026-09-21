@@ -128,6 +128,19 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
 .sbLogo{padding:16px 14px 12px;border-bottom:1px solid var(--border)}
 .sbSection{padding:8px 14px 2px;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-top:6px;font-weight:600}
+/* --- Menú lateral plegable --- */
+.sbSection.sbTog{display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;padding:9px 14px 9px;border-radius:0;user-select:none;transition:color .15s,background .15s}
+.sbSection.sbTog:hover{color:var(--text);background:var(--bg3)}
+.sbSection.sbTog.hasActive{color:var(--cyan)}
+.sbChev{font-size:9px;line-height:1;opacity:.7;transition:transform .2s ease;display:inline-block}
+.sbSection.sbTog.open .sbChev{transform:rotate(90deg)}
+.sbGroup{max-height:0;overflow:hidden;transition:max-height .22s ease}
+.sbGroup.open{max-height:800px}
+.sbDot{width:5px;height:5px;border-radius:50%;background:var(--cyan);display:none;flex-shrink:0}
+.sbSection.sbTog.hasActive .sbDot{display:block}
+.sbTools{display:flex;justify-content:flex-end;padding:6px 14px 0}
+.sbTools button{background:none;border:none;color:var(--text2);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;padding:2px 4px;font-family:inherit}
+.sbTools button:hover{color:var(--cyan)}
 .ni{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;color:var(--text2);font-size:12.5px;border-left:3px solid transparent;transition:all .15s}
 .ni:hover{color:var(--text);background:var(--bg3)}
 .ni.active{color:var(--cyan);background:rgba(0,180,216,.08);border-left-color:var(--cyan)}
@@ -306,46 +319,55 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <img id="logoSidebar" alt="LEEX" width="120" style="display:block;max-width:100%;height:auto"/>
     </div>
 
-    <div class="sbSection" data-sec="contabilidad">Operación</div>
-    <div class="ni" data-sec="contabilidad" data-page="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
-    <div class="ni" data-sec="contabilidad" data-page="importar" onclick="go('importar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar Extracto</div>
-    <div class="ni" data-sec="contabilidad" data-page="banco" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Movimientos Banco</div>
-    <div class="ni" data-sec="contabilidad" data-page="gastos" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar Gasto</div>
-
+    <div class="sbTools"><button id="sbTodosBtn" onclick="toggleTodosSb()">▾ Expandir todo</button></div>
+    <div class="sbSection sbTog" data-sec="contabilidad" data-grp="operacion" id="sbh-operacion" onclick="toggleSbGrupo('operacion')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Operación</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-operacion" data-sec="contabilidad" data-grp="operacion">
+      <div class="ni" data-sec="contabilidad" data-page="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</div>
+      <div class="ni" data-sec="contabilidad" data-page="importar" onclick="go('importar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Importar Extracto</div>
+      <div class="ni" data-sec="contabilidad" data-page="banco" onclick="go('banco')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Movimientos Banco</div>
+      <div class="ni" data-sec="contabilidad" data-page="gastos" onclick="go('gastos')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Registrar Gasto</div>
+    </div>
     <div class="divider" data-sec="contabilidad"></div>
-    <div class="sbSection" data-sec="contabilidad">Contabilidad</div>
-    <div class="ni" data-sec="contabilidad" data-page="libro" onclick="go('libro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Libro Diario</div>
-    <div class="ni" data-sec="contabilidad" data-page="mayor" onclick="go('mayor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Libro Mayor</div>
-    <div class="ni" data-sec="contabilidad" data-page="nuevoAst" onclick="go('nuevoAst')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Asiento</div>
-    <div class="ni" data-sec="contabilidad" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance</div>
-    <div class="ni" data-sec="contabilidad" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
-    <div class="ni" data-sec="contabilidad" data-page="tesoreria" onclick="go('tesoreria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>Tesorería</div>
-
+    <div class="sbSection sbTog" data-sec="contabilidad" data-grp="contabilidad" id="sbh-contabilidad" onclick="toggleSbGrupo('contabilidad')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Contabilidad</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-contabilidad" data-sec="contabilidad" data-grp="contabilidad">
+      <div class="ni" data-sec="contabilidad" data-page="libro" onclick="go('libro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Libro Diario</div>
+      <div class="ni" data-sec="contabilidad" data-page="mayor" onclick="go('mayor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>Libro Mayor</div>
+      <div class="ni" data-sec="contabilidad" data-page="nuevoAst" onclick="go('nuevoAst')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Nuevo Asiento</div>
+      <div class="ni" data-sec="contabilidad" data-page="balance" onclick="go('balance')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Balance</div>
+      <div class="ni" data-sec="contabilidad" data-page="resultados" onclick="go('resultados')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Estado de Resultados</div>
+      <div class="ni" data-sec="contabilidad" data-page="tesoreria" onclick="go('tesoreria')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>Tesorería</div>
+    </div>
     <div class="divider" data-sec="admin"></div>
-    <div class="sbSection" data-sec="admin">Administración</div>
-    <div class="ni" data-sec="admin" data-page="ejercicios" onclick="go('ejercicios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Ejercicios</div>
-    <div class="ni" data-sec="admin" data-page="cuentas" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
-    <div class="ni" data-sec="admin" data-page="reglas" onclick="go('reglas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Reglas Automáticas</div>
-
+    <div class="sbSection sbTog" data-sec="admin" data-grp="admin" id="sbh-admin" onclick="toggleSbGrupo('admin')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Administración</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-admin" data-sec="admin" data-grp="admin">
+      <div class="ni" data-sec="admin" data-page="ejercicios" onclick="go('ejercicios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Ejercicios</div>
+      <div class="ni" data-sec="admin" data-page="cuentas" onclick="go('cuentas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Plan de Cuentas</div>
+      <div class="ni" data-sec="admin" data-page="reglas" onclick="go('reglas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Reglas Automáticas</div>
+    </div>
     <div class="divider" data-sec="logistica"></div>
-    <div class="sbSection" data-sec="logistica">Compras - Logística</div>
-    <div class="ni" data-sec="logistica" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
-    <div class="ni" data-sec="logistica" data-page="stock" onclick="go('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Stock</div>
-
+    <div class="sbSection sbTog" data-sec="logistica" data-grp="logistica" id="sbh-logistica" onclick="toggleSbGrupo('logistica')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Compras - Logística</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-logistica" data-sec="logistica" data-grp="logistica">
+      <div class="ni" data-sec="logistica" data-page="compras" onclick="go('compras')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>Compras</div>
+      <div class="ni" data-sec="logistica" data-page="stock" onclick="go('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Stock</div>
+    </div>
     <div class="divider" data-sec="proyectos"></div>
-    <div class="sbSection" data-sec="proyectos">Proyectos</div>
-    <div class="ni" data-sec="proyectos" data-page="chile" onclick="go('chile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Chile</div>
-
+    <div class="sbSection sbTog" data-sec="proyectos" data-grp="proyectos" id="sbh-proyectos" onclick="toggleSbGrupo('proyectos')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Proyectos</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-proyectos" data-sec="proyectos" data-grp="proyectos">
+      <div class="ni" data-sec="proyectos" data-page="chile" onclick="go('chile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Chile</div>
+    </div>
     <div class="divider" data-sec="clientes"></div>
-    <div class="sbSection" data-sec="clientes">Comercial</div>
-    <div class="ni" data-sec="clientes" data-page="clientes" onclick="go('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
-    <div class="ni" data-sec="clientes" data-page="proveedores" onclick="go('proveedores')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>Proveedores</div>
-    <div class="ni" data-sec="clientes" data-page="aging" onclick="go('aging')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Aging</div>
-
+    <div class="sbSection sbTog" data-sec="clientes" data-grp="clientes" id="sbh-clientes" onclick="toggleSbGrupo('clientes')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Comercial</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-clientes" data-sec="clientes" data-grp="clientes">
+      <div class="ni" data-sec="clientes" data-page="clientes" onclick="go('clientes')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Clientes</div>
+      <div class="ni" data-sec="clientes" data-page="proveedores" onclick="go('proveedores')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg>Proveedores</div>
+      <div class="ni" data-sec="clientes" data-page="aging" onclick="go('aging')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Aging</div>
+    </div>
     <div class="divider" data-sec="sistema"></div>
-    <div class="sbSection" data-sec="sistema">Sistema</div>
-    <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
-    <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
+    <div class="sbSection sbTog" data-sec="sistema" data-grp="sistema" id="sbh-sistema" onclick="toggleSbGrupo('sistema')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Sistema</span><span class="sbChev">▶</span></div>
+    <div class="sbGroup" id="sbg-sistema" data-sec="sistema" data-grp="sistema">
+      <div class="ni" data-sec="sistema" data-page="config" onclick="go('config')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Configuración</div>
+      <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
+    </div>
 
     <div class="sbFoot">
       <div style="padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">
@@ -463,6 +485,7 @@ var C={
   // Proyectos > Chile
   caja_oficina_chile:[],
   caja_chile_aportes:[],
+  aportes_chile:[],   // Tesorería > Aportes (Leex / IBS · Efectivo o Equipos)
   caja_deam:[],
   caja_ibs:[],
   caja_adjuntos:[],
@@ -547,6 +570,8 @@ function login(){
     document.getElementById('urole').textContent='Proyecto Chile';
     document.getElementById('urole').style.color='var(--cyan)';
   }
+  // Menú lateral: arranca todo comprimido
+  initSidebarPlegable();
   loadAll().then(function(){
     // Setear ejercicio actual = año en curso, si existe
     var thisYear=new Date().getFullYear();
@@ -620,7 +645,8 @@ function loadAll(){
     sbGet('ventas_chile','select=*&order=fecha.desc').catch(function(){return[];}),                           // 42
     sbGet('cobros_chile','select=*&order=fecha.desc').catch(function(){return[];}),                           // 43
     sbGet('cobro_imputaciones_chile','select=*').catch(function(){return[];}),                                // 44
-    sbGet('cliente_adjuntos_chile','select=*&order=uploaded_at.desc').catch(function(){return[];})            // 45
+    sbGet('cliente_adjuntos_chile','select=*&order=uploaded_at.desc').catch(function(){return[];}),           // 45
+    sbGet('aportes_chile','select=*&order=fecha.desc,id.desc').catch(function(){return[];})                   // 46
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -691,11 +717,79 @@ function loadAll(){
     C.cobros_chile=Array.isArray(res[43])?res[43]:[];
     C.cobro_imputaciones_chile=Array.isArray(res[44])?res[44]:[];
     C.cliente_adjuntos_chile=Array.isArray(res[45])?res[45]:[];
+    C.aportes_chile=Array.isArray(res[46])?res[46]:[];
     autofillCostosPorSN();
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
     document.getElementById('main').innerHTML='<div class="alert aerr">Error al cargar datos: '+(e.message||e)+'</div>';
   });
+}
+
+// ============================================================
+// MENÚ LATERAL PLEGABLE
+// Al abrir la app todos los grupos arrancan comprimidos. El usuario
+// pliega/despliega cada uno haciendo click en el título de la sección.
+// ============================================================
+var SB_GRUPOS=['operacion','contabilidad','admin','logistica','proyectos','clientes','sistema'];
+
+function toggleSbGrupo(grp,forzar){
+  var h=document.getElementById('sbh-'+grp);
+  var g=document.getElementById('sbg-'+grp);
+  if(!h||!g)return;
+  var abrir=(forzar===undefined||forzar===null)?!g.classList.contains('open'):!!forzar;
+  if(abrir){g.classList.add('open');h.classList.add('open');}
+  else{g.classList.remove('open');h.classList.remove('open');}
+  sincSbTodosBtn();
+}
+
+function setTodosSbGrupos(abrir){
+  SB_GRUPOS.forEach(function(g){toggleSbGrupo(g,abrir);});
+  sincSbTodosBtn();
+}
+
+function sbGrupoVisible(grp){
+  var g=document.getElementById('sbg-'+grp);
+  return g&&g.style.display!=='none';
+}
+
+function hayAlgunSbAbierto(){
+  for(var i=0;i<SB_GRUPOS.length;i++){
+    var g=document.getElementById('sbg-'+SB_GRUPOS[i]);
+    if(g&&sbGrupoVisible(SB_GRUPOS[i])&&g.classList.contains('open'))return true;
+  }
+  return false;
+}
+
+function sincSbTodosBtn(){
+  var b=document.getElementById('sbTodosBtn');
+  if(!b)return;
+  b.textContent=hayAlgunSbAbierto()?'▴ Contraer todo':'▾ Expandir todo';
+}
+
+function toggleTodosSb(){
+  setTodosSbGrupos(!hayAlgunSbAbierto());
+}
+
+// Marca con un punto cian el título del grupo que contiene la página activa,
+// para que se sepa dónde estás parado aunque el grupo esté comprimido.
+function marcarSbGrupoActivo(page){
+  SB_GRUPOS.forEach(function(grp){
+    var h=document.getElementById('sbh-'+grp);
+    var g=document.getElementById('sbg-'+grp);
+    if(!h||!g)return;
+    var tiene=!!g.querySelector('.ni[data-page="'+page+'"]');
+    if(tiene)h.classList.add('hasActive');
+    else h.classList.remove('hasActive');
+  });
+}
+
+// Estado inicial: todo comprimido. Si el rol solo ve un grupo (ej. rol chile),
+// se abre ese para no dejar la barra vacía.
+function initSidebarPlegable(){
+  setTodosSbGrupos(false);
+  var visibles=SB_GRUPOS.filter(sbGrupoVisible);
+  if(visibles.length===1)toggleSbGrupo(visibles[0],true);
+  sincSbTodosBtn();
 }
 
 // ============================================================
@@ -714,6 +808,7 @@ function go(page){
     document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
     var activeItem=document.querySelector('.ni[data-page="'+page+'"]');
     if(activeItem)activeItem.classList.add('active');
+    marcarSbGrupoActivo(page);
     var pages={
       dashboard:pgDashboard,
       importar:pgImportar,
@@ -4774,6 +4869,10 @@ var editingChile=null;   // id en edición
 var editingDeam=null;
 var editingIbs=null;
 var editingAporte=null;
+// --- Tesorería > Aportes (Leex / IBS · Efectivo o Equipos) ---
+var aportesChileFiltros={busqueda:'',fechaDesde:'',fechaHasta:'',origen:'',tipo:''};
+var aportesChileSort={col:'fecha',asc:false};
+var editingAporteChile=null;
 var modalAdjCajaTipo=null;  // 'chile' | 'deam' | 'ibs'
 var modalAdjCajaId=null;
 
@@ -4991,9 +5090,32 @@ function pgChileDashboard(){
         '<div style="font-size:20px;font-weight:700;color:var(--red)">$'+fmtN(gastoOficina)+'</div></div>'+
     '</div>'+
     '<div style="font-size:10px;color:var(--text2);margin-top:10px">Solo Caja Oficina Chile · DEAM, IBS y Leex se consultan desde la pestaña Tesorería.</div>'+
+    aportesResumenHTML()+
     '</div>';
 
   return '<div id="chileDashboardPrint">'+header+kpis+stockHTML+clientesHTML+tesoreriaHTML+'</div>';
+}
+
+// Resumen de Aportes (Leex / IBS) para el dashboard de Chile
+function aportesResumenHTML(){
+  var lista=C.aportes_chile||[];
+  if(!lista.length)return '';
+  var T=totalesAportesChile(lista);
+  return '<div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'+
+      '<div style="font-size:12px;font-weight:600">🤝 Aportes</div>'+
+      '<a href="#" class="no-print" onclick="chileTab=\'tesoreria\';chileTesTab=\'aportes\';go(\'chile\');return false;" style="color:var(--cyan);font-size:11px">Ver aportes →</a>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="dashChileGrid">'+
+      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Aportes Leex</div>'+
+        '<div style="font-size:17px;font-weight:700;color:var(--cyan)">USD '+fmtN(T.leex)+'</div></div>'+
+      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Aportes IBS</div>'+
+        '<div style="font-size:17px;font-weight:700;color:var(--yellow)">USD '+fmtN(T.ibs)+'</div></div>'+
+      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">Total Aportes</div>'+
+        '<div style="font-size:17px;font-weight:700;color:var(--green)">USD '+fmtN(T.total)+'</div></div>'+
+    '</div>'+
+    '<div style="font-size:10px;color:var(--text2);margin-top:8px">Efectivo USD '+fmtN(T.efectivo)+' · Equipos USD '+fmtN(T.equipos)+(T.nEquipos?' ('+T.nEquipos+' u.)':'')+'</div>'+
+    '</div>';
 }
 
 // Actualizar valor total del stock (input del dashboard)
@@ -5066,6 +5188,10 @@ function exportDashboardChile(){
     {Indicador:'Aporte total USD',Valor:aporteTotal},
     {Indicador:'Gasto '+anioActual+' USD',Valor:gastoOficina},
     {Indicador:'',Valor:''},
+    {Indicador:'Aportes Leex USD',Valor:totalesAportesChile(C.aportes_chile).leex},
+    {Indicador:'Aportes IBS USD',Valor:totalesAportesChile(C.aportes_chile).ibs},
+    {Indicador:'Total Aportes USD',Valor:totalesAportesChile(C.aportes_chile).total},
+    {Indicador:'',Valor:''},
     {Indicador:'Fecha snapshot',Valor:hoy()}
   ];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tesData),'Tesoreria');
@@ -5104,6 +5230,7 @@ function pgChile(){
       subTab('deam','🇦🇷 Caja DEAM')+
       subTab('ibs','🏢 Caja IBS')+
       (esRolChile?'':subTab('leex','🛒 Caja Leex'))+
+      subTab('aportes','🤝 Aportes')+
       '</div>';
     var cuerpo='';
     if(chileTesTab==='oficina'){
@@ -5116,6 +5243,7 @@ function pgChile(){
     else if(chileTesTab==='deam')cuerpo=renderCajaDeam();
     else if(chileTesTab==='ibs')cuerpo=renderCajaIbs();
     else if(chileTesTab==='leex')cuerpo=renderCajaLeex();
+    else if(chileTesTab==='aportes')cuerpo=renderAportesChile();
     contenido=subTabs+cuerpo;
   }else if(chileTab==='stock'){
     contenido=pgStockChile();
@@ -5666,6 +5794,250 @@ function renderCajaIbs(){
     '</div>';
 
   return filtrosHTML+tabla+totales;
+}
+
+// ============================================================
+// TESORERÍA > APORTES  (Leex / IBS · Efectivo o Equipos)
+// Tabla: Fecha | Tipo | Aportes Leex | Aportes IBS | Detalle
+// Cada fila tiene un único origen (Leex o IBS); la columna del otro
+// origen queda en blanco, igual que en la planilla original.
+// ============================================================
+var APORTE_ORIGENES=['Leex','IBS'];
+var APORTE_TIPOS=['Efectivo','Equipos'];
+
+function aporteLeexUsd(a){return (a.origen==='Leex')?(parseFloat(a.importe_usd)||0):0;}
+function aporteIbsUsd(a){return (a.origen==='IBS')?(parseFloat(a.importe_usd)||0):0;}
+
+function totalesAportesChile(lista){
+  var t={leex:0,ibs:0,efectivo:0,equipos:0,total:0,nEquipos:0};
+  (lista||[]).forEach(function(a){
+    var v=parseFloat(a.importe_usd)||0;
+    t.total+=v;
+    if(a.origen==='IBS')t.ibs+=v; else t.leex+=v;
+    if(a.tipo==='Equipos'){t.equipos+=v;t.nEquipos+=parseInt(a.cantidad)||0;}
+    else t.efectivo+=v;
+  });
+  return t;
+}
+
+function renderAportesChile(){
+  var F=aportesChileFiltros;
+  var S=aportesChileSort;
+  var puedeEdit=isAdminOrChile();
+
+  var fil=(C.aportes_chile||[]).filter(function(a){
+    if(F.busqueda){
+      var b=F.busqueda.toLowerCase();
+      var t=((a.detalle||'')+' '+(a.origen||'')+' '+(a.tipo||'')).toLowerCase();
+      if(t.indexOf(b)===-1)return false;
+    }
+    if(F.fechaDesde&&(a.fecha||'')<F.fechaDesde)return false;
+    if(F.fechaHasta&&(a.fecha||'')>F.fechaHasta)return false;
+    if(F.origen&&a.origen!==F.origen)return false;
+    if(F.tipo&&a.tipo!==F.tipo)return false;
+    return true;
+  });
+
+  fil.sort(function(a,b){
+    var va=a[S.col],vb=b[S.col];
+    if(va==null)va='';if(vb==null)vb='';
+    if(S.col==='importe_usd')return (S.asc?1:-1)*((parseFloat(va)||0)-(parseFloat(vb)||0));
+    return (S.asc?1:-1)*String(va).localeCompare(String(vb));
+  });
+
+  var T=totalesAportesChile(fil);
+  var TG=totalesAportesChile(C.aportes_chile||[]);
+
+  function sortBtn(col,label){
+    var arrow=S.col===col?(S.asc?' ↑':' ↓'):'';
+    return '<a href="#" onclick="aportesChileSort.col=\''+col+'\';aportesChileSort.asc='+(S.col===col?!S.asc:true)+';go(\'chile\');return false;" style="color:inherit;text-decoration:none">'+label+arrow+'</a>';
+  }
+  function selOpts(arr,sel,todos){
+    var h='<option value="">'+(todos||'— Todos —')+'</option>';
+    arr.forEach(function(v){h+='<option value="'+escapeHtml(v)+'"'+(v===sel?' selected':'')+'>'+escapeHtml(v)+'</option>';});
+    return h;
+  }
+
+  var hayFiltros=F.busqueda||F.fechaDesde||F.fechaHasta||F.origen||F.tipo;
+  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+    '<input type="text" value="'+escapeHtml(F.busqueda)+'" placeholder="🔍 Buscar detalle..." oninput="aportesChileFiltros.busqueda=this.value;clearTimeout(window._apb);window._apb=setTimeout(function(){go(\'chile\')},300)" style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;outline:none"/>'+
+    '<span style="font-size:10px;color:var(--text2)">Desde</span>'+
+    '<input type="date" value="'+F.fechaDesde+'" onchange="aportesChileFiltros.fechaDesde=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<span style="font-size:10px;color:var(--text2)">Hasta</span>'+
+    '<input type="date" value="'+F.fechaHasta+'" onchange="aportesChileFiltros.fechaHasta=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none"/>'+
+    '<select onchange="aportesChileFiltros.origen=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(APORTE_ORIGENES,F.origen,'— Origen —')+'</select>'+
+    '<select onchange="aportesChileFiltros.tipo=this.value;go(\'chile\')" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(APORTE_TIPOS,F.tipo,'— Tipo —')+'</select>'+
+    (hayFiltros?'<button class="btn sm bd" onclick="aportesChileFiltros={busqueda:\'\',fechaDesde:\'\',fechaHasta:\'\',origen:\'\',tipo:\'\'};go(\'chile\')">✕</button>':'')+
+    (puedeEdit?'<button class="btn bp sm" onclick="abrirModalAporteChile(0)">+ Nuevo aporte</button>':'')+
+    '<button class="btn bs sm" onclick="exportAportesChile()">⬇ Excel</button>'+
+    '</div>';
+
+  var rows='';
+  fil.forEach(function(a){
+    var esEq=a.tipo==='Equipos';
+    var tipoBadge=esEq?'<span class="badge bb">🔧 Equipos</span>':'<span class="badge bg">💵 Efectivo</span>';
+    var leex=aporteLeexUsd(a), ibs=aporteIbsUsd(a);
+    var det=(a.detalle||'')+(esEq&&a.cantidad?' ('+a.cantidad+' u.)':'');
+    var urlCell=a.url?'<a href="'+escapeHtml(a.url)+'" target="_blank" style="color:var(--cyan);font-size:11px">🔗</a>':'<span style="color:var(--text2)">—</span>';
+    rows+='<tr>'+
+      '<td style="white-space:nowrap">'+fmtD(a.fecha)+'</td>'+
+      '<td>'+tipoBadge+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">'+(leex?'USD '+fmtN(leex):'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">'+(ibs?'USD '+fmtN(ibs):'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '<td style="font-size:11.5px">'+escapeHtml(det||'—')+'</td>'+
+      '<td>'+urlCell+'</td>'+
+      '<td style="white-space:nowrap">'+
+        (puedeEdit?'<button class="miniBtn" onclick="abrirModalAporteChile('+a.id+')" title="Editar">✏</button> '+
+        '<button class="miniBtn" style="color:var(--red)" onclick="deleteAporteChile('+a.id+')" title="Eliminar">🗑</button>':'<span style="color:var(--text2)">—</span>')+
+      '</td>'+
+      '</tr>';
+  });
+
+  var vacio='<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:22px">Sin aportes cargados.'+
+    (puedeEdit?' <a href="#" onclick="abrirModalAporteChile(0);return false;" style="color:var(--cyan)">Agregar el primero →</a>':'')+'</td></tr>';
+
+  var tabla='<div class="twrap">'+
+    '<div style="overflow-x:auto"><table style="min-width:840px"><thead><tr>'+
+      '<th>'+sortBtn('fecha','Fecha')+'</th>'+
+      '<th>'+sortBtn('tipo','Tipo')+'</th>'+
+      '<th style="text-align:right">Aportes Leex</th>'+
+      '<th style="text-align:right">Aportes IBS</th>'+
+      '<th>Detalle</th>'+
+      '<th>URL</th><th></th>'+
+      '</tr></thead><tbody>'+
+      (rows||vacio)+
+      '</tbody><tfoot><tr style="background:var(--bg3);font-weight:700">'+
+        '<td colspan="2" style="text-transform:uppercase;letter-spacing:.4px;font-size:11px">Total Aportes</td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--cyan)">USD '+fmtN(T.leex)+'</td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--yellow)">USD '+fmtN(T.ibs)+'</td>'+
+        '<td colspan="3" style="font-size:11px;color:var(--text2)">Total general: USD '+fmtN(T.total)+'</td>'+
+      '</tr></tfoot></table></div></div>';
+
+  var cards='<div class="cards" style="margin-top:14px">'+
+    '<div class="card"><div class="lbl">Total Aportes</div><div class="val green">USD '+fmtN(T.total)+'</div><div class="sub">'+fil.length+' de '+(C.aportes_chile||[]).length+' registros</div></div>'+
+    '<div class="card"><div class="lbl">Aportes Leex</div><div class="val cyan">USD '+fmtN(T.leex)+'</div><div class="sub">histórico: USD '+fmtN(TG.leex)+'</div></div>'+
+    '<div class="card"><div class="lbl">Aportes IBS</div><div class="val yellow">USD '+fmtN(T.ibs)+'</div><div class="sub">histórico: USD '+fmtN(TG.ibs)+'</div></div>'+
+    '<div class="card"><div class="lbl">En efectivo</div><div class="val">USD '+fmtN(T.efectivo)+'</div></div>'+
+    '<div class="card"><div class="lbl">En equipos</div><div class="val">USD '+fmtN(T.equipos)+'</div><div class="sub">'+T.nEquipos+' unidad(es)</div></div>'+
+    '</div>';
+
+  var nota='<div class="alert ainfo" style="margin-bottom:10px">🤝 <strong>Aportes de los socios al Proyecto Chile.</strong> Cada aporte se registra con un origen (Leex o IBS) y una forma: <strong>Efectivo</strong> (dinero) o <strong>Equipos</strong> (valorizados en USD). Es una vista de gestión: no genera asientos contables.</div>';
+
+  return nota+filtrosHTML+tabla+cards;
+}
+
+// --- Modal alta/edición de aporte ---
+function abrirModalAporteChile(id){
+  if(!isAdminOrChile()){toast('No tenés permisos para editar aportes','error');return;}
+  editingAporteChile=id;
+  var r=id===0?{fecha:hoy(),origen:'Leex',tipo:'Efectivo',importe_usd:'',cantidad:'',detalle:'',url:''}
+              :((C.aportes_chile||[]).find(function(x){return x.id===id;})||{});
+  var tipoSel=r.tipo||'Efectivo';
+
+  function opts(arr,sel){
+    var h='';
+    arr.forEach(function(v){h+='<option value="'+v+'"'+(v===sel?' selected':'')+'>'+v+'</option>';});
+    return h;
+  }
+
+  var modalContent=
+    '<div style="background:var(--bg2);border:1px solid var(--green);border-radius:12px;max-width:620px;width:100%;box-shadow:var(--shadow-lg)">'+
+    '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">'+
+    '<h3 style="font-size:15px;font-weight:600">🤝 '+(id===0?'Nuevo Aporte':'Editar Aporte #'+id)+'</h3>'+
+    '<button class="rlbtn" onclick="cerrarModalCaja()" style="font-size:20px">✕</button>'+
+    '</div>'+
+    '<div style="padding:20px">'+
+    '<div class="fg2">'+
+      '<div class="f"><label>Fecha</label><input type="date" id="apcF" value="'+(r.fecha||hoy())+'"/></div>'+
+      '<div class="f"><label>Origen del aporte</label><select id="apcOrigen">'+opts(APORTE_ORIGENES,r.origen||'Leex')+'</select></div>'+
+    '</div>'+
+    '<div class="fg2" style="margin-top:10px">'+
+      '<div class="f"><label>Tipo de aporte</label><select id="apcTipo" onchange="onCambioTipoAporte()">'+opts(APORTE_TIPOS,tipoSel)+'</select></div>'+
+      '<div class="f"><label id="apcLblImp">'+(tipoSel==='Equipos'?'Valor de los equipos USD':'Importe USD')+'</label><input type="number" id="apcImp" value="'+(r.importe_usd||'')+'" step="0.01" min="0" placeholder="0.00"/></div>'+
+    '</div>'+
+    '<div class="f" id="apcCantWrap" style="margin-top:10px;display:'+(tipoSel==='Equipos'?'block':'none')+'"><label>Cantidad de equipos</label><input type="number" id="apcCant" value="'+(r.cantidad||'')+'" step="1" min="0" placeholder="Ej: 2"/></div>'+
+    '<div class="f" style="margin-top:10px"><label>Detalle</label><input type="text" id="apcDet" value="'+escapeHtml(r.detalle||'')+'" placeholder="Ej: Aporte inicial socio / 2 ecógrafos modelo X"/></div>'+
+    '<div class="f" style="margin-top:10px"><label>URL comprobante (opcional)</label><input type="text" id="apcUrl" value="'+escapeHtml(r.url||'')+'" placeholder="https://..."/></div>'+
+    '<div class="factions" style="margin-top:18px">'+
+    '<button class="btn bp" onclick="guardarAporteChile()">💾 '+(id===0?'Crear':'Guardar')+'</button>'+
+    '<button class="btn bs" onclick="cerrarModalCaja()">Cancelar</button>'+
+    '</div>'+
+    '</div></div>';
+
+  var modal=document.getElementById('modalCaja');
+  modal.innerHTML=modalContent;
+  modal.style.display='flex';
+}
+
+function onCambioTipoAporte(){
+  var t=document.getElementById('apcTipo').value;
+  var esEq=(t==='Equipos');
+  document.getElementById('apcCantWrap').style.display=esEq?'block':'none';
+  document.getElementById('apcLblImp').textContent=esEq?'Valor de los equipos USD':'Importe USD';
+}
+
+function guardarAporteChile(){
+  if(lockSubmit('aporteChile'))return;
+  var f=document.getElementById('apcF').value;
+  var origen=document.getElementById('apcOrigen').value;
+  var tipo=document.getElementById('apcTipo').value;
+  var imp=parseFloat(document.getElementById('apcImp').value);
+  var cantEl=document.getElementById('apcCant');
+  var cant=cantEl&&cantEl.value!==''?parseInt(cantEl.value):null;
+  var det=document.getElementById('apcDet').value.trim();
+  var url=document.getElementById('apcUrl').value.trim();
+  if(!f){toast('Completá la fecha','error');return;}
+  if(isNaN(imp)||imp<=0){toast('El importe USD debe ser mayor a 0','error');return;}
+  if(tipo==='Equipos'&&!det){toast('Indicá en el detalle qué equipos se aportaron','error');return;}
+
+  var payload={
+    fecha:f,origen:origen,tipo:tipo,
+    importe_usd:imp,
+    cantidad:tipo==='Equipos'?cant:null,
+    detalle:det||null,
+    url:url||null,
+    created_by:CU?CU.u:null
+  };
+
+  var p=(editingAporteChile===0)?sbPost('aportes_chile',payload):sbPatch('aportes_chile',editingAporteChile,payload);
+  p.then(function(res){
+    if(res&&res.code){
+      var falta=(res.code==='42P01'||res.code==='PGRST205'||/does not exist|find the table/i.test(res.message||''));
+      toast(falta?'Falta crear la tabla "aportes_chile" en Supabase (ver script SQL)':'Error: '+(res.message||res.code),'error');
+      return;
+    }
+    toast(editingAporteChile===0?'Aporte registrado':'Aporte actualizado','success');
+    auditLog(editingAporteChile===0?'crear':'editar','aporte_chile',origen+' · '+tipo+' · USD '+imp);
+    cerrarModalCaja();
+    reload('chile');
+  });
+}
+
+function deleteAporteChile(id){
+  if(!isAdminOrChile()){toast('No tenés permisos','error');return;}
+  if(!confirm('¿Eliminar este aporte?'))return;
+  sbDelete('aportes_chile',id).then(function(){
+    toast('Aporte eliminado','success');
+    auditLog('eliminar','aporte_chile','id '+id);
+    reload('chile');
+  });
+}
+
+function exportAportesChile(){
+  var lista=(C.aportes_chile||[]).slice().sort(function(a,b){return String(a.fecha||'').localeCompare(String(b.fecha||''));});
+  var data=lista.map(function(a){
+    return {
+      Fecha:fmtD(a.fecha),
+      Tipo:a.tipo||'',
+      'Aportes Leex USD':aporteLeexUsd(a)||'',
+      'Aportes IBS USD':aporteIbsUsd(a)||'',
+      Detalle:(a.detalle||'')+((a.tipo==='Equipos'&&a.cantidad)?' ('+a.cantidad+' u.)':''),
+      URL:a.url||''
+    };
+  });
+  var T=totalesAportesChile(lista);
+  data.push({Fecha:'',Tipo:'Total Aportes','Aportes Leex USD':T.leex,'Aportes IBS USD':T.ibs,Detalle:'Total general USD '+fmtN(T.total),URL:''});
+  exportExcel(data,['Fecha','Tipo','Aportes Leex USD','Aportes IBS USD','Detalle','URL'],'Aportes_Chile','Aportes');
 }
 
 // ============================================================
@@ -13080,6 +13452,7 @@ function hacerBackupCompleto(){
       {key:'stock_adjuntos',label:'Stock Adjuntos'},
       {key:'caja_oficina_chile',label:'Caja Chile'},
       {key:'caja_chile_aportes',label:'Aportes Chile'},
+      {key:'aportes_chile',label:'Aportes Leex-IBS'},
       {key:'caja_deam',label:'Caja DEAM'},
       {key:'caja_adjuntos',label:'Caja Adjuntos'},
       {key:'clientes',label:'Clientes'},
