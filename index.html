@@ -150,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 .uav{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),#0ea5e9);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
 .lout{margin-left:auto;cursor:pointer;color:var(--text2);font-size:11px}
 .lout:hover{color:var(--red)}
-.main{margin-left:230px;padding:22px;min-height:100vh}
+.main{margin-left:230px;padding:22px;min-height:100vh;min-width:0;overflow-x:clip}
 
 /* SELECTOR DE EJERCICIO GLOBAL */
 .ejGlobal{position:sticky;top:0;background:var(--bg);z-index:50;padding-bottom:14px;margin:-22px -22px 14px -22px;padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -164,11 +164,20 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 .ejDesbloq{background:rgba(244,185,66,.15);color:var(--yellow)}
 
 .pageTitle{font-size:19px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
-.card .lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.card .val{font-size:20px;font-weight:700}
-.card .sub{font-size:11px;color:var(--text2);margin-top:3px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:9px 11px}
+.card .lbl{font-size:9.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.card .val{font-size:16px;font-weight:700;line-height:1.2}
+.card .sub{font-size:9.5px;color:var(--text2);margin-top:1px}
+
+/* Panel de filtros plegable */
+.filtrosPanel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:7px 11px;margin-bottom:10px}
+.filtrosPanel>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filtrosPanel>summary::-webkit-details-marker{display:none}
+.filtrosPanel>summary::before{content:'▸';font-size:9px;color:var(--text2);line-height:1}
+.filtrosPanel[open]>summary::before{content:'▾'}
+.filtrosPanel[open]>summary{margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.filtrosPanel>div{gap:6px !important}
 .green{color:var(--green)}.red{color:var(--red)}.cyan{color:var(--cyan)}.yellow{color:var(--yellow)}.lime{color:var(--lime)}
 
 .twrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px}
@@ -179,6 +188,19 @@ th{background:var(--bg3);font-size:11px;color:var(--text2);text-transform:upperc
 td{padding:8px 12px;font-size:12px;border-top:1px solid var(--border)}
 tr:hover td{background:rgba(255,255,255,.02)}
 .trow td{font-weight:700;background:var(--bg3);border-top:2px solid var(--border)}
+
+/* ============================================================
+   TABLAS: que entren en el ancho visible de la pantalla.
+   Las páginas fijan min-width en px (1400, 1800...) pensando en scroll
+   horizontal; acá se neutraliza para que la tabla se acomode sola.
+   Si aun así no entra, el scroll queda dentro de la tarjeta, nunca en la página.
+   ============================================================ */
+#main table[style]{min-width:0 !important}
+#main div[style*="overflow-x"]{max-width:100%}
+#main th{padding:6px 9px;white-space:normal;word-break:break-word;line-height:1.25}
+#main td{padding:6px 9px;overflow-wrap:anywhere}
+#main td[style*="nowrap"]{white-space:normal !important}
+#main td button,#main td .btn,#main td .miniBtn,#main td .badge{white-space:nowrap}
 
 .badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}
 .bg{background:rgba(144,224,160,.15);color:var(--green)}
@@ -822,6 +844,25 @@ function initSidebarPlegable(){
   sincSbTodosBtn();
 }
 
+// Estado del panel de filtros: arranca plegado y recuerda la preferencia.
+function filtrosAbiertos(){
+  try{return localStorage.getItem('leex_filtros_abiertos')==='1';}catch(e){return false;}
+}
+function setFiltrosAbiertos(v){
+  try{localStorage.setItem('leex_filtros_abiertos',v?'1':'0');}catch(e){}
+}
+// Los botones que viven en la cabecera del panel (Limpiar, + Nuevo, Excel) no
+// deben plegar/desplegar el panel al hacer click.
+function initPanelesFiltros(){
+  var main=document.getElementById('main');
+  if(!main)return;
+  main.querySelectorAll('.filtrosPanel>summary').forEach(function(sm){
+    sm.addEventListener('click',function(e){
+      if(e.target.closest&&e.target.closest('button'))e.preventDefault();
+    });
+  });
+}
+
 // ============================================================
 // BARRA SUPERIOR DE PÁGINA
 // Cada página sigue emitiendo ejGlobalBar() + .pageTitle + .tabs como
@@ -935,6 +976,7 @@ function go(page){
     };
     document.getElementById('main').innerHTML=pages[page]?pages[page]():'<p>En construcción</p>';
     montarBarraSuperior();
+    initPanelesFiltros();
   }catch(err){
     console.error('Error en go('+page+'):',err);
     document.getElementById('main').innerHTML='<div class="alert aerr"><strong>Error al cargar la página "'+page+'"</strong><br><code style="font-size:11px;white-space:pre-wrap">'+(err.message||err)+'</code><br><small>Revisá la consola (F12).</small></div>';
@@ -3572,11 +3614,11 @@ function pgCompras(){
     return h;
   }
   var hayFiltros=F.fechaDesde||F.fechaHasta||F.tipoOp||F.proveedor||F.estadoPago||F.pedido||F.lote;
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosCompras()">✕ Limpiar</button>':'')+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="comprasFiltros.fechaDesde=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="comprasFiltros.fechaHasta=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
@@ -3585,7 +3627,7 @@ function pgCompras(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Pago</div><select onchange="comprasFiltros.estadoPago=this.value;go(\'compras\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosPago,F.estadoPago)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Pedido</div><input type="text" value="'+escapeHtml(F.pedido)+'" placeholder="ED214..." oninput="comprasFiltros.pedido=this.value;clearTimeout(window._fcp);window._fcp=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Lote</div><input type="text" value="'+escapeHtml(F.lote)+'" placeholder="..." oninput="comprasFiltros.lote=this.value;clearTimeout(window._fcl);window._fcl=setTimeout(function(){go(\'compras\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '</div></div>';
+    '</div></details>';
   var rows='';
   fil.forEach(function(c){
     var nAdj=(C.compra_adjuntos||[]).filter(function(a){return a.compra_id===c.id;}).length;
@@ -4133,11 +4175,11 @@ function renderStockGeneral(){
   }
 
   var hayFiltros=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosStock()">✕ Limpiar</button>':'')+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     fInput('Estado','select',selOpts(ESTADOS,F.estado),'stockFiltros.estado=this.value;go(\'stock\')')+
     fInput('Fecha Alta Desde','date',F.fechaAltaDesde,'stockFiltros.fechaAltaDesde=this.value;go(\'stock\')')+
@@ -4153,7 +4195,7 @@ function renderStockGeneral(){
     fInput('Verificación','select',selOpts(VERIFS,F.verificacion),'stockFiltros.verificacion=this.value;go(\'stock\')')+
     fInput('Motivo Baja','select',selOpts(motivos,F.motivoBaja),'stockFiltros.motivoBaja=this.value;go(\'stock\')')+
     fInput('Responsable','text',F.responsable,'stockFiltros.responsable=this.value;clearTimeout(window._fs5);window._fs5=setTimeout(function(){go(\'stock\')},400)')+
-    '</div></div>';
+    '</div></details>';
 
   // Tabla
   var rows='';
@@ -4268,11 +4310,11 @@ function renderStockAlta(){
   }
 
   var hayFiltros=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros (todas las altas)</span>'+
     (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosAlta()">✕ Limpiar</button>':'')+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     fInput('Fecha Desde','date',F.fechaDesde,'altaFiltros.fechaDesde=this.value;go(\'stock\')')+
     fInput('Fecha Hasta','date',F.fechaHasta,'altaFiltros.fechaHasta=this.value;go(\'stock\')')+
@@ -4283,7 +4325,7 @@ function renderStockAlta(){
     fInput('Tipo Producto','select',selOpts(tipos,F.tipo),'altaFiltros.tipo=this.value;go(\'stock\')')+
     fInput('Verificación','select',selOpts(VERIFS,F.verificacion),'altaFiltros.verificacion=this.value;go(\'stock\')')+
     fInput('Responsable','text',F.responsable,'altaFiltros.responsable=this.value;clearTimeout(window._fa4);window._fa4=setTimeout(function(){go(\'stock\')},400)')+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.forEach(function(it){
@@ -7012,13 +7054,13 @@ function renderTabClientesDatos(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosClientes()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCliente(0)">+ Nuevo Cliente</button>'+
     '<button class="btn bs sm" onclick="exportClientesExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (nombre/fiscal/email)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="clientesFiltros.busca=this.value;clearTimeout(window._fcli);window._fcli=setTimeout(function(){go(\'clientes\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="clientesFiltros.pais=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
@@ -7026,7 +7068,7 @@ function renderTabClientesDatos(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Contacto Leex</div><select onchange="clientesFiltros.contactoLeex=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(contactos,F.contactoLeex)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="clientesFiltros.tipoCliente=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoCliente)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="clientesFiltros.estado=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.forEach(function(c){
@@ -7283,13 +7325,13 @@ function renderTabVentas(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosVentas()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalVenta(0)">+ Nueva Venta</button>'+
     '<button class="btn bs sm" onclick="exportVentasExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (Nº fact / cliente / obs)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ventasFiltros.busca=this.value;clearTimeout(window._fv0);window._fv0=setTimeout(function(){go(\'clientes\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="ventasFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
@@ -7299,7 +7341,7 @@ function renderTabVentas(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Entrega</div><select onchange="ventasFiltros.estadoEntrega=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosEntrega,F.estadoEntrega)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Cobro</div><select onchange="ventasFiltros.estadoCobro=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Pendiente','Parcial','Cobrado'],F.estadoCobro)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo Operación</div><select onchange="ventasFiltros.tipoOp=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tiposOp,F.tipoOp)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(v){
@@ -7868,13 +7910,13 @@ function renderTabCobros(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosCobros()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCobro(0)">+ Nuevo Cobro</button>'+
     '<button class="btn bs sm" onclick="exportCobrosExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="cobrosFiltros.busca=this.value;clearTimeout(window._fc0);window._fc0=setTimeout(function(){go(\'clientes\')},400)" placeholder="Cliente / obs..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="cobrosFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
@@ -7883,7 +7925,7 @@ function renderTabCobros(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="cobrosFiltros.moneda=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Medio</div><select onchange="cobrosFiltros.medioCobro=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(medios,F.medioCobro)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="cobrosFiltros.estado=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(c){
@@ -8914,11 +8956,11 @@ function renderStockGeneralChile(){
   }
 
   var hayFiltros=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosStockChile()">✕ Limpiar</button>':'')+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     fInputChile('Estado','select',selOpts(ESTADOS,F.estado),'stockFiltrosChile.estado=this.value;go(\'chile\')')+
     fInputChile('Fecha Alta Desde','date',F.fechaAltaDesde,'stockFiltrosChile.fechaAltaDesde=this.value;go(\'chile\')')+
@@ -8934,7 +8976,7 @@ function renderStockGeneralChile(){
     fInputChile('Verificación','select',selOpts(VERIFS,F.verificacion),'stockFiltrosChile.verificacion=this.value;go(\'chile\')')+
     fInputChile('Motivo Baja','select',selOpts(motivos,F.motivoBaja),'stockFiltrosChile.motivoBaja=this.value;go(\'chile\')')+
     fInputChile('Responsable','text',F.responsable,'stockFiltrosChile.responsable=this.value;clearTimeout(window._fs5);window._fs5=setTimeout(function(){go(\'chile\')},400)')+
-    '</div></div>';
+    '</div></details>';
 
   // Tabla
   var rows='';
@@ -9049,11 +9091,11 @@ function renderStockAltaChile(){
   }
 
   var hayFiltros=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros (todas las altas)</span>'+
     (hayFiltros?'<button class="btn sm bd" onclick="limpiarFiltrosAltaChile()">✕ Limpiar</button>':'')+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     fInputChile('Fecha Desde','date',F.fechaDesde,'altaFiltrosChile.fechaDesde=this.value;go(\'chile\')')+
     fInputChile('Fecha Hasta','date',F.fechaHasta,'altaFiltrosChile.fechaHasta=this.value;go(\'chile\')')+
@@ -9064,7 +9106,7 @@ function renderStockAltaChile(){
     fInputChile('Tipo Producto','select',selOpts(tipos,F.tipo),'altaFiltrosChile.tipo=this.value;go(\'chile\')')+
     fInputChile('Verificación','select',selOpts(VERIFS,F.verificacion),'altaFiltrosChile.verificacion=this.value;go(\'chile\')')+
     fInputChile('Responsable','text',F.responsable,'altaFiltrosChile.responsable=this.value;clearTimeout(window._fa4);window._fa4=setTimeout(function(){go(\'chile\')},400)')+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.forEach(function(it){
@@ -10157,20 +10199,20 @@ function renderTabClientesDatosChile(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosClientesChile()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalClienteChile(0)">+ Nuevo Cliente</button>'+
     '<button class="btn bs sm" onclick="exportClientesExcelChile()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (nombre/fiscal/email)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="clientesFiltrosChile.busca=this.value;clearTimeout(window._fcli);window._fcli=setTimeout(function(){go(\'chile\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="clientesFiltrosChile.pais=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ciudad</div><select onchange="clientesFiltrosChile.ciudad=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(ciudades,F.ciudad)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="clientesFiltrosChile.tipoCliente=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoCliente)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="clientesFiltrosChile.estado=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.forEach(function(c){
@@ -10423,13 +10465,13 @@ function renderTabVentasChile(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosVentasChile()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalVentaChile(0)">+ Nueva Venta</button>'+
     '<button class="btn bs sm" onclick="exportVentasExcelChile()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (Nº fact / cliente / obs)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ventasFiltrosChile.busca=this.value;clearTimeout(window._fv0);window._fv0=setTimeout(function(){go(\'chile\')},400)" placeholder="Buscar..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="ventasFiltrosChile.clienteId=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes_chile||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
@@ -10439,7 +10481,7 @@ function renderTabVentasChile(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Entrega</div><select onchange="ventasFiltrosChile.estadoEntrega=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosEntrega,F.estadoEntrega)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Cobro</div><select onchange="ventasFiltrosChile.estadoCobro=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Pendiente','Parcial','Cobrado'],F.estadoCobro)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo Operación</div><select onchange="ventasFiltrosChile.tipoOp=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tiposOp,F.tipoOp)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(v){
@@ -11030,13 +11072,13 @@ function renderTabCobrosChile(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosCobrosChile()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCobroChile(0)">+ Nuevo Cobro</button>'+
     '<button class="btn bs sm" onclick="exportCobrosExcelChile()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="cobrosFiltrosChile.busca=this.value;clearTimeout(window._fc0);window._fc0=setTimeout(function(){go(\'chile\')},400)" placeholder="Cliente / obs..." style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="cobrosFiltrosChile.clienteId=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes_chile||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
@@ -11045,7 +11087,7 @@ function renderTabCobrosChile(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="cobrosFiltrosChile.moneda=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Medio</div><select onchange="cobrosFiltrosChile.medioCobro=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(medios,F.medioCobro)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="cobrosFiltrosChile.estado=this.value;go(\'chile\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
 
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(c){
@@ -11989,20 +12031,20 @@ function renderTabProveedoresDatos(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosProveedores()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalProveedor(0)">+ Nuevo Proveedor</button>'+
     '<button class="btn bs sm" onclick="exportProveedoresExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="proveedoresFiltros.busca=this.value;clearTimeout(window._fprov);window._fprov=setTimeout(function(){go(\'proveedores\')},400)" placeholder="Nombre / fiscal / CUIT / email" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">País</div><select onchange="proveedoresFiltros.pais=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(paises,F.pais)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Ciudad</div><select onchange="proveedoresFiltros.ciudad=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(ciudades,F.ciudad)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="proveedoresFiltros.tipoProveedor=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(tipos,F.tipoProveedor)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="proveedoresFiltros.estado=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estados,F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
   var rows='';
   fil.forEach(function(p){
     var estClass=p.estado==='Activo'?'bg':p.estado==='Prospecto'?'bb':p.estado==='Bloqueado'?'br':'bgr';
@@ -12205,19 +12247,19 @@ function renderTabProveedoresCompras(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosComprasProv()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCompra(0)">+ Nueva Compra</button>'+
     '<button class="btn bs sm" onclick="exportComprasProvExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar (pedido/proveedor/lote)</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="comprasProvFiltros.busca=this.value;clearTimeout(window._fcp);window._fcp=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado Pago</div><select onchange="comprasProvFiltros.estadoPago=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(estadosPago,F.estadoPago)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="comprasProvFiltros.fechaDesde=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="comprasProvFiltros.fechaHasta=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '</div></div>';
+    '</div></details>';
   var rows='';
   todas.forEach(function(c){
     var est=estadoCompraCalc(c);
@@ -12299,13 +12341,13 @@ function renderTabPagos(){
     return h;
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosPagos()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalPago(0)">+ Nuevo Pago</button>'+
     '<button class="btn bs sm" onclick="exportPagosExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="pagosFiltros.busca=this.value;clearTimeout(window._fpag);window._fpag=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Proveedor</div><select onchange="pagosFiltros.proveedorId=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(p){return '<option value="'+p.id+'"'+(p.id==F.proveedorId?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
@@ -12314,7 +12356,7 @@ function renderTabPagos(){
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Moneda</div><select onchange="pagosFiltros.moneda=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(monedas,F.moneda)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Medio</div><select onchange="pagosFiltros.medioPago=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(medios,F.medioPago)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Estado</div><select onchange="pagosFiltros.estado=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+selOpts(['Imputado','Parcial','Pendiente de imputación'],F.estado)+'</select></div>'+
-    '</div></div>';
+    '</div></details>';
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(p){
     var aplicado=imputacionesDePago(p.id).reduce(function(s,i){return s+(parseFloat(i.importe_aplicado_usd)||0);},0);
@@ -12618,20 +12660,20 @@ function renderTabAjustes(){
     return opts.map(function(o){return '<option value="'+o.value+'"'+(o.value===sel?' selected':'')+'>'+o.label+'</option>';}).join('');
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosAjustes()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalAjuste(0)">+ Nuevo Ajuste</button>'+
     '<button class="btn bs sm" onclick="exportAjustesExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ajustesFiltros.busca=this.value;clearTimeout(window._faj);window._faj=setTimeout(function(){go(\'proveedores\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Proveedor</div><select onchange="ajustesFiltros.proveedorId=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.proveedores||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(p){return '<option value="'+p.id+'"'+(p.id==F.proveedorId?' selected':'')+'>'+escapeHtml(p.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="ajustesFiltros.tipo=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+tipoSelOpts(F.tipo)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="ajustesFiltros.fechaDesde=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="ajustesFiltros.fechaHasta=this.value;go(\'proveedores\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '</div></div>';
+    '</div></details>';
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(a){
     var tipoLbl=a.tipo==='debito'?'<span class="badge br">↑ Débito</span>':'<span class="badge bg">↓ Crédito</span>';
@@ -14002,20 +14044,20 @@ function renderTabAjustesVentas(){
     return opts.map(function(o){return '<option value="'+o.value+'"'+(o.value===sel?' selected':'')+'>'+o.label+'</option>';}).join('');
   }
   var hayF=Object.keys(F).some(function(k){return F[k];});
-  var filtrosHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px">'+
-    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+  var filtrosHTML='<details class="filtrosPanel"'+(filtrosAbiertos()?' open':'')+' ontoggle="setFiltrosAbiertos(this.open)">'+
+    '<summary class="filtrosHead">'+
     '<span style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">🔍 Filtros</span>'+
     (hayF?'<button class="btn sm bd" onclick="limpiarFiltrosAjustesVentas()">✕ Limpiar</button>':'')+
     '<button class="btn bp sm" style="margin-left:auto" onclick="abrirModalAjusteVenta(0)">+ Nuevo Ajuste</button>'+
     '<button class="btn bs sm" onclick="exportAjustesVentasExcel()">⬇ Excel</button>'+
-    '</div>'+
+    '</summary>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">'+
     '<div style="grid-column:span 2"><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Buscar</div><input type="text" value="'+escapeHtml(F.busca)+'" oninput="ajustesVentasFiltros.busca=this.value;clearTimeout(window._fajv);window._fajv=setTimeout(function(){go(\'clientes\')},400)" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Cliente</div><select onchange="ajustesVentasFiltros.clienteId=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"><option value="">— Todos —</option>'+(C.clientes||[]).slice().sort(function(a,b){return (a.nombre_empresa||'').localeCompare(b.nombre_empresa||'');}).map(function(c){return '<option value="'+c.id+'"'+(c.id==F.clienteId?' selected':'')+'>'+escapeHtml(c.nombre_empresa)+'</option>';}).join('')+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Tipo</div><select onchange="ajustesVentasFiltros.tipo=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none">'+tipoSelOpts(F.tipo)+'</select></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Desde</div><input type="date" value="'+F.fechaDesde+'" onchange="ajustesVentasFiltros.fechaDesde=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
     '<div><div style="font-size:10px;color:var(--text2);margin-bottom:3px">Hasta</div><input type="date" value="'+F.fechaHasta+'" onchange="ajustesVentasFiltros.fechaHasta=this.value;go(\'clientes\')" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none"/></div>'+
-    '</div></div>';
+    '</div></details>';
   function clienteName(id){var c=(C.clientes||[]).find(function(x){return x.id===id;});return c?c.nombre_empresa:'—';}
   var rows='';
   fil.slice().sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');}).forEach(function(a){
