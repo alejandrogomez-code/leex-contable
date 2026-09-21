@@ -230,6 +230,36 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .tabs{display:flex;gap:3px;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;flex-wrap:wrap}
 .tab{padding:6px 14px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s}
 .tab.active{background:var(--bg3);color:var(--text)}
+
+/* ============================================================
+   BARRA SUPERIOR DE PÁGINA (2 filas, fijas arriba)
+   Fila 1 .appbar : título + chip + secciones (subrayadas) + ejercicio
+   Fila 2 .subbar : subsecciones (segmentado) + acciones de la pantalla
+   Las arma montarBarraSuperior() moviendo los nodos que ya emite cada página.
+   ============================================================ */
+.appbar{position:sticky;top:0;z-index:50;background:var(--bg2);border-bottom:1px solid var(--border);margin:-22px -22px 0 -22px;padding:0 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;min-height:50px}
+.appbar.solo{margin-bottom:18px}
+.abTitle{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap;padding:11px 0}
+.abTitle .btn{font-weight:600}
+.abSep{width:1px;height:18px;background:var(--border);flex-shrink:0}
+.abRight{margin-left:auto;display:flex;align-items:center;gap:10px;padding:8px 0}
+.abChip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--yellow);background:rgba(244,185,66,.13);border:1px solid rgba(244,185,66,.3);border-radius:99px;padding:3px 9px;white-space:nowrap;cursor:help}
+
+/* Secciones dentro de la appbar: pestañas subrayadas */
+.appbar .tabs{background:none;border:0;border-radius:0;padding:0;margin:0;gap:18px;align-self:stretch;width:auto}
+.appbar .tab{padding:0;border-radius:0;display:flex;align-items:center;align-self:stretch;font-size:12.5px;box-shadow:none;background:none}
+.appbar .tab:hover{color:var(--text)}
+.appbar .tab.active{background:none;color:var(--cyan);font-weight:600;box-shadow:inset 0 -2px 0 var(--cyan)}
+
+/* Fila 2 */
+.subbar{position:sticky;top:50px;z-index:49;background:var(--bg3);border-bottom:1px solid var(--border);margin:0 -22px 16px -22px;padding:8px 22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.subbar .tabs{margin:0;background:var(--bg2)}
+/* Subsecciones como control segmentado */
+.segnav{display:flex;gap:3px;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:3px;width:fit-content;flex-wrap:wrap;margin:0}
+.segnav .btn.sm{border-radius:7px;border-color:transparent;background:none;color:var(--text2);padding:5px 12px;font-size:12px}
+.segnav .btn.sm:hover{color:var(--text);background:var(--bg3)}
+.segnav .btn.bp.sm{background:var(--cyan);border-color:var(--cyan);color:#fff;font-weight:600}
+.subbarActions{margin-left:auto;display:flex;align-items:center;gap:8px}
 .divider{height:1px;background:var(--border);margin:6px 14px}
 
 /* IMPORTACIÓN BANCO — preview de movimientos */
@@ -269,7 +299,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 @media print {
   /* Limpiar la página */
   body{background:#fff !important;color:#000 !important}
-  .sidebar,.ejGlobal,.pageTitle,.tabs,.toastWrap,.no-print{display:none !important}
+  .sidebar,.ejGlobal,.pageTitle,.tabs,.toastWrap,.no-print,.appbar,.subbar{display:none !important}
   .main{margin-left:0 !important;padding:0 !important}
   /* Forzar tema claro para que imprima legible */
   :root{
@@ -793,6 +823,76 @@ function initSidebarPlegable(){
 }
 
 // ============================================================
+// BARRA SUPERIOR DE PÁGINA
+// Cada página sigue emitiendo ejGlobalBar() + .pageTitle + .tabs como
+// siempre; acá se reordenan esos nodos en las dos filas fijas de arriba.
+// Así el layout es idéntico en las 20 pantallas sin tocar cada función.
+// ============================================================
+function montarBarraSuperior(){
+  var main=document.getElementById('main');
+  if(!main)return;
+
+  var hijos=Array.prototype.slice.call(main.children);
+  function hijoDirecto(cls){
+    for(var i=0;i<hijos.length;i++)if(hijos[i].classList&&hijos[i].classList.contains(cls))return hijos[i];
+    return null;
+  }
+  var ej=hijoDirecto('ejGlobal');
+  var titulo=hijoDirecto('pageTitle');
+  var tabs=hijoDirecto('tabs');
+  if(!ej&&!titulo&&!tabs)return;
+
+  var bar=document.createElement('div');
+  bar.className='appbar';
+
+  if(titulo){
+    var t=document.createElement('div');
+    t.className='abTitle';
+    while(titulo.firstChild)t.appendChild(titulo.firstChild);
+    bar.appendChild(t);
+    titulo.parentNode.removeChild(titulo);
+  }
+  if(tabs){
+    var sep=document.createElement('span');
+    sep.className='abSep';
+    bar.appendChild(sep);
+    tabs.setAttribute('data-nivel','1');
+    bar.appendChild(tabs);
+  }
+  var der=document.createElement('div');
+  der.className='abRight';
+  if(ej){
+    while(ej.firstChild)der.appendChild(ej.firstChild);
+    ej.parentNode.removeChild(ej);
+  }
+  // Botones que la página alineaba a la derecha del título (ej. "+ Nueva cuenta")
+  var t=bar.querySelector('.abTitle');
+  if(t){
+    Array.prototype.slice.call(t.children).forEach(function(el){
+      if(el.style&&el.style.marginLeft==='auto'){el.style.marginLeft='';der.appendChild(el);}
+    });
+  }
+  bar.appendChild(der);
+  main.insertBefore(bar,main.firstChild);
+
+  // Fila 2: subsecciones. Puede ser un .subnav explícito (Chile > Tesorería)
+  // o las pestañas anidadas de una subpágina (Chile > Stock / Clientes).
+  var sub=main.querySelector('.subnav');
+  if(!sub)sub=main.querySelector('.tabs:not([data-nivel])');
+  if(sub){
+    var fila=document.createElement('div');
+    fila.className='subbar';
+    bar.insertAdjacentElement('afterend',fila);
+    fila.appendChild(sub);
+    if(!sub.classList.contains('tabs'))sub.classList.add('segnav');
+    var acciones=main.querySelector('.subbarActions');
+    if(acciones)fila.appendChild(acciones);
+  }else{
+    bar.classList.add('solo');
+  }
+}
+
+// ============================================================
 // NAVIGATION
 // ============================================================
 function go(page){
@@ -834,6 +934,7 @@ function go(page){
       usuarios:pgUsuarios
     };
     document.getElementById('main').innerHTML=pages[page]?pages[page]():'<p>En construcción</p>';
+    montarBarraSuperior();
   }catch(err){
     console.error('Error en go('+page+'):',err);
     document.getElementById('main').innerHTML='<div class="alert aerr"><strong>Error al cargar la página "'+page+'"</strong><br><code style="font-size:11px;white-space:pre-wrap">'+(err.message||err)+'</code><br><small>Revisá la consola (F12).</small></div>';
@@ -856,6 +957,15 @@ function fmtD(d){return d?d.split('-').reverse().join('/'):''}
 function fmtN(v){return(parseFloat(v)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function hoy(){return new Date().toISOString().split('T')[0];}
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+// Chip chico al lado del título. Reemplaza los carteles de colores que antes
+// ocupaban una franja entera arriba de cada pantalla.
+function chipTitulo(texto,detalle){
+  return '<span class="abChip" title="'+escapeHtml(detalle||texto)+'">'+escapeHtml(texto)+'</span>';
+}
+function chipGestion(detalle){
+  return chipTitulo('Gestión',detalle||'Vista de gestión · no impacta contabilidad');
+}
 
 function getCta(cod){for(var i=0;i<C.cuentas.length;i++)if(C.cuentas[i].codigo===cod)return C.cuentas[i];return null;}
 function ctasOpts(sel,filtroTipo){var h='';C.cuentas.forEach(function(c){if(c.activa===false)return;if(filtroTipo&&c.tipo!==filtroTipo)return;h+='<option value="'+c.codigo+'"'+(c.codigo===sel?' selected':'')+'>'+c.codigo+' - '+escapeHtml(c.nombre)+' ('+c.tipo+')</option>';});return h;}
@@ -3187,7 +3297,7 @@ function pgProyectos(){
     '<input type="text" id="npNom" placeholder="Nombre del nuevo proyecto" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:7px;font-size:12px;outline:none;width:240px"/>'+
     '<input type="text" id="npDesc" placeholder="Descripción (opcional)" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 11px;border-radius:7px;font-size:12px;outline:none;flex:1"/>'+
     '<button class="btn bp sm" onclick="crearProyecto()">+ Crear Proyecto</button></div>':'';
-  var banner='<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · Esta información NO impacta en el Balance Contable ni en el Estado de Resultados. Es solo seguimiento operativo de proyectos y operaciones COMEX.</div>';
+  var banner='';
   if(!proy){
     return ejGlobalBar()+'<div class="pageTitle">📁 Proyectos / COMEX</div>'+banner+newForm+'<div class="cards">'+cards+'</div>'+
       (C.proyectos.length===0?'<div class="alert ainfo">No hay proyectos. Creá el primero arriba.</div>':'<div class="alert ainfo">Seleccioná un proyecto.</div>');
@@ -3514,7 +3624,7 @@ function pgCompras(){
       (ro?'':'<td style="white-space:nowrap">'+btns+'</td>')+
       '</tr>';
   });
-  var banner='<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · Esta información NO impacta en el Balance Contable ni en el Estado de Resultados. Es solo seguimiento operativo de compras.</div>';
+  var banner='';
   return ejGlobalBar()+
     '<div class="pageTitle">🛒 Compras — Logística'+
     (!ro?' <button class="btn bp sm" style="margin-left:auto" onclick="abrirModalCompra(0)">+ Nueva Compra</button>':'')+
@@ -3975,8 +4085,7 @@ function pgStock(){
   else if(stockTab==='alta')contenido=renderStockAlta();
   else if(stockTab==='baja')contenido=renderStockBaja();
   return ejGlobalBar()+
-    '<div class="pageTitle">📦 Stock — Compras / Logística</div>'+
-    '<div class="alert awarn">📊 <strong>Vista de Gestión Operativa</strong> · No impacta contabilidad. Trazabilidad y control de productos.</div>'+
+    '<div class="pageTitle">📦 Stock — Compras / Logística'+chipGestion('Vista de gestión operativa · no impacta contabilidad. Trazabilidad y control de productos.')+'</div>'+
     tabs+contenido+
     '<div id="modalStockItem" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalStockBaja" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
@@ -5225,7 +5334,7 @@ function pgChile(){
     function subTab(id,label){
       return '<button class="btn '+(chileTesTab===id?'bp':'bs')+' sm" onclick="chileTesTab=\''+id+'\';go(\'chile\')">'+label+'</button>';
     }
-    var subTabs='<div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px;flex-wrap:wrap">'+
+    var subTabs='<div class="subnav">'+
       subTab('oficina','💰 Caja Oficina Chile')+
       subTab('deam','🇦🇷 Caja DEAM')+
       subTab('ibs','🏢 Caja IBS')+
@@ -5252,8 +5361,7 @@ function pgChile(){
   }
 
   return ejGlobalBar()+
-    '<div class="pageTitle">🇨🇱 Proyecto Chile</div>'+
-    '<div class="alert awarn">📊 <strong>Vista de Gestión</strong> · No impacta contabilidad.'+(esRolChile?'':' Caja Leex se sincroniza desde Compras (tipo=Chile).')+'</div>'+
+    '<div class="pageTitle">🇨🇱 Proyecto Chile'+chipGestion('Vista de gestión · no impacta contabilidad.'+(esRolChile?'':' Caja Leex se sincroniza desde Compras (tipo=Chile).'))+'</div>'+
     tabs+contenido+
     // Contenedores de los modales de caja. Los de Stock/Clientes Chile los emiten
     // pgStockChile() y pgClientesChile() dentro de 'contenido'.
@@ -5921,9 +6029,7 @@ function renderAportesChile(){
     '<div class="card"><div class="lbl">En equipos</div><div class="val">USD '+fmtN(T.equipos)+'</div><div class="sub">'+T.nEquipos+' unidad(es)</div></div>'+
     '</div>';
 
-  var nota='<div class="alert ainfo" style="margin-bottom:10px">🤝 <strong>Aportes de los socios al Proyecto Chile.</strong> Cada aporte se registra con un origen (Leex o IBS) y una forma: <strong>Efectivo</strong> (dinero) o <strong>Equipos</strong> (valorizados en USD). Es una vista de gestión: no genera asientos contables.</div>';
-
-  return nota+filtrosHTML+tabla+cards;
+  return filtrosHTML+tabla+cards;
 }
 
 // --- Modal alta/edición de aporte ---
@@ -5947,6 +6053,7 @@ function abrirModalAporteChile(id){
     '<button class="rlbtn" onclick="cerrarModalCaja()" style="font-size:20px">✕</button>'+
     '</div>'+
     '<div style="padding:20px">'+
+    '<div class="alert ainfo" style="margin-bottom:14px">Un aporte tiene un <strong>origen</strong> (Leex o IBS) y una <strong>forma</strong>: efectivo o equipos valorizados en USD. No genera asientos contables.</div>'+
     '<div class="fg2">'+
       '<div class="f"><label>Fecha</label><input type="date" id="apcF" value="'+(r.fecha||hoy())+'"/></div>'+
       '<div class="f"><label>Origen del aporte</label><select id="apcOrigen">'+opts(APORTE_ORIGENES,r.origen||'Leex')+'</select></div>'+
@@ -6775,8 +6882,7 @@ function pgClientes(){
   else if(clientesTab==='ajustes')contenido=renderTabAjustesVentas();
   else if(clientesTab==='ctacte')contenido=renderTabCtaCte();
   return ejGlobalBar()+
-    '<div class="pageTitle">👥 Clientes</div>'+
-    '<div class="alert awarn">📊 <strong>Módulo Comercial</strong> · Ventas generan deuda · Cobros restan deuda según imputación · Cuenta Corriente se calcula automáticamente en USD.</div>'+
+    '<div class="pageTitle">👥 Clientes'+chipTitulo('Comercial','Ventas generan deuda · Cobros restan deuda según imputación · Cuenta Corriente en USD')+'</div>'+
     tabs+contenido+
     '<div id="modalCliente" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalVenta" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
@@ -9926,7 +10032,6 @@ function pgClientesChile(){
   else if(clientesTabChile==='cobros')contenido=renderTabCobrosChile();
   else if(clientesTabChile==='ctacte')contenido=renderTabCtaCteChile();
   return ''+
-    '<div class="alert awarn">📊 <strong>Módulo Comercial</strong> · Ventas generan deuda · Cobros restan deuda según imputación · Cuenta Corriente se calcula automáticamente en USD.</div>'+
     tabs+contenido+
     '<div id="modalClienteCh" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalVentaCh" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
@@ -11759,8 +11864,7 @@ function pgProveedores(){
   else if(proveedoresTab==='pagos')contenido=renderTabPagos();
   else if(proveedoresTab==='ajustes')contenido=renderTabAjustes();
   else if(proveedoresTab==='ctacte')contenido=renderTabCtaCteProv();
-  return '<div class="pageTitle">🏭 Proveedores</div>'+
-    '<div class="alert awarn">📊 <strong>Módulo Comercial</strong> · Compras generan deuda · Pagos restan deuda según imputación · Cta Cte se calcula en USD.</div>'+
+  return '<div class="pageTitle">🏭 Proveedores'+chipTitulo('Comercial','Compras generan deuda · Pagos restan deuda según imputación · Cta Cte en USD')+'</div>'+
     tabs+contenido+
     '<div id="modalProveedor" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
     '<div id="modalPago" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:20px;overflow-y:auto"></div>'+
@@ -13519,7 +13623,7 @@ function hacerBackupCompleto(){
     auditLog('backup','Sistema','Backup completo · '+totalRegs+' registros');
     toast('✓ Backup descargado · '+totalRegs+' registros','success');
     // Re-render config si está en pgConfig
-    var titleEl=document.querySelector('.pageTitle');
+    var titleEl=document.querySelector('.abTitle')||document.querySelector('.pageTitle');
     if(titleEl&&titleEl.textContent.indexOf('Configuración')>-1){setTimeout(function(){go('config');},800);}
   }catch(e){
     console.error('Error backup:',e);
