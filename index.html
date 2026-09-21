@@ -125,7 +125,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 
 /* APP */
 #app{display:none}
-.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow:hidden}
+.sidebar>*{flex-shrink:0}
+/* Solo la lista de secciones scrollea; logo y pie quedan fijos. */
+.sbNav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:6px}
+.sbNav>*{flex-shrink:0}
 .sbLogo{padding:16px 14px 12px;border-bottom:1px solid var(--border)}
 .sbSection{padding:8px 14px 2px;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-top:6px;font-weight:600}
 /* --- Menú lateral plegable --- */
@@ -135,7 +139,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',-apple-system
 .sbChev{font-size:9px;line-height:1;opacity:.7;transition:transform .2s ease;display:inline-block}
 .sbSection.sbTog.open .sbChev{transform:rotate(90deg)}
 .sbGroup{max-height:0;overflow:hidden;transition:max-height .22s ease}
-.sbGroup.open{max-height:800px}
+.sbGroup.open{max-height:1200px}
 .sbDot{width:5px;height:5px;border-radius:50%;background:var(--cyan);display:none;flex-shrink:0}
 .sbSection.sbTog.hasActive .sbDot{display:block}
 .sbTools{display:flex;justify-content:flex-end;padding:6px 14px 0}
@@ -371,6 +375,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <img id="logoSidebar" alt="LEEX" width="120" style="display:block;max-width:100%;height:auto"/>
     </div>
 
+    <div class="sbNav">
     <div class="sbTools"><button id="sbTodosBtn" onclick="toggleTodosSb()">▾ Expandir todo</button></div>
     <div class="sbSection sbTog" data-sec="contabilidad" data-grp="operacion" id="sbh-operacion" onclick="toggleSbGrupo('operacion')"><span style="display:flex;align-items:center;gap:6px"><span class="sbDot"></span>Operación</span><span class="sbChev">▶</span></div>
     <div class="sbGroup" id="sbg-operacion" data-sec="contabilidad" data-grp="operacion">
@@ -421,6 +426,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
       <div class="ni" data-sec="sistema" data-page="usuarios" id="niAdmin" onclick="go('usuarios')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Usuarios</div>
     </div>
 
+    </div>
     <div class="sbFoot">
       <div style="padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px">
         <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;text-align:center">🎨 Paleta</div>
