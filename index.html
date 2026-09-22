@@ -5109,6 +5109,27 @@ function pgChileDashboard(){
     else if(tc>0)gastoOficina+=imp/tc;
   });
 
+  // ============ IVA CRÉDITO FISCAL (Caja Oficina Chile) ============
+  // Se convierte fila por fila con el tipo de cambio de esa fila.
+  // Las filas con IVA pero sin TC no se pueden pasar a USD: se avisan aparte.
+  var ivaUsd=0,ivaUsdAnio=0,ivaClp=0,ivaClpAnio=0,ivaSinTc=0,ivaSinTcClp=0,nFilasIva=0;
+  (C.caja_oficina_chile||[]).forEach(function(r){
+    var iva=parseFloat(r.importe_iva_clp)||0;
+    if(!iva)return;
+    nFilasIva++;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    var esAnio=r.fecha&&parseInt(r.fecha.substring(0,4))===anioActual;
+    ivaClp+=iva;
+    if(esAnio)ivaClpAnio+=iva;
+    if(tc>0){
+      ivaUsd+=iva/tc;
+      if(esAnio)ivaUsdAnio+=iva/tc;
+    }else{
+      ivaSinTc++;
+      ivaSinTcClp+=iva;
+    }
+  });
+
   // ============ HTML ============
   var headerBtns='<div style="display:flex;gap:6px" class="no-print">'+
     '<button class="btn bs sm" onclick="window.print()" title="Imprimir"><span style="font-size:13px">🖨</span> Imprimir</button>'+
@@ -5184,6 +5205,33 @@ function pgChileDashboard(){
     '</div>'+
     '</div>';
 
+  // --- IVA crédito fiscal (debajo de Stock) ---
+  var ivaHTML='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;border-top:3px solid var(--yellow)">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">'+
+      '<div style="font-size:13px;font-weight:600">🧾 IVA crédito fiscal · Caja Oficina Chile</div>'+
+      '<a href="#" class="no-print" onclick="chileTab=\'tesoreria\';chileTesTab=\'oficina\';go(\'chile\');return false;" style="color:var(--cyan);font-size:11px">Ver caja →</a>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" class="dashChileGrid">'+
+      '<div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Acumulado USD</div>'+
+        '<div style="font-size:22px;font-weight:700;color:var(--yellow)">$'+fmtN(ivaUsd)+'</div>'+
+        '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+nFilasIva+' movimiento'+(nFilasIva===1?'':'s')+' con IVA</div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Del ejercicio '+anioActual+' · USD</div>'+
+        '<div style="font-size:22px;font-weight:700">$'+fmtN(ivaUsdAnio)+'</div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:11px;color:var(--text2);margin-bottom:2px">Acumulado CLP</div>'+
+        '<div style="font-size:22px;font-weight:700;color:var(--text2)">$'+fmtN(ivaClp)+'</div>'+
+        '<div style="font-size:10px;color:var(--text2);margin-top:2px">'+anioActual+': $'+fmtN(ivaClpAnio)+'</div>'+
+      '</div>'+
+    '</div>'+
+    (ivaSinTc>0?'<div style="margin-top:12px;padding:8px 10px;background:rgba(244,185,66,.1);border-left:3px solid var(--yellow);border-radius:4px;font-size:11px;color:var(--text2)">'+
+      ivaSinTc+' movimiento'+(ivaSinTc===1?'':'s')+' con IVA ($'+fmtN(ivaSinTcClp)+' CLP) no tiene'+(ivaSinTc===1?'':'n')+' tipo de cambio cargado, así que no entra'+(ivaSinTc===1?'':'n')+' en el total USD.</div>':'')+
+    (nFilasIva===0?'<div style="padding:16px 0 0;color:var(--text2);font-size:12px">Todavía no hay movimientos con IVA cargado en la Caja Oficina Chile.</div>':'')+
+    '</div>';
+
   // --- Cta cte clientes ---
   var rowsCli='';
   filasCli.slice(0,8).forEach(function(f){
@@ -5250,7 +5298,7 @@ function pgChileDashboard(){
     aportesResumenHTML()+
     '</div>';
 
-  return '<div id="chileDashboardPrint">'+header+kpis+stockHTML+clientesHTML+tesoreriaHTML+'</div>';
+  return '<div id="chileDashboardPrint">'+header+kpis+stockHTML+ivaHTML+clientesHTML+tesoreriaHTML+'</div>';
 }
 
 // Resumen de Aportes (Leex / IBS) para el dashboard de Chile
@@ -5340,10 +5388,26 @@ function exportDashboardChile(){
     if(r.importe_usd)gastoOficina+=parseFloat(r.importe_usd)||0;
     else if(tc>0)gastoOficina+=imp/tc;
   });
+  // IVA crédito fiscal acumulado (mismo criterio que el dashboard)
+  var ivaUsdExp=0,ivaClpExp=0,ivaUsdAnioExp=0;
+  (C.caja_oficina_chile||[]).forEach(function(r){
+    var iva=parseFloat(r.importe_iva_clp)||0;
+    if(!iva)return;
+    var tc=parseFloat(r.tipo_cambio_usd)||0;
+    ivaClpExp+=iva;
+    if(tc>0){
+      ivaUsdExp+=iva/tc;
+      if(r.fecha&&parseInt(r.fecha.substring(0,4))===anioActual)ivaUsdAnioExp+=iva/tc;
+    }
+  });
   var tesData=[
     {Indicador:'Saldo vigente Caja Oficina Chile USD',Valor:saldoVig},
     {Indicador:'Aporte total USD',Valor:aporteTotal},
-    {Indicador:'Gasto '+anioActual+' USD',Valor:gastoOficina},
+    {Indicador:'Gasto '+anioActual+' USD (neto sin IVA)',Valor:gastoOficina},
+    {Indicador:'',Valor:''},
+    {Indicador:'IVA crédito fiscal acumulado USD',Valor:ivaUsdExp},
+    {Indicador:'IVA crédito fiscal '+anioActual+' USD',Valor:ivaUsdAnioExp},
+    {Indicador:'IVA crédito fiscal acumulado CLP',Valor:ivaClpExp},
     {Indicador:'',Valor:''},
     {Indicador:'Aportes Leex USD',Valor:totalesAportesChile(C.aportes_chile).leex},
     {Indicador:'Aportes IBS USD',Valor:totalesAportesChile(C.aportes_chile).ibs},
@@ -11647,6 +11711,27 @@ function renderDetalleClienteChile(clienteId){
 // ============================================================
 // CAJA CHILE — TABLA DINÁMICA (Rubros × Meses)
 // ============================================================
+// ------------------------------------------------------------
+// Importe NETO (sin IVA) de una fila de Caja Oficina Chile.
+//   CLP → importe_clp (el IVA vive aparte en importe_iva_clp)
+//   USD → importe_usd, que al guardar se calcula como importe_clp / TC,
+//         o sea que ya viene neto; si falta, se recalcula con el TC de la fila.
+// ------------------------------------------------------------
+function netoCajaChile(r,moneda){
+  var neto=parseFloat(r.importe_clp)||0;
+  if(moneda==='clp')return neto;
+  if(r.importe_usd)return parseFloat(r.importe_usd)||0;
+  var tc=parseFloat(r.tipo_cambio_usd)||0;
+  return tc>0?neto/tc:0;
+}
+// IVA crédito fiscal de una fila, en la moneda pedida.
+function ivaCajaChile(r,moneda){
+  var iva=parseFloat(r.importe_iva_clp)||0;
+  if(moneda==='clp')return iva;
+  var tc=parseFloat(r.tipo_cambio_usd)||0;
+  return tc>0?iva/tc:0;
+}
+
 var cajaChileDinTab='lista';   // 'lista' | 'dinamica'
 var cajaChileDinAnio=null;     // año a mostrar (null = todos)
 var cajaChileDinAgrup='concepto'; // concepto | estado | proveedor
@@ -11703,9 +11788,9 @@ function renderTablaDinamicaChile(){
   // Si "ambos", renderizar dos tablas
   if(cajaChileDinMoneda==='ambos'){
     return headerHTML+
-      '<div style="margin-bottom:18px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💰 CLP (incluye IVA)</div>'+
+      '<div style="margin-bottom:18px"><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💰 CLP · gasto neto sin IVA</div>'+
       renderPivotTabla(rows,'clp',aniosArr)+'</div>'+
-      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💵 USD</div>'+
+      '<div><div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">💵 USD · gasto neto sin IVA</div>'+
       renderPivotTabla(rows,'usd',aniosArr)+'</div>';
   }
 
@@ -11719,18 +11804,8 @@ function renderPivotTabla(rows,moneda,aniosArr){
     return parseInt(r.fecha.substring(0,4))===cajaChileDinAnio;
   });
 
-  // Función para obtener el importe según moneda
-  function getImporte(r){
-    if(moneda==='clp'){
-      return (parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
-    }else{
-      // USD: si la fila tiene importe_usd usarlo; si no, calcular CLP/tc
-      if(r.importe_usd)return parseFloat(r.importe_usd)||0;
-      var totCLP=(parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
-      var tc=parseFloat(r.tipo_cambio_usd)||0;
-      return tc>0?totCLP/tc:0;
-    }
-  }
+  // Importe del gasto SIN IVA (el IVA es crédito fiscal, no es costo)
+  function getImporte(r){return netoCajaChile(r,moneda);}
 
   var data={};
   var totalesPorMes=[0,0,0,0,0,0,0,0,0,0,0,0];
@@ -11795,15 +11870,23 @@ function renderPivotTabla(rows,moneda,aniosArr){
     '<td style="text-align:right;padding:8px 6px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;color:var(--cyan);background:var(--bg2);border-left:1px solid var(--border)">'+fmtN(totalGeneral)+'</td>'+
     '</tr>';
 
+  // IVA del mismo universo de filas, para dejar a la vista qué se restó
+  var totalIva=0;
+  rowsAnio.forEach(function(r){totalIva+=ivaCajaChile(r,moneda);});
+
   // KPIs arriba
   var cards='<div class="cards" style="margin-bottom:14px">'+
     '<div class="card"><div class="lbl">Año</div><div class="val">'+cajaChileDinAnio+'</div></div>'+
     '<div class="card"><div class="lbl">'+cajaChileDinAgrup.charAt(0).toUpperCase()+cajaChileDinAgrup.slice(1)+'s</div><div class="val">'+claves.length+'</div></div>'+
-    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Total '+moneda.toUpperCase()+'</div><div class="val cyan">'+simbolo+fmtN(totalGeneral)+'</div></div>'+
+    '<div class="card" style="border-color:var(--cyan)"><div class="lbl">Gasto neto '+moneda.toUpperCase()+'</div><div class="val cyan">'+simbolo+fmtN(totalGeneral)+'</div><div class="sub">sin IVA</div></div>'+
+    '<div class="card"><div class="lbl">IVA crédito fiscal</div><div class="val yellow">'+simbolo+fmtN(totalIva)+'</div><div class="sub">no suma al gasto</div></div>'+
+    '<div class="card"><div class="lbl">Total con IVA</div><div class="val">'+simbolo+fmtN(totalGeneral+totalIva)+'</div></div>'+
     (hayConSinFecha?'<div class="card" style="border-color:var(--yellow)"><div class="lbl">Sin fecha</div><div class="val yellow">'+simbolo+fmtN(totalSinFecha)+'</div></div>':'')+
     '</div>';
 
-  var nota=moneda==='usd'?'Importes en USD (usa importe_usd o calcula CLP/TC)':'Importes en CLP (incluye IVA)';
+  var nota=moneda==='usd'
+    ?'Gasto neto en USD, sin IVA (importe_usd, o neto CLP ÷ tipo de cambio de la fila)'
+    :'Gasto neto en CLP, sin IVA';
 
   return cards+
     '<div class="twrap" style="overflow-x:auto"><div class="thead2"><h3>📊 Pivot: '+cajaChileDinAgrup+' × meses ('+cajaChileDinAnio+') · '+moneda.toUpperCase()+'</h3>'+
@@ -11822,16 +11905,9 @@ function renderPivotTabla(rows,moneda,aniosArr){
 }
 
 function exportTablaDinamicaChile(){
+  // Mismo criterio que la pantalla: gasto neto, sin IVA.
   function getImporteFn(moneda){
-    return function(r){
-      if(moneda==='clp'){
-        return (parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
-      }
-      if(r.importe_usd)return parseFloat(r.importe_usd)||0;
-      var totCLP=(parseFloat(r.importe_clp)||0)+(parseFloat(r.importe_iva_clp)||0);
-      var tc=parseFloat(r.tipo_cambio_usd)||0;
-      return tc>0?totCLP/tc:0;
-    };
+    return function(r){return netoCajaChile(r,moneda);};
   }
   function buildData(moneda){
     var rows=(C.caja_oficina_chile||[]).filter(function(r){
