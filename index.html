@@ -2067,6 +2067,12 @@ function guardarAsientoModal(yConciliar){
         var ventaInfo=detectarAsientoVenta&&detectarAsientoVenta(ast,ls);
         if(ventaInfo){
           setTimeout(function(){preguntarImputacionBanco(ast.id,m.fecha,ventaInfo.importe,ventaInfo.cuenta);},400);
+        }else{
+          // Débito a Cuentas por Pagar: abrir el pago a proveedor ya vinculado al asiento
+          var pagoInfo=detectarAsientoPagoProv(ls);
+          if(pagoInfo&&typeof abrirModalPago==='function'){
+            setTimeout(function(){abrirModalPago(0,{asientoId:ast.id,importeUSD:pagoInfo.importe,fecha:m.fecha});},400);
+          }
         }
         reload('banco');
       });
@@ -2924,12 +2930,14 @@ function pgBalance(){
   var hastaFecha=año+'-12-31';
 
   // Función para calcular saldo (positivo) a la fecha de cierre del ejercicio
+  var signoInvertido=[];
   function seccion(tipo){
     var rows='',tot=0,exData=[];
     C.cuentas.forEach(function(c){
       if(c.tipo!==tipo)return;
       var s=saldoCuenta(c.codigo,hastaFecha);
       if(Math.abs(s)<0.005)return;  // ocultar saldos casi cero
+      if(s<-0.005&&(tipo==='Activo'||tipo==='Pasivo'))signoInvertido.push(c.codigo+' '+c.nombre+' ('+fmtS(s)+')');
       tot+=s;
       rows+='<tr><td style="font-family:monospace;font-size:11px">'+c.codigo+'</td>'+
         '<td>'+escapeHtml(c.nombre)+'</td>'+
@@ -2967,6 +2975,7 @@ function pgBalance(){
   // Si está cerrado, el resultado YA está en la cuenta 3.1.01 y se muestra normal arriba en pat.rows
 
   var ok=Math.abs(act.tot-pas.tot-patTot)<1;
+  var controlesHtml=controlesBalance(signoInvertido,hastaFecha,año);
   var allEx=act.exData.concat([{Codigo:'',Cuenta:'TOTAL ACTIVO',Saldo:act.tot}])
     .concat(pas.exData).concat([{Codigo:'',Cuenta:'TOTAL PASIVO',Saldo:pas.tot}])
     .concat(patEx).concat([{Codigo:'',Cuenta:'TOTAL PATRIMONIO',Saldo:patTot}]);
@@ -2997,7 +3006,30 @@ function pgBalance(){
     '<div class="alert '+(ok?'aok':'aerr')+'" style="margin-top:14px">'+
     (ok?'✓ Balance cuadrado · Activo ('+fmtS(act.tot)+') = Pasivo ('+fmtS(pas.tot)+') + Patrimonio ('+fmtS(patTot)+')':
         '✗ Balance descuadrado · Diferencia: '+fmtS(act.tot-pas.tot-patTot))+
-    '</div>';
+    '</div>'+controlesHtml;
+}
+
+// Controles de consistencia del Balance (CON-02 / CON-06)
+function controlesBalance(signoInvertido,hastaFecha,año){
+  var html='';
+  if(signoInvertido.length){
+    html+='<div class="alert aerr" style="margin-top:10px;display:block">⚠ Cuentas patrimoniales con saldo de signo invertido: '+
+      signoInvertido.map(escapeHtml).join(' · ')+'. El balance puede cuadrar igual, pero estas cuentas indican asientos faltantes o mal imputados.</div>';
+  }
+  // Auxiliar de proveedores vs mayor 2.1.01 y de clientes vs 1.2.01 (solo ejercicio en curso)
+  if(año===new Date().getFullYear()){
+    function ctrl(nombre,cta,lista,fn){
+      if(typeof fn!=='function'||!getCta(cta))return '';
+      var aux=0;(lista||[]).forEach(function(x){var b=fn(x.id);aux+=(b&&b.total)||0;});
+      var mayor=saldoCuenta(cta,hastaFecha);
+      var dif=mayor-aux;
+      if(Math.abs(dif)<1)return '<div class="alert aok" style="margin-top:10px">✓ '+nombre+': el auxiliar ('+fmtS(aux)+') coincide con el mayor '+cta+' ('+fmtS(mayor)+')</div>';
+      return '<div class="alert awarn" style="margin-top:10px">⚠ '+nombre+': el auxiliar suma '+fmtS(aux)+' y el mayor '+cta+' '+fmtS(mayor)+' · Diferencia '+fmtS(dif)+'</div>';
+    }
+    html+=ctrl('Proveedores','2.1.01',C.proveedores,typeof calcAgingProveedor==='function'?calcAgingProveedor:null);
+    html+=ctrl('Clientes','1.2.01',C.clientes,typeof calcAgingCliente==='function'?calcAgingCliente:null);
+  }
+  return html;
 }
 
 // ============================================================
@@ -3784,6 +3816,11 @@ function abrirModalCompra(id){
     '<div class="f"><label>Fecha de pago</label><input type="date" id="cmpFPago" value="'+(c.fecha_pago||'')+'"/></div>'+
     '<div class="f"><label>Estado de pago</label><select id="cmpEstado">'+opts(estadosPago,c.estado_pago||'No Pagar')+'</select></div>'+
     '</div>'+
+    '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🇨🇱 Envío a Chile</div>'+
+    '<div class="fg3" style="margin-bottom:14px">'+
+    '<div class="f"><label>Fecha de envío a Chile</label><input type="date" id="cmpEnvioChile" value="'+(c.fecha_envio_chile||'')+'"/></div>'+
+    '<div class="f" style="grid-column:span 2;font-size:11px;color:var(--text2);align-self:end">Al cargar la fecha, el sistema reimputa la compra de Mercaderías (1.2.05) a Inversión - Cta Cte: Chile (1.4.01). Dejala vacía si la mercadería sigue siendo de LEEX.</div>'+
+    '</div>'+
     '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">📎 Documentación</div>'+
     '<div class="fg2" style="margin-bottom:14px">'+
     '<div class="f"><label>Documento — link de Drive u otra URL</label><input type="text" id="cmpDocUrl" value="'+escapeHtml(c.documento_url||'')+'" placeholder="https://drive.google.com/..."/></div>'+
@@ -3867,6 +3904,7 @@ function guardarCompra(keepOpen){
     importe_total:importeTotal,
     vencimiento_prov:document.getElementById('cmpVto').value||null,
     fecha_pago:document.getElementById('cmpFPago').value||null,
+    fecha_envio_chile:(document.getElementById('cmpEnvioChile')||{}).value||null,
     estado_pago:document.getElementById('cmpEstado').value||'No Pagar',
     documento_url:document.getElementById('cmpDocUrl').value.trim()||null,
     notas:document.getElementById('cmpNotas').value.trim()||null
@@ -8541,6 +8579,15 @@ function renderDetalleCliente(clienteId){
 // INTEGRACIÓN BANCO → COBRO (modal auto al guardar asiento de venta)
 // ============================================================
 // Se invoca después de guardar un asiento si toca 4.1.01 / 4.1.02 / 4.2.01
+
+// Débito a 2.1.01 Cuentas por Pagar => es un pago a proveedor (CON-02)
+function detectarAsientoPagoProv(lineas){
+  for(var i=0;i<lineas.length;i++){
+    var cta=lineas[i].cuenta_codigo||lineas[i].cuenta;
+    if(cta==='2.1.01'&&(parseFloat(lineas[i].debe)||0)>0)return {importe:parseFloat(lineas[i].debe)||0};
+  }
+  return null;
+}
 
 function detectarAsientoVenta(asiento,lineas){
   var cuentasVenta=['4.1.01','4.1.02','4.2.01'];
