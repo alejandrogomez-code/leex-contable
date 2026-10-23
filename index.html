@@ -549,6 +549,7 @@ var C={
   caja_adjuntos:[],
   // Proyecto Chile > Stock (copia independiente del modulo Stock)
   stock_items_chile:[],
+  stock_alquileres_chile:[],
   stock_bajas_chile:[],
   stock_adjuntos_chile:[],
   // Proyecto Chile > Clientes (copia independiente del modulo Clientes)
@@ -704,7 +705,8 @@ function loadAll(){
     sbGet('cobros_chile','select=*&order=fecha.desc').catch(function(){return[];}),                           // 43
     sbGet('cobro_imputaciones_chile','select=*').catch(function(){return[];}),                                // 44
     sbGet('cliente_adjuntos_chile','select=*&order=uploaded_at.desc').catch(function(){return[];}),           // 45
-    sbGet('aportes_chile','select=*&order=fecha.desc,id.desc').catch(function(){return[];})                   // 46
+    sbGet('aportes_chile','select=*&order=fecha.desc,id.desc').catch(function(){return[];}),                  // 46
+    sbGet('stock_alquileres_chile','select=*&order=id').catch(function(){return[];})                          // 47
   ]).then(function(res){
     // Configuracion
     C.config={banco_nombre:'',banco_cuenta:'',moneda:'USD',saldo_banco_manual:null,saldo_banco_manual_fecha:null,saldo_banco_manual_actualizado_at:null};
@@ -776,6 +778,7 @@ function loadAll(){
     C.cobro_imputaciones_chile=Array.isArray(res[44])?res[44]:[];
     C.cliente_adjuntos_chile=Array.isArray(res[45])?res[45]:[];
     C.aportes_chile=Array.isArray(res[46])?res[46]:[];
+    C.stock_alquileres_chile=Array.isArray(res[47])?res[47]:[];
     autofillCostosPorSN();
     if(!selProyId&&C.proyectos.length>0)selProyId=C.proyectos[0].id;
   }).catch(function(e){
@@ -4187,7 +4190,7 @@ function renderStockGeneral(){
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Vendido','Baja'];
+  var ESTADOS=['Disponible','Reservado','En demo','En alquiler','No conforme','Vendido','Baja'];
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items.filter(function(it){
@@ -4209,7 +4212,7 @@ function renderStockGeneral(){
   });
 
   // Métricas por estado
-  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Vendido':0,'Baja':0};
+  var counts={'Disponible':0,'Reservado':0,'En demo':0,'En alquiler':0,'No conforme':0,'Vendido':0,'Baja':0};
   fil.forEach(function(it){if(counts[it.estado]!==undefined)counts[it.estado]++;});
 
   function selOpts(arr,sel){
@@ -4276,6 +4279,7 @@ function renderStockGeneral(){
     '<div class="card"><div class="lbl">Disponible</div><div class="val green">'+counts['Disponible']+'</div></div>'+
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
+    '<div class="card"><div class="lbl">En alquiler</div><div class="val cyan">'+counts['En alquiler']+'</div></div>'+
     '<div class="card"><div class="lbl">No conforme</div><div class="val red">'+counts['No conforme']+'</div></div>'+
     '<div class="card"><div class="lbl">Vendido</div><div class="val" style="color:#a78bfa">'+counts['Vendido']+'</div></div>'+
     '<div class="card"><div class="lbl">Baja</div><div class="val">'+counts['Baja']+'</div></div>'+
@@ -4303,6 +4307,7 @@ function estadoStockBadge(e){
   if(e==='Disponible')return '<span class="badge bg">'+e+'</span>';
   if(e==='Reservado')return '<span class="badge bb">'+e+'</span>';
   if(e==='En demo')return '<span class="badge by">'+e+'</span>';
+  if(e==='En alquiler')return '<span class="badge bb">🔁 '+e+'</span>';
   if(e==='No conforme')return '<span class="badge br">'+e+'</span>';
   if(e==='Vendido')return '<span class="badge bpu">'+e+'</span>';
   if(e==='Baja')return '<span class="badge bgr">'+e+'</span>';
@@ -5103,7 +5108,7 @@ function pgChileDashboard(){
 
   // ============ STOCK CHILE ============
   var stockVig=(C.stock_items_chile||[]).filter(function(it){return it.estado!=='Baja'&&it.estado!=='Vendido';});
-  var sxe={Disponible:0,'En demo':0,Reservado:0,'No conforme':0};
+  var sxe={Disponible:0,'En demo':0,'En alquiler':0,Reservado:0,'No conforme':0};
   stockVig.forEach(function(it){var e=it.estado||'(sin estado)';sxe[e]=(sxe[e]||0)+1;});
   var totalStock=stockVig.length;
   var totalBajas=(C.stock_items_chile||[]).filter(function(it){return it.estado==='Baja';}).length;
@@ -5220,6 +5225,7 @@ function pgChileDashboard(){
         filaEstado('Disponible',(sxe['Disponible']||0),'var(--green)')+
         filaEstado('Reservado',(sxe['Reservado']||0),'var(--cyan)')+
         filaEstado('En demo',(sxe['En demo']||0),'var(--yellow)')+
+        filaEstado('En alquiler',(sxe['En alquiler']||0),'var(--cyan)')+
         filaEstado('No conforme',(sxe['No conforme']||0),'var(--red)',true)+
         '<div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid var(--border);margin-top:4px;font-weight:700"><span>Total vigente</span><span>'+totalStock+'</span></div>'+
         (totalVendidos>0?'<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:11px;color:var(--text2)"><span>Vendidas</span><span>'+totalVendidos+'</span></div>':'')+
@@ -9035,7 +9041,7 @@ function renderStockGeneralChile(){
   var ubicaciones=C.cfg_listas.ubicacion_stock||[];
   var tipos=C.cfg_listas.tipo_producto_stock||[];
   var motivos=C.cfg_listas.motivo_baja_stock||[];
-  var ESTADOS=['Disponible','Reservado','En demo','No conforme','Vendido','Baja'];
+  var ESTADOS=['Disponible','Reservado','En demo','En alquiler','No conforme','Vendido','Baja'];
   var VERIFS=['Sí','No','Pendiente'];
 
   var fil=C.stock_items_chile.filter(function(it){
@@ -9057,7 +9063,7 @@ function renderStockGeneralChile(){
   });
 
   // Métricas por estado
-  var counts={'Disponible':0,'Reservado':0,'En demo':0,'No conforme':0,'Vendido':0,'Baja':0};
+  var counts={'Disponible':0,'Reservado':0,'En demo':0,'En alquiler':0,'No conforme':0,'Vendido':0,'Baja':0};
   fil.forEach(function(it){if(counts[it.estado]!==undefined)counts[it.estado]++;});
 
   function selOpts(arr,sel){
@@ -9124,6 +9130,7 @@ function renderStockGeneralChile(){
     '<div class="card"><div class="lbl">Disponible</div><div class="val green">'+counts['Disponible']+'</div></div>'+
     '<div class="card"><div class="lbl">Reservado</div><div class="val cyan">'+counts['Reservado']+'</div></div>'+
     '<div class="card"><div class="lbl">En demo</div><div class="val yellow">'+counts['En demo']+'</div></div>'+
+    '<div class="card"><div class="lbl">En alquiler</div><div class="val cyan">'+counts['En alquiler']+'</div></div>'+
     '<div class="card"><div class="lbl">No conforme</div><div class="val red">'+counts['No conforme']+'</div></div>'+
     '<div class="card"><div class="lbl">Vendido</div><div class="val" style="color:#a78bfa">'+counts['Vendido']+'</div></div>'+
     '<div class="card"><div class="lbl">Baja</div><div class="val">'+counts['Baja']+'</div></div>'+
@@ -9151,6 +9158,7 @@ function estadoStockBadgeChile(e){
   if(e==='Disponible')return '<span class="badge bg">'+e+'</span>';
   if(e==='Reservado')return '<span class="badge bb">'+e+'</span>';
   if(e==='En demo')return '<span class="badge by">'+e+'</span>';
+  if(e==='En alquiler')return '<span class="badge bb">🔁 '+e+'</span>';
   if(e==='No conforme')return '<span class="badge br">'+e+'</span>';
   if(e==='Vendido')return '<span class="badge bpu">'+e+'</span>';
   if(e==='Baja')return '<span class="badge bgr">'+e+'</span>';
@@ -9295,9 +9303,9 @@ function abrirModalStockItemChile(id){
   }
 
   // Si el item está en estado Baja, no permitimos editar el estado (se cambia desde la baja)
-  var enBaja=it.estado==='Baja'||it.estado==='Vendido';
+  var enBaja=it.estado==='Baja'||it.estado==='Vendido'||it.estado==='En alquiler';
   var estadoSelector=enBaja?
-    '<input type="text" value="'+(it.estado==='Vendido'?'Vendido (gestionar desde la venta)':'Baja (gestionar desde Baja de Stock)')+'" readonly style="color:var(--text2)"/>':
+    '<input type="text" value="'+(it.estado==='Vendido'?'Vendido (gestionar desde la venta)':it.estado==='En alquiler'?'En alquiler (gestionar desde la factura)':'Baja (gestionar desde Baja de Stock)')+'" readonly style="color:var(--text2)"/>':
     '<select id="siEstadoCh">'+opts(ESTADOS_VIGENTES,it.estado||'Disponible','')+'</select>';
 
   var titulo=id===0?'➕ Nueva Alta de Stock':'✏ Editar Item #'+id;
@@ -9345,6 +9353,7 @@ function abrirModalStockItemChile(id){
     '</div>'+
     '<div class="f" style="margin-bottom:14px"><label>Observaciones</label><textarea id="siObsCh" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:7px;font-size:12px;outline:none;font-family:inherit;resize:vertical">'+escapeHtml(it.observaciones||'')+'</textarea></div>'+
 
+    (id>0?historialFacturasEquipoChile(it):'')+
     (id>0?
       '<div class="alert ainfo">💡 Los adjuntos (remito, factura, certificado, foto) se gestionan desde el botón 📎 de la fila.</div>':
       '<div class="alert ainfo">💡 Una vez creada el alta, vas a poder subir adjuntos (remito, factura, certificado, foto) desde la columna 📎 de la tabla.</div>')+
@@ -9362,6 +9371,21 @@ function abrirModalStockItemChile(id){
   modal.style.display='flex';
 }
 
+function historialFacturasEquipoChile(it){
+  var vs=facturasDeEquipoChile(it);
+  if(!vs.length)return '';
+  var tot=0;
+  var filas=vs.map(function(v){
+    tot+=parseFloat(v.importe_usd)||0;
+    return '<tr><td>'+fmtD(v.fecha)+'</td><td style="font-family:monospace">'+escapeHtml(v.numero_factura||'#'+v.id)+'</td>'+
+      '<td>'+escapeHtml(clienteNameChile(v.cliente_id))+'</td>'+
+      '<td><span class="badge bb">'+escapeHtml(v.tipo_operacion||'—')+'</span></td>'+
+      '<td style="text-align:right;font-variant-numeric:tabular-nums">'+fmtN(v.importe_total)+' '+escapeHtml(v.moneda||'USD')+'</td></tr>';
+  }).join('');
+  return '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">🧾 Facturas vinculadas ('+vs.length+')</div>'+
+    '<div style="border:1px solid var(--border);border-radius:8px;overflow-x:auto;margin-bottom:14px"><table style="width:100%;font-size:11px"><thead><tr><th>Fecha</th><th>Factura</th><th>Cliente</th><th>Tipo</th><th style="text-align:right">Importe</th></tr></thead><tbody>'+filas+'</tbody></table></div>';
+}
+
 function cerrarModalStockItemChile(){
   var m=document.getElementById('modalStockItemCh');
   if(m){m.style.display='none';m.innerHTML='';}
@@ -9370,7 +9394,7 @@ function cerrarModalStockItemChile(){
 
 function guardarStockItemChile(keepOpen){
   var estActual=editStockIdChile>0?(C.stock_items_chile.find(function(x){return x.id===editStockIdChile;})||{}).estado:null;
-  var enBaja=estActual==='Baja'||estActual==='Vendido';
+  var enBaja=estActual==='Baja'||estActual==='Vendido'||estActual==='En alquiler';
   var payload={
     pn_fabrica:document.getElementById('siPnCh').value.trim()||null,
     sku_leex:document.getElementById('siSkuCh').value.trim()||null,
@@ -10601,6 +10625,7 @@ function renderTabVentasChile(){
     var estClass=est==='Cobrado'?'bg':est==='Parcial'?'by':'br';
     var venc=isVentaVencidaChile(v);
     var nAdj=(C.cliente_adjuntos_chile||[]).filter(function(a){return a.tipo==='venta'&&a.registro_id===v.id;}).length;
+    var nEqT=equiposVentaChile(v.id).length;
     var nEq=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).length;
     var gan=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===v.id;}).reduce(function(a,it){return a+((parseFloat(it.precio_venta_usd)||0)-(parseFloat(it.valor_costo_usd)||0));},0);
     rows+='<tr>'+
@@ -10617,7 +10642,7 @@ function renderTabVentasChile(){
       '<td>'+(v.estado_entrega?'<span class="badge by">'+escapeHtml(v.estado_entrega)+'</span>':'—')+'</td>'+
       '<td><span class="badge '+estClass+'">'+est+'</span></td>'+
       '<td class="'+(saldo>0.01?'red':'green')+'" style="font-variant-numeric:tabular-nums;text-align:right">'+fmtN(saldo)+'</td>'+
-      '<td style="text-align:center">'+(nEq>0?'<span class="badge bpu">📦 '+nEq+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
+      '<td style="text-align:center">'+(nEqT>0?'<span class="badge '+(esAlquilerChile(v.tipo_operacion)?'bb':'bpu')+'">'+(esAlquilerChile(v.tipo_operacion)?'🔁 ':'📦 ')+nEqT+'</span>':'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600" class="'+(nEq>0?(gan<0?'red':'green'):'')+'">'+(nEq>0?fmtS(gan):'<span style="color:var(--text2)">—</span>')+'</td>'+
       '<td>'+(nAdj>0?'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')"><span style="color:var(--cyan)">📎 '+nAdj+'</span></button>':'<button class="btn sm bs" onclick="verAdjuntosClienteChile(\'venta\','+v.id+')" style="color:var(--text2)">📎</button>')+'</td>'+
       '<td style="white-space:nowrap">'+
@@ -10675,11 +10700,55 @@ function exportVentasExcelChile(){
 // Al sacarlos de la venta (o borrarla) vuelven a Disponible.
 // ============================================================
 
-// Elegibles: los libres que no esten dados de baja ni vendidos, mas los que ya
-// pertenecen a ESTA venta (para poder desmarcarlos cuando se edita).
+// ALQUILERES: una factura de tipo Alquiler NO vende el equipo. Se vincula por la
+// tabla stock_alquileres_chile (N:N), el equipo queda "En alquiler" y puede
+// asociarse a todas las facturas mensuales que hagan falta. Solo una factura de
+// otro tipo (Producto, etc.) lo pasa a Vendido.
+var ventaTipoModalChile='';
+function esAlquilerChile(tipo){return tipo==='Alquiler';}
+function alqLinksVentaChile(ventaId){return (C.stock_alquileres_chile||[]).filter(function(l){return l.venta_id===ventaId;});}
+function alqLinksItemChile(itemId){return (C.stock_alquileres_chile||[]).filter(function(l){return l.stock_item_id===itemId;});}
+// ids de todos los equipos de una venta (vendidos + alquilados)
+function equiposVentaChile(ventaId){
+  var ids=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  alqLinksVentaChile(ventaId).forEach(function(l){if(ids.indexOf(l.stock_item_id)===-1)ids.push(l.stock_item_id);});
+  return ids;
+}
+// Facturas (ventas_chile) vinculadas a un equipo: venta definitiva + alquileres
+function facturasDeEquipoChile(it){
+  var vs=[];
+  alqLinksItemChile(it.id).forEach(function(l){var v=(C.ventas_chile||[]).find(function(x){return x.id===l.venta_id;});if(v)vs.push(v);});
+  if(it.venta_id){var v=(C.ventas_chile||[]).find(function(x){return x.id===it.venta_id;});if(v&&vs.indexOf(v)===-1)vs.push(v);}
+  return vs.sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+}
+// Recalcula el estado de los equipos segun sus vinculos de alquiler, leyendo
+// la base (no la cache) para no pisar cambios hechos en la misma operacion.
+function recalcEstadoAlquilerChile(itemIds){
+  itemIds=(itemIds||[]).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+  if(!itemIds.length)return Promise.resolve();
+  var lista=itemIds.join(',');
+  return Promise.all([
+    sbGet('stock_items_chile','select=id,estado,venta_id&id=in.('+lista+')'),
+    sbGet('stock_alquileres_chile','select=stock_item_id&stock_item_id=in.('+lista+')')
+  ]).then(function(r){
+    var items=Array.isArray(r[0])?r[0]:[];
+    var con={};(Array.isArray(r[1])?r[1]:[]).forEach(function(x){con[x.stock_item_id]=true;});
+    var chain=Promise.resolve();
+    items.forEach(function(it){
+      if(it.venta_id||it.estado==='Baja'||it.estado==='Vendido')return;
+      var nuevo=con[it.id]?'En alquiler':(it.estado==='En alquiler'?'Disponible':it.estado);
+      if(nuevo!==it.estado)chain=chain.then(function(){return sbPatchStock('stock_items_chile',it.id,{estado:nuevo});});
+    });
+    return chain;
+  });
+}
+
+// Elegibles: los libres que no esten dados de baja ni vendidos (incluye los
+// "En alquiler"), mas los que ya pertenecen a ESTA venta.
 function stockElegibleVentaChile(){
   return (C.stock_items_chile||[]).filter(function(it){
     if(it.venta_id&&it.venta_id===editVentaIdChile)return true;
+    if(ventaStockSelChile.indexOf(it.id)>-1)return true;
     return !it.venta_id&&it.estado!=='Baja'&&it.estado!=='Vendido';
   });
 }
@@ -10694,8 +10763,10 @@ function filasStockVentaChile(){
   if(items.length===0)return '<div style="padding:14px;text-align:center;color:var(--text2);font-size:11px">'+(b?'Sin equipos que coincidan con la búsqueda':'No hay equipos disponibles en el stock')+'</div>';
   var h='';
   items.sort(function(a,b2){return (a.sku_leex||'').localeCompare(b2.sku_leex||'');});
+  var alq=esAlquilerChile(ventaTipoModalChile);
   items.forEach(function(it){
     var chk=ventaStockSelChile.indexOf(it.id)>-1;
+    var nAlq=alqLinksItemChile(it.id).filter(function(l){return l.venta_id!==editVentaIdChile;}).length;
     var costo=parseFloat(it.valor_costo_usd)||0;
     var costoTxt=(it.valor_costo_usd!=null&&it.valor_costo_usd!=='')?'$'+fmtN(costo):'s/c';
     var prc=ventaStockPreciosChile[it.id];
@@ -10707,8 +10778,9 @@ function filasStockVentaChile(){
       '<span style="font-family:monospace;color:var(--text2)">'+escapeHtml(it.sn||'—')+'</span>'+
       '<span style="color:var(--text2);min-width:66px;text-align:right" title="costo">'+costoTxt+'</span>'+
       estadoStockBadgeChile(it.estado)+
-      (chk?'<input type="number" step="0.01" min="0" placeholder="precio venta" value="'+(prc!=null&&prc!==''?prc:'')+'" oninput="setPrecioStockVentaChile('+it.id+',this.value)" style="width:104px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;outline:none"/>':'')+
-      (chk?'<span id="vGanChile-'+it.id+'" style="min-width:80px;text-align:right;font-weight:600;color:'+((prc>0&&prc-costo<0)?'var(--red)':'var(--green)')+'">'+ganTxt+'</span>':'')+
+      (nAlq>0?'<span class="badge bb" title="Facturas de alquiler previas">🧾 '+nAlq+' fact.</span>':'')+
+      (chk&&!alq?'<input type="number" step="0.01" min="0" placeholder="precio venta" value="'+(prc!=null&&prc!==''?prc:'')+'" oninput="setPrecioStockVentaChile('+it.id+',this.value)" style="width:104px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:5px;font-size:11px;outline:none"/>':'')+
+      (chk&&!alq?'<span id="vGanChile-'+it.id+'" style="min-width:80px;text-align:right;font-weight:600;color:'+((prc>0&&prc-costo<0)?'var(--red)':'var(--green)')+'">'+ganTxt+'</span>':'')+
     '</div>';
   });
   return h;
@@ -10716,6 +10788,10 @@ function filasStockVentaChile(){
 
 function resumenStockVentaChile(){
   var sel=ventaStockSelChile;
+  if(esAlquilerChile(ventaTipoModalChile)){
+    if(sel.length===0)return '🔁 Alquiler · elegí el/los equipo(s) alquilado(s). Quedan <b>En alquiler</b> (no se venden) y pueden repetirse en cada factura mensual.';
+    return '<span style="color:var(--cyan);font-weight:600">🔁 '+sel.length+' equipo'+(sel.length===1?'':'s')+' en alquiler</span> · se vinculan a esta factura sin darlos de baja';
+  }
   if(sel.length===0)return 'Ningún equipo seleccionado · la venta se guarda igual';
   var tv=0,tc=0,sinCosto=0;
   sel.forEach(function(id){
@@ -10755,13 +10831,40 @@ function renderSelectorStockVentaChile(){
 }
 
 // Aplica la diferencia entre lo que la venta tenia y lo que quedo seleccionado.
-function sincronizarStockVentaChile(ventaId,sel,precios){
+function sincronizarAlquilerVentaChile(ventaId,sel){
+  var antes=alqLinksVentaChile(ventaId).map(function(l){return l.stock_item_id;});
+  // si la factura antes era de otro tipo, se liberan los equipos que habia vendido
+  var vendidosAca=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;}).map(function(it){return it.id;});
+  var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
+  var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
+  var chain=Promise.resolve();
+  vendidosAca.forEach(function(itemId){
+    chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
+  });
+  if(agregar.length){
+    chain=chain.then(function(){
+      return sbPost('stock_alquileres_chile',agregar.map(function(id){return {venta_id:ventaId,stock_item_id:id};})).then(function(res){
+        if(res&&res.code)throw new Error(res.message);
+      });
+    });
+  }
+  quitar.forEach(function(itemId){
+    chain=chain.then(function(){return fetch(SB_URL+'/rest/v1/stock_alquileres_chile?venta_id=eq.'+ventaId+'&stock_item_id=eq.'+itemId,{method:'DELETE',headers:sbH()});});
+  });
+  return chain.then(function(){return recalcEstadoAlquilerChile(agregar.concat(quitar,vendidosAca));})
+    .then(function(){return {agregados:0,liberados:quitar.length,alquilados:agregar.length};});
+}
+
+function sincronizarStockVentaChile(ventaId,sel,precios,tipo){
   if(!ventaId)return Promise.resolve({agregados:0,liberados:0});
+  if(esAlquilerChile(tipo))return sincronizarAlquilerVentaChile(ventaId,sel);
   var itemsAntes=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===ventaId;});
   var antes=itemsAntes.map(function(it){return it.id;});
   var agregar=sel.filter(function(x){return antes.indexOf(x)===-1;});
   var quitar=antes.filter(function(x){return sel.indexOf(x)===-1;});
-  var chain=Promise.resolve();
+  // si la factura antes era de Alquiler, se borran esos vinculos
+  var alqPrev=alqLinksVentaChile(ventaId).map(function(l){return l.stock_item_id;});
+  var chain=alqPrev.length?sbDeleteWhere('stock_alquileres_chile','venta_id',ventaId):Promise.resolve();
   agregar.forEach(function(itemId){
     chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{estado:'Vendido',venta_id:ventaId,precio_venta_usd:precios[itemId]||null});});
   });
@@ -10776,14 +10879,16 @@ function sincronizarStockVentaChile(ventaId,sel,precios){
   quitar.forEach(function(itemId){
     chain=chain.then(function(){return sbPatchStock('stock_items_chile',itemId,{estado:'Disponible',venta_id:null,precio_venta_usd:null});});
   });
+  // los que quedaron libres pero siguen con otros alquileres vuelven a "En alquiler"
+  chain=chain.then(function(){return recalcEstadoAlquilerChile(quitar.concat(alqPrev.filter(function(x){return sel.indexOf(x)===-1;})));});
   return chain.then(function(){return {agregados:agregar.length,liberados:quitar.length};});
 }
 
 // Texto para el toast posterior al guardado
 function resumenSyncStockChile(r){
   var p=[];
-  if(r.agregados)p.push(r.agregados+' equipo'+(r.agregados===1?'':'s')+' marcado'+(r.agregados===1?'':'s')+' como Vendido');
-  if(r.liberados)p.push(r.liberados+' liberado'+(r.liberados===1?'':'s')+' a Disponible');
+  if(r.agregados)p.push(r.agregados+' equipo'+(r.agregados===1?'':'s')+' marcado'+(r.agregados===1?'':'s')+' como Vendido');  if(r.alquilados)p.push(r.alquilados+' equipo'+(r.alquilados===1?'':'s')+' vinculado'+(r.alquilados===1?'':'s')+' en alquiler');
+  if(r.liberados)p.push(r.liberados+' desvinculado'+(r.liberados===1?'':'s'));
   return p.length?' · '+p.join(' · '):'';
 }
 // ============================================================
@@ -10792,7 +10897,7 @@ function resumenSyncStockChile(r){
 function abrirModalVentaChile(id){
   editVentaIdChile=id;
   // precargar los equipos ya vinculados a esta venta (vacio en el alta)
-  ventaStockSelChile=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===id;}).map(function(it){return it.id;});
+  ventaStockSelChile=id?equiposVentaChile(id):[];
   ventaStockPreciosChile={};
   (C.stock_items_chile||[]).forEach(function(it){if(it.venta_id===id&&it.precio_venta_usd!=null)ventaStockPreciosChile[it.id]=parseFloat(it.precio_venta_usd)||0;});
   ventaStockBuscaChile='';
@@ -10802,6 +10907,7 @@ function abrirModalVentaChile(id){
     fecha_vencimiento:'',estado_entrega:'Pendiente',
     observacion:'',url:''
   }:(C.ventas_chile||[]).find(function(x){return x.id===id;})||{};
+  ventaTipoModalChile=v.tipo_operacion||'';
 
   var monedas=C.cfg_listas.moneda_cliente||['USD','CLP','ARS'];
   var tiposOp=C.cfg_listas.tipo_op_venta||['Producto','Servicio','Demo','Alquiler','Leasing'];
@@ -10828,7 +10934,7 @@ function abrirModalVentaChile(id){
     '</div>'+
     '<div class="fg3" style="margin-bottom:14px">'+
     '<div class="f"><label>Número de factura</label><input type="text" id="vNumFCh" value="'+escapeHtml(v.numero_factura||'')+'"/></div>'+
-    '<div class="f"><label>Tipo de operación</label><select id="vTipoOpCh">'+opts(tiposOp,v.tipo_operacion)+'</select></div>'+
+    '<div class="f"><label>Tipo de operación</label><select id="vTipoOpCh" onchange="ventaTipoModalChile=this.value;renderSelectorStockVentaChile()">'+opts(tiposOp,v.tipo_operacion)+'</select></div>'+
     '<div class="f"><label>Vencimiento</label><input type="date" id="vVtoCh" value="'+(v.fecha_vencimiento||'')+'"/></div>'+
     '</div>'+
 
@@ -10869,7 +10975,7 @@ function cerrarModalVentaChile(){
   var m=document.getElementById('modalVentaCh');
   if(m){m.style.display='none';m.innerHTML='';}
   editVentaIdChile=null;
-  ventaStockSelChile=[];ventaStockBuscaChile='';ventaStockPreciosChile={};
+  ventaStockSelChile=[];ventaStockBuscaChile='';ventaStockPreciosChile={};ventaTipoModalChile='';
 }
 
 function calcImporteUSDChileVentaChile(){
@@ -10899,7 +11005,8 @@ function guardarVentaChile(keepOpen){
   if(imp<=0){toast('El importe debe ser mayor a 0','error');return;}
   if(iva<0){toast('El IVA no puede ser negativo','error');return;}
   if(mon!=='USD'&&tc<=0){toast('Para moneda '+mon+' necesitás un tipo de cambio','error');return;}
-  for(var _i=0;_i<ventaStockSelChile.length;_i++){if(!(parseFloat(ventaStockPreciosChile[ventaStockSelChile[_i]])>0)){toast('Poné el precio de venta de todos los equipos seleccionados','error');return;}}
+  var _tipoOp=document.getElementById('vTipoOpCh').value||'';
+  if(!esAlquilerChile(_tipoOp)){for(var _i=0;_i<ventaStockSelChile.length;_i++){if(!(parseFloat(ventaStockPreciosChile[ventaStockSelChile[_i]])>0)){toast('Poné el precio de venta de todos los equipos seleccionados','error');return;}}}
 
   var payload={
     fecha:document.getElementById('vFCh').value,
@@ -10922,7 +11029,7 @@ function guardarVentaChile(keepOpen){
     sbPost('ventas_chile',payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
       var creada=Array.isArray(res)?res[0]:res;
-      return sincronizarStockVentaChile(creada&&creada.id,selNueva,ventaStockPreciosChile).then(function(r){
+      return sincronizarStockVentaChile(creada&&creada.id,selNueva,ventaStockPreciosChile,payload.tipo_operacion).then(function(r){
         toast('Venta creada'+resumenSyncStockChile(r),'success');
         if(keepOpen){
           cerrarModalVentaChile();
@@ -10938,7 +11045,7 @@ function guardarVentaChile(keepOpen){
     var idEdit=editVentaIdChile;
     sbPatch('ventas_chile',editVentaIdChile,payload).then(function(res){
       if(res&&res.code){toast('Error: '+res.message,'error');return;}
-      return sincronizarStockVentaChile(idEdit,selEdit,ventaStockPreciosChile).then(function(r){
+      return sincronizarStockVentaChile(idEdit,selEdit,ventaStockPreciosChile,payload.tipo_operacion).then(function(r){
         toast('Venta actualizada'+resumenSyncStockChile(r),'success');
         cerrarModalVentaChile();reload('chile');
       });
@@ -10950,8 +11057,10 @@ function deleteVentaChile(id){
   var v=(C.ventas_chile||[]).find(function(x){return x.id===id;});
   if(!v)return;
   var equipos=(C.stock_items_chile||[]).filter(function(it){return it.venta_id===id;});
+  var alqIds=alqLinksVentaChile(id).map(function(l){return l.stock_item_id;});
   var avisoEq=equipos.length?
     '\n📦 '+equipos.length+' equipo(s) del stock vuelven a Disponible.':'';
+  if(alqIds.length)avisoEq+='\n🔁 Se desvincula(n) '+alqIds.length+' equipo(s) en alquiler (siguen En alquiler si tienen otras facturas).';
   var imps=imputacionesDeVentaChile(id);
   if(imps.length>0){
     if(!confirm('⚠️ Esta venta tiene '+imps.length+' imputación(es) de cobros.\nAl eliminarla, esas imputaciones se borran y los cobros pasarán a tener saldo no aplicado.'+avisoEq+'\n\n¿Continuar?'))return;
@@ -10974,6 +11083,10 @@ function deleteVentaChile(id){
         equipos.forEach(function(it){
           libera=libera.then(function(){return sbPatchStock('stock_items_chile',it.id,{estado:'Disponible',venta_id:null});});
         });
+        if(alqIds.length){
+          libera=libera.then(function(){return sbDeleteWhere('stock_alquileres_chile','venta_id',id);})
+            .then(function(){return recalcEstadoAlquilerChile(alqIds);});
+        }
         libera.then(function(){
           sbDelete('ventas_chile',id).then(function(){
             toast('Venta eliminada'+(equipos.length?' · '+equipos.length+' equipo(s) liberado(s)':''),'success');reload('chile');
